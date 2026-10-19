@@ -1,6 +1,7 @@
 // Dependency-free BM25 over notes. Small corpora (thousands of notes) index in milliseconds,
 // which keeps the per-prompt hook fast without native modules.
 
+import { CONCEPT_PREFIX, conceptTokens } from './concepts.js';
 import type { Note } from './note.js';
 
 const STOPWORDS = new Set(
@@ -30,7 +31,8 @@ export function tokenize(text: string): string[] {
 export interface Hit {
   note: Note;
   score: number; // BM25, for ranking only: it is not comparable across corpora of different sizes
-  matched: number; // distinct query terms found in the note
+  matched: number; // distinct query terms found in the note, concepts included
+  concepts: number; // of those, shared concepts (see concepts.ts)
 }
 
 export class NoteIndex {
@@ -41,7 +43,8 @@ export class NoteIndex {
   constructor(notes: Note[]) {
     for (const note of notes) {
       // Topics are weighted by repeating them: they are the note's own summary of what it is about.
-      const tokens = tokenize(`${note.body} ${note.topics.join(' ')} ${note.topics.join(' ')}`);
+      const text = `${note.body} ${note.topics.join(' ')}`;
+      const tokens = [...tokenize(`${text} ${note.topics.join(' ')}`), ...conceptTokens(text)];
       const tf = new Map<string, number>();
       for (const t of tokens) tf.set(t, (tf.get(t) ?? 0) + 1);
       for (const t of tf.keys()) this.df.set(t, (this.df.get(t) ?? 0) + 1);
@@ -51,7 +54,7 @@ export class NoteIndex {
   }
 
   search(query: string, limit = 5, filter?: (n: Note) => boolean): Hit[] {
-    const terms = [...new Set(tokenize(query))];
+    const terms = [...new Set([...tokenize(query), ...conceptTokens(query)])];
     const N = this.docs.length;
     const k1 = 1.2;
     const b = 0.75;
@@ -60,15 +63,17 @@ export class NoteIndex {
       if (filter && !filter(d.note)) continue;
       let score = 0;
       let matched = 0;
+      let concepts = 0;
       for (const t of terms) {
         const f = d.tf.get(t);
         if (!f) continue;
         matched++;
+        if (t.startsWith(CONCEPT_PREFIX)) concepts++;
         const df = this.df.get(t) ?? 0;
         const idf = Math.log(1 + (N - df + 0.5) / (df + 0.5));
         score += (idf * f * (k1 + 1)) / (f + k1 * (1 - b + (b * d.len) / this.avgLen));
       }
-      if (matched > 0) hits.push({ note: d.note, score, matched });
+      if (matched > 0) hits.push({ note: d.note, score, matched, concepts });
     }
     return hits.sort((x, y) => y.score - x.score).slice(0, limit);
   }
