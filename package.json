@@ -1,0 +1,29 @@
+{
+  "name": "headsup-ai",
+  "version": "0.0.1",
+  "description": "Gives your AI a heads-up before it answers.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "headsup": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsup src/cli.ts --format esm --target node22 --clean",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsup": "^9.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}

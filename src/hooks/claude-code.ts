@@ -1,0 +1,120 @@
+// Claude Code UserPromptSubmit hook. Hooks cannot ask the user anything themselves, so notes that
+// need approval are announced by topic only; Claude asks, and the user's next message decides.
+
+import { agentName } from '../agents.js';
+import type { Config } from '../config.js';
+import { readAgentContext, readTranscript } from '../context.js';
+import { detect, type Decision } from '../gap.js';
+import type { Note } from '../note.js';
+import type { Store } from '../store.js';
+
+export interface UserPromptSubmitInput {
+  session_id: string;
+  transcript_path?: string;
+  cwd: string;
+  prompt: string;
+}
+
+export interface HookOutput {
+  systemMessage?: string;
+  hookSpecificOutput?: { hookEventName: 'UserPromptSubmit'; additionalContext: string };
+}
+
+const AGENT = 'claude-code';
+const APPROVE = /^\s*(?:y|yes|yep|sure|ok(?:ay)?|share(?:\s+(?:them|it))?|go ahead|include (?:them|it)|응|네|예|좋아|공유)\b/i;
+const DECLINE = /^\s*(?:n|no|nope|don'?t|skip|keep (?:them|it) (?:private|home)|아니|괜찮아|공유하지)/i;
+
+export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Store, config: Config): HookOutput | null {
+  const notes = store.list();
+  const pending = store.readPending(input.session_id);
+  if (pending.length) {
+    store.writePending(input.session_id, []);
+    const waiting = notes.filter((n) => pending.includes(n.id));
+    if (APPROVE.test(input.prompt) && waiting.length) {
+      store.log({ event: 'shared-after-ask', agent: AGENT, session: input.session_id, notes: waiting.map((n) => n.id) });
+      return output(`shared ${count(waiting.length, 'note')} you approved`, renderNotes(waiting));
+    }
+    if (DECLINE.test(input.prompt)) {
+      store.log({ event: 'declined', agent: AGENT, session: input.session_id, notes: pending });
+      return null;
+    }
+  }
+
+  const decision = detect({
+    prompt: input.prompt,
+    agent: AGENT,
+    cwd: input.cwd,
+    knownText: `${readAgentContext(AGENT, input.cwd)}\n${readTranscript(input.transcript_path)}`,
+    notes,
+    config,
+  });
+  logDecision(store, input, decision);
+  if (decision.ask.length) store.writePending(input.session_id, decision.ask.map((n) => n.id));
+
+  const context = [
+    decision.inject.length ? renderNotes(decision.inject) : '',
+    decision.ask.length ? renderAsk(decision.ask) : '',
+  ].filter(Boolean).join('\n\n');
+  const message = renderMessage(decision, config);
+  return message || context ? output(message, context) : null;
+}
+
+function output(message: string, context: string): HookOutput {
+  return {
+    ...(message ? { systemMessage: `◆ heads-up · ${message}` } : {}),
+    ...(context ? { hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: context } } : {}),
+  };
+}
+
+const count = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+const typeLabel = (n: Note) => (n.type === 'how' ? 'how you work' : 'fact');
+const about = (n: Note) => (n.topics.length ? n.topics.join(', ') : n.body.split(/\s+/).slice(0, 4).join(' ') + '…');
+
+function origin(notes: Note[]): string {
+  const groups = [...new Set(notes.map((n) => `${agentName(n.source)} · ${n.space}`))];
+  return groups.length === 1 ? groups[0]! : `${groups.length} places`;
+}
+
+function renderNotes(notes: Note[]): string {
+  return [
+    '[headsup] Notes the user saved while working in their other AI tools. They look relevant to this request.',
+    'Use them where they help. Do not mention headsup unless the user asks.',
+    ...notes.map((n) => `- (${typeLabel(n)} · from ${agentName(n.source)}, ${n.space} space) ${n.body}`),
+  ].join('\n');
+}
+
+function renderAsk(notes: Note[]): string {
+  const topics = notes.map(about).join('; ');
+  return [
+    `[headsup] ${count(notes.length, 'note')} from the user's ${notes[0]!.space} space might help, about: ${topics}.`,
+    'Their content was NOT shared: the user asked to approve notes that cross into this space.',
+    'Before answering, ask the user in one short sentence whether to include them, naming only those topics.',
+    'If they say yes, headsup adds the notes to their next message.',
+  ].join('\n');
+}
+
+function renderMessage(d: Decision, config: Config): string {
+  const parts: string[] = [];
+  if (d.inject.length) parts.push(`added ${count(d.inject.length, 'note')} from ${origin(d.inject)}`);
+  if (d.ask.length) parts.push(`${count(d.ask.length, `${d.ask[0]!.space} note`)} waiting for your OK (${d.ask.map(about).join(', ')})`);
+  if (d.blocked.length) {
+    parts.push(`${count(d.blocked.length, `${d.blocked[0]!.space} note`)} stayed home (${d.blocked.map(about).join(', ')}) · preset: ${config.preset}`);
+  }
+  return parts.join(' · ');
+}
+
+function logDecision(store: Store, input: UserPromptSubmitInput, d: Decision): void {
+  if (!d.inject.length && !d.ask.length && !d.blocked.length && !d.skippedKnown.length) return;
+  store.log({
+    event: 'heads-up',
+    agent: AGENT,
+    session: input.session_id,
+    targetSpace: d.targetSpace,
+    prompt: input.prompt.slice(0, 200),
+    signals: d.signals,
+    injected: d.inject.map((n) => n.id),
+    asked: d.ask.map((n) => n.id),
+    blocked: d.blocked.map((n) => n.id),
+    skippedKnown: d.skippedKnown.map((n) => n.id),
+  });
+}
