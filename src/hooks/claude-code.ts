@@ -70,16 +70,19 @@ const count = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const typeLabel = (n: Note) => (n.type === 'how' ? 'how you work' : 'fact');
 const about = (n: Note) => (n.topics.length ? n.topics.join(', ') : n.body.split(/\s+/).slice(0, 4).join(' ') + '…');
 
+// "Codex", or "Claude Code (quorum)" when the note comes from another project in the same tool.
+const from = (n: Note) => (n.source === AGENT && n.project ? `${agentName(n.source)} (${n.project})` : agentName(n.source));
+
 function origin(notes: Note[]): string {
-  const groups = [...new Set(notes.map((n) => `${agentName(n.source)} · ${n.space}`))];
+  const groups = [...new Set(notes.map((n) => `${from(n)} · ${n.space}`))];
   return groups.length === 1 ? groups[0]! : `${groups.length} places`;
 }
 
 function renderNotes(notes: Note[]): string {
   return [
-    '[headsup] Notes the user saved while working in their other AI tools. They look relevant to this request.',
+    '[headsup] Notes the user saved while working in their other AI tools and projects. They look relevant to this request.',
     'Use them where they help. Do not mention headsup unless the user asks.',
-    ...notes.map((n) => `- (${typeLabel(n)} · from ${agentName(n.source)}, ${n.space} space) ${n.body}`),
+    ...notes.map((n) => `- (${typeLabel(n)} · from ${from(n)}, ${n.space} space) ${n.body}`),
   ].join('\n');
 }
 

@@ -13,7 +13,8 @@ interface HookEntry {
 }
 type Settings = { hooks?: Record<string, HookEntry[]> } & Record<string, unknown>;
 
-const EVENT = 'UserPromptSubmit';
+// UserPromptSubmit adds context; SessionEnd starts capture. Same command, dispatched on the payload.
+const EVENTS = ['UserPromptSubmit', 'SessionEnd'] as const;
 const OURS = /\bheadsup\b.*\bhook claude-code\b/;
 
 export function claudeSettingsPath(): string {
@@ -52,29 +53,36 @@ const withoutOurs = (entries: HookEntry[]) =>
     .map((e) => ({ ...e, hooks: e.hooks.filter((h) => !OURS.test(h.command)) }))
     .filter((e) => e.hooks.length);
 
+const ours = (settings: Settings, event: string) =>
+  (settings.hooks?.[event] ?? []).flatMap((e) => e.hooks).find((h) => OURS.test(h.command));
+
 export function isInstalled(path = claudeSettingsPath()): boolean {
-  return (read(path).hooks?.[EVENT] ?? []).some((e) => e.hooks.some((h) => OURS.test(h.command)));
+  const settings = read(path);
+  return EVENTS.every((event) => ours(settings, event));
 }
 
 export function installClaudeHook(command: string, path = claudeSettingsPath()): 'added' | 'updated' | 'unchanged' {
   const settings = read(path);
-  const entries = settings.hooks?.[EVENT] ?? [];
-  const existing = entries.flatMap((e) => e.hooks).find((h) => OURS.test(h.command));
-  if (existing?.command === command) return 'unchanged';
-  const hook = { type: 'command', command, timeout: 5 };
-  settings.hooks = { ...settings.hooks, [EVENT]: [...withoutOurs(entries), { hooks: [hook] }] };
+  const before = EVENTS.map((event) => ours(settings, event)?.command);
+  if (before.every((c) => c === command)) return 'unchanged';
+  const hooks = { ...settings.hooks };
+  for (const event of EVENTS) {
+    hooks[event] = [...withoutOurs(hooks[event] ?? []), { hooks: [{ type: 'command', command, timeout: 5 }] }];
+  }
+  settings.hooks = hooks;
   write(path, settings);
-  return existing ? 'updated' : 'added';
+  return before.some(Boolean) ? 'updated' : 'added';
 }
 
 export function uninstallClaudeHook(path = claudeSettingsPath()): boolean {
   const settings = read(path);
-  const entries = settings.hooks?.[EVENT];
-  if (!entries || !isInstalled(path)) return false;
-  const rest = withoutOurs(entries);
+  if (!EVENTS.some((event) => ours(settings, event))) return false;
   const hooks = { ...settings.hooks };
-  if (rest.length) hooks[EVENT] = rest;
-  else delete hooks[EVENT];
+  for (const event of EVENTS) {
+    const rest = withoutOurs(hooks[event] ?? []);
+    if (rest.length) hooks[event] = rest;
+    else delete hooks[event];
+  }
   if (Object.keys(hooks).length) settings.hooks = hooks;
   else delete settings.hooks;
   write(path, settings);

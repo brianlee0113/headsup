@@ -7,6 +7,7 @@ export interface Note {
   type: NoteType;
   space: string;
   source: string; // agent that produced it: claude-code, codex, chatgpt, ...
+  project?: string; // repo or folder it was captured in, when known
   topics: string[];
   created: string; // ISO date
   share?: 'never' | 'always';
@@ -17,6 +18,7 @@ const LIST_KEYS = new Set(['topics']);
 
 export function serializeNote(note: Note): string {
   const lines = ['---', `id: ${note.id}`, `type: ${note.type}`, `space: ${note.space}`, `source: ${note.source}`];
+  if (note.project) lines.push(`project: ${note.project}`);
   if (note.topics.length) lines.push(`topics: [${note.topics.join(', ')}]`);
   lines.push(`created: ${note.created}`);
   if (note.share) lines.push(`share: ${note.share}`);
@@ -46,6 +48,7 @@ export function parseNote(text: string): Note {
     type,
     space: str('space') || 'personal',
     source: str('source') || 'unknown',
+    ...(str('project') ? { project: str('project') } : {}),
     topics: (fields.topics as string[] | undefined) ?? [],
     created: str('created'),
     ...(share === 'never' || share === 'always' ? { share } : {}),

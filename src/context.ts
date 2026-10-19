@@ -2,7 +2,7 @@
 
 import { existsSync, readFileSync, statSync, openSync, readSync, closeSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 
 const CONTEXT_FILES: Record<string, string[]> = {
   'claude-code': ['CLAUDE.md', 'CLAUDE.local.md', '.claude/CLAUDE.md'],
@@ -68,5 +68,16 @@ function collectText(value: unknown, out: string[]): void {
       if ((k === 'text' || k === 'content') && typeof v === 'string') out.push(v);
       else collectText(v, out);
     }
+  }
+}
+
+// The repo a folder belongs to (nearest .git up the tree), else the folder itself.
+export function projectOf(cwd: string): string {
+  let dir = resolve(cwd);
+  for (;;) {
+    if (existsSync(join(dir, '.git'))) return basename(dir);
+    const parent = dirname(dir);
+    if (parent === dir || dir === homedir()) return basename(resolve(cwd)) || 'home';
+    dir = parent;
   }
 }

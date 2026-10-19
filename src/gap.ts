@@ -4,6 +4,7 @@
 
 import { conceptsOf, TOPIC_CONCEPTS } from './concepts.js';
 import { resolveSpace, type Config } from './config.js';
+import { projectOf } from './context.js';
 import type { Note } from './note.js';
 import { verdictFor } from './policy.js';
 import { NoteIndex, tokenize, type Hit } from './search.js';
@@ -94,7 +95,10 @@ export function detect(input: DetectInput): Decision {
   const signals: Signals = { references: findReferences(prompt), usageMismatch: findUsageMismatch(prompt, agent, config) };
   const empty: Decision = { targetSpace, signals, inject: [], ask: [], blocked: [], skippedKnown: [] };
 
-  const others = input.notes.filter((n) => n.source !== agent);
+  // An agent's own notes come back only from other projects: a quorum note can help in northwind,
+  // but echoing a project's own sessions into it is noise (that belongs in its CLAUDE.md).
+  const project = projectOf(input.cwd);
+  const others = input.notes.filter((n) => n.source !== agent || (n.project !== undefined && n.project !== project));
   if (!others.length) return empty;
 
   const usual = new Set(signals.usageMismatch?.usualAgents ?? []);

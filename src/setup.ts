@@ -126,9 +126,10 @@ export async function runSetup(io: SetupIO, opts: SetupOptions): Promise<Config>
   saveConfig(config, opts.home);
 
   const command = opts.command ?? hookCommand();
-  io.print(`${c.bold('Connect Claude Code')}  ${c.dim(`adds one UserPromptSubmit hook to ${tilde(settingsPath)}`)}`);
+  io.print(`${c.bold('Connect Claude Code')}  ${c.dim(`adds UserPromptSubmit + SessionEnd hooks to ${tilde(settingsPath)}`)}`);
   io.print(c.dim(`  command: ${command}`));
-  io.print(c.dim('  Only headsup\'s own entry is touched; a backup is saved first. Undo with: headsup uninstall'));
+  io.print(c.dim('  At the end of a session headsup saves a few notes, summarized by your own `claude` login.'));
+  io.print(c.dim('  Only headsup\'s own entries are touched; a backup is saved first. Undo with: headsup uninstall'));
   if (yes(await io.ask('  Add it? [Y/n] '), true)) {
     const result = installClaudeHook(command, settingsPath);
     io.print(`  ${c.green('✓')} hook ${result}`);

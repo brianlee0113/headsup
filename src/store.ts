@@ -10,6 +10,7 @@ export interface NewNote {
   source: string;
   body: string;
   topics?: string[];
+  project?: string;
 }
 
 export interface AddResult {
@@ -34,6 +35,7 @@ export class Store {
       type: input.type,
       space: input.space,
       source: input.source,
+      ...(input.project ? { project: input.project } : {}),
       topics: input.topics ?? [],
       created: now.toISOString(),
       body: text,
@@ -94,7 +96,25 @@ export class Store {
     else rmSync(this.pendingFile(sessionId), { force: true });
   }
 
+  // How many turns of a session were already captured, so a resumed session only adds what is new.
+  readCaptured(sessionId: string): number {
+    try {
+      return (JSON.parse(readFileSync(this.stateFile(sessionId, 'captured'), 'utf8')) as { turns: number }).turns;
+    } catch {
+      return 0;
+    }
+  }
+
+  writeCaptured(sessionId: string, turns: number): void {
+    mkdirSync(join(this.home, 'state'), { recursive: true });
+    writeFileSync(this.stateFile(sessionId, 'captured'), JSON.stringify({ turns }));
+  }
+
   private pendingFile(sessionId: string): string {
-    return join(this.home, 'state', `${sessionId.replace(/[^\w-]/g, '_')}.json`);
+    return this.stateFile(sessionId, 'json');
+  }
+
+  private stateFile(sessionId: string, ext: string): string {
+    return join(this.home, 'state', `${sessionId.replace(/[^\w-]/g, '_')}.${ext}`);
   }
 }

@@ -1,8 +1,10 @@
 #!/usr/bin/env node
+import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { parseArgs } from 'node:util';
 import { agentName } from './agents.js';
+import { capture, CAPTURING_ENV, claudeSummarizer } from './capture.js';
 import { headsupHome, loadConfig } from './config.js';
 import { handleUserPromptSubmit, type UserPromptSubmitInput } from './hooks/claude-code.js';
 import { claudeSettingsPath, uninstallClaudeHook } from './install.js';
@@ -22,7 +24,9 @@ const HELP = `headsup — gives your AI a heads-up before it answers
   headsup list
   headsup search <query>
   headsup log
-  headsup hook claude-code      (reads the UserPromptSubmit payload on stdin)
+  headsup capture --session <id> --transcript <path> --cwd <dir>
+                                save notes from a Claude Code session (SessionEnd runs this)
+  headsup hook claude-code      (reads a UserPromptSubmit or SessionEnd payload on stdin)
 
 Memory lives in ${headsupHome()}`;
 
@@ -74,6 +78,9 @@ async function main(argv: string[]): Promise<number> {
       space: { type: 'string' },
       source: { type: 'string', default: 'manual' },
       topics: { type: 'string' },
+      session: { type: 'string' },
+      transcript: { type: 'string' },
+      cwd: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
     },
   });
@@ -127,9 +134,38 @@ async function main(argv: string[]): Promise<number> {
       return 0;
     case 'hook': {
       if (rest[0] !== 'claude-code') throw new Error(`unknown hook target "${rest[0] ?? ''}"`);
-      const input = JSON.parse(await readStdin()) as UserPromptSubmitInput;
+      const input = JSON.parse(await readStdin()) as UserPromptSubmitInput & { hook_event_name?: string };
+      // The summarizer's own `claude -p` session must not inject or capture.
+      if (process.env[CAPTURING_ENV]) return 0;
+      if (input.hook_event_name === 'SessionEnd') {
+        // SessionEnd allows ~1.5s; summarizing takes longer, so it runs on after this process exits.
+        if (input.transcript_path) {
+          const args = ['capture', '--session', input.session_id, '--transcript', input.transcript_path, '--cwd', input.cwd];
+          spawn(process.execPath, [process.argv[1]!, ...args], { detached: true, stdio: 'ignore' }).unref();
+        }
+        return 0;
+      }
       const out = handleUserPromptSubmit(input, store, config);
       if (out) process.stdout.write(JSON.stringify(out));
+      return 0;
+    }
+    case 'capture': {
+      if (!values.session || !values.transcript || !values.cwd) throw new Error('capture needs --session, --transcript and --cwd');
+      const base = { session: values.session, cwd: values.cwd };
+      try {
+        const r = await capture(
+          { sessionId: values.session, transcriptPath: values.transcript, cwd: values.cwd, agent: 'claude-code' },
+          store,
+          config,
+          claudeSummarizer(),
+        );
+        store.log({ event: 'captured', ...base, saved: r.saved.map((n) => n.id), skipped: r.skipped, ...(r.reason ? { reason: r.reason } : {}) });
+        console.log(r.reason ?? `saved ${r.saved.length} notes, skipped ${r.skipped}`);
+        for (const n of r.saved) console.log(`  ${n.id}  ${n.type.padEnd(4)} ${n.body}`);
+      } catch (err) {
+        store.log({ event: 'capture-failed', ...base, error: err instanceof Error ? err.message : String(err) });
+        throw err;
+      }
       return 0;
     }
     default:
