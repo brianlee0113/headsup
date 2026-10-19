@@ -10,6 +10,7 @@ import { handleUserPromptSubmit, type UserPromptSubmitInput } from './hooks/clau
 import { claudeSettingsPath, uninstallClaudeHook } from './install.js';
 import type { NoteType } from './note.js';
 import { NoteIndex } from './search.js';
+import { importChatGPT } from './import/flow.js';
 import { runReview } from './review/tui.js';
 import { runSetup } from './setup.js';
 import { Store } from './store.js';
@@ -22,6 +23,8 @@ const HELP = `headsup — gives your AI a heads-up before it answers
   headsup setup                 connect Claude Code and choose what may be shared
   headsup uninstall             remove the Claude Code hook (your notes stay)
   headsup review                see what was shared where, and fix or delete notes
+  headsup import chatgpt <export.zip> [--since YYYY-MM-DD] [--limit N] [--space <space>] [--yes]
+                                turn your ChatGPT history into notes (default: the last 12 months)
   headsup add <text> --type how|fact --space <space> --source <agent> [--topics a,b]
   headsup list
   headsup search <query>
@@ -83,6 +86,9 @@ async function main(argv: string[]): Promise<number> {
       session: { type: 'string' },
       transcript: { type: 'string' },
       cwd: { type: 'string' },
+      since: { type: 'string' },
+      limit: { type: 'string' },
+      yes: { type: 'boolean', short: 'y' },
       help: { type: 'boolean', short: 'h' },
     },
   });
@@ -106,6 +112,41 @@ async function main(argv: string[]): Promise<number> {
     case 'review':
       await runReview(store, config, headsupHome());
       return 0;
+    case 'import': {
+      if (rest[0] !== 'chatgpt' || !rest[1]) throw new Error('usage: headsup import chatgpt <export.zip>');
+      const since = values.since ? new Date(values.since) : undefined;
+      if (since && Number.isNaN(since.getTime())) throw new Error('--since should look like 2025-06-01');
+      const lines = lineReader();
+      const tty = !!process.stdout.isTTY;
+      let midLine = false; // a progress line is showing and needs ending before the next print
+      try {
+        await importChatGPT(
+          {
+            ask: lines.ask,
+            print: (l = '') => {
+              if (midLine) process.stdout.write('\n');
+              midLine = false;
+              console.log(l);
+            },
+            // In a terminal the progress line rewrites itself; piped output gets a line per batch.
+            progress: (l) => (tty ? ((midLine = true), process.stdout.write(`\r\x1b[2K${l}`)) : console.log(l)),
+            color: tty && !process.env.NO_COLOR,
+          },
+          store,
+          {
+            path: rest[1],
+            space: values.space ?? config.defaultSpace,
+            ...(since ? { since } : {}),
+            ...(values.limit ? { limit: Number(values.limit) } : {}),
+            yes: !!values.yes,
+          },
+        );
+        if (midLine) process.stdout.write('\n');
+      } finally {
+        lines.close();
+      }
+      return 0;
+    }
     case 'uninstall':
       console.log(uninstallClaudeHook() ? `removed the headsup hook from ${claudeSettingsPath()}` : 'no headsup hook found');
       console.log(`notes are still in ${headsupHome()} — delete that folder to remove them too`);

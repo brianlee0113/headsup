@@ -5,7 +5,10 @@ import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { agentName } from './agents.js';
-import { loadConfig, saveConfig, type Config, type Preset } from './config.js';
+import type { Summarize } from './capture.js';
+import { expandHome, loadConfig, saveConfig, type Config, type Preset } from './config.js';
+import { importChatGPT } from './import/flow.js';
+import { Store } from './store.js';
 import { claudeSettingsPath, hookCommand, installClaudeHook } from './install.js';
 import { parseUsage, TOPIC_ALIASES } from './usage.js';
 
@@ -24,6 +27,13 @@ export interface SetupOptions {
   userHome?: string; // where agents are looked for
   command?: string; // hook command to register
   version: string;
+  importSummarize?: Summarize; // tests replace the model
+}
+
+// Paths dragged into a terminal arrive quoted or with escaped spaces.
+function unquotePath(raw: string): string {
+  const p = raw.trim().replace(/^(['"])(.*)\1$/, '$2').replace(/\\ /g, ' ');
+  return expandHome(p);
 }
 
 const paint = (on: boolean) => {
@@ -120,7 +130,20 @@ export async function runSetup(io: SetupIO, opts: SetupOptions): Promise<Config>
   io.print();
 
   io.print(`Step 5/5 ${c.bold('Bring existing memory')}  ${c.dim('(optional)')}`);
-  io.print(c.dim('  ChatGPT / Claude / Gemini export import is coming soon. Add notes now with: headsup add "…"'));
+  io.print(c.dim('  ChatGPT: Settings → Data controls → Export data, then drop the .zip from the email here.'));
+  io.print(c.dim('  Claude and Gemini exports: soon.'));
+  const exportPath = unquotePath(await io.ask(`  chatgpt export .zip ${c.dim('(enter to skip)')} `));
+  if (exportPath) {
+    try {
+      await importChatGPT({ ...io, progress: (l) => io.print(l) }, new Store(opts.home), {
+        path: exportPath,
+        space: config.defaultSpace,
+        ...(opts.importSummarize ? { summarize: opts.importSummarize } : {}),
+      });
+    } catch (err) {
+      io.print(c.dim(`  Couldn't import: ${err instanceof Error ? err.message : String(err)}. Try later with: headsup import chatgpt <file>`));
+    }
+  }
   io.print();
 
   saveConfig(config, opts.home);

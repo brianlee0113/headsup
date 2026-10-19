@@ -119,6 +119,20 @@ export class Store {
     writeFileSync(this.stateFile(sessionId, 'captured'), JSON.stringify({ turns }));
   }
 
+  // Ids already imported from an export, so a rerun (or a newer export) only adds what is new.
+  readImported(source: string): string[] {
+    try {
+      return (JSON.parse(readFileSync(this.stateFile(`import-${source}`, 'json'), 'utf8')) as { ids: string[] }).ids;
+    } catch {
+      return [];
+    }
+  }
+
+  writeImported(source: string, ids: string[]): void {
+    mkdirSync(join(this.home, 'state'), { recursive: true });
+    writeFileSync(this.stateFile(`import-${source}`, 'json'), JSON.stringify({ ids }));
+  }
+
   private pendingFile(sessionId: string): string {
     return this.stateFile(sessionId, 'json');
   }

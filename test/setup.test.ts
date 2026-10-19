@@ -98,7 +98,7 @@ describe('setup wizard', () => {
   };
 
   it('saves the profile, spaces and preset, then installs the hook', async () => {
-    const r = await run(['Claude for coding, ChatGPT for writing', '', '~/work, ~/clients', '1', 'y']);
+    const r = await run(['Claude for coding, ChatGPT for writing', '', '~/work, ~/clients', '1', '', 'y']);
     const config = loadConfig(r.home);
     expect(config.usage).toHaveLength(2);
     expect(config.spaces).toEqual([{ path: '~/work', space: 'work' }, { path: '~/clients', space: 'work' }]);
@@ -108,7 +108,7 @@ describe('setup wizard', () => {
   });
 
   it('lets the user edit the parsed profile and skip the hook', async () => {
-    const r = await run(['Claude for coding', 'e', 'ChatGPT for writing', '', '', '', 'n']);
+    const r = await run(['Claude for coding', 'e', 'ChatGPT for writing', '', '', '', '', 'n']);
     expect(r.prefills.slice(0, 3)).toEqual(['', '', 'Claude for coding']); // the edit starts from the last answer
     expect(loadConfig(r.home).usage).toEqual([{ agents: ['chatgpt'], topics: ['writing'] }]);
     expect(loadConfig(r.home).preset).toBe('balanced');

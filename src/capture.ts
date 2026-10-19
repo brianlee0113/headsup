@@ -63,7 +63,7 @@ export function readConversation(path: string): Turn[] {
   return turns;
 }
 
-function clip(text: string, max: number): string {
+export function clip(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max)}…` : text;
 }
 
@@ -109,7 +109,7 @@ Take notes from the conversation above. Output only the JSON array.`;
   return { system, user };
 }
 
-export function parseNotes(text: string): CapturedNote[] {
+export function parseNotes(text: string, max = MAX_NOTES): CapturedNote[] {
   const start = text.indexOf('[');
   const end = text.lastIndexOf(']');
   if (start < 0 || end <= start) return [];
@@ -123,7 +123,7 @@ export function parseNotes(text: string): CapturedNote[] {
   return raw
     .filter((n): n is { type: string; body: string; topics?: unknown } =>
       !!n && typeof n === 'object' && (n.type === 'how' || n.type === 'fact') && typeof n.body === 'string' && n.body.trim().length > 0)
-    .slice(0, MAX_NOTES)
+    .slice(0, max)
     .map((n) => ({
       type: n.type as NoteType,
       body: clip(n.body.trim(), MAX_BODY),
@@ -132,7 +132,7 @@ export function parseNotes(text: string): CapturedNote[] {
 }
 
 // The model is told to skip known notes; this catches the near-duplicates it lets through anyway.
-function duplicates(body: string, existing: Note[]): boolean {
+export function duplicates(body: string, existing: Note[]): boolean {
   const words = new Set(tokenize(body));
   if (!words.size) return true;
   return existing.some((n) => {
@@ -140,6 +140,27 @@ function duplicates(body: string, existing: Note[]): boolean {
     const shared = [...words].filter((w) => other.has(w)).length;
     return shared / Math.min(words.size, other.size || 1) >= 0.8;
   });
+}
+
+// Stores what the model found, dropping near-duplicates of existing notes and of each other.
+export function saveNotes(
+  found: CapturedNote[],
+  existing: Note[],
+  store: Store,
+  base: { space: string; source: string; project?: string },
+): { saved: Note[]; skipped: number } {
+  const saved: Note[] = [];
+  let skipped = 0;
+  for (const n of found) {
+    if (duplicates(n.body, [...existing, ...saved])) {
+      skipped++;
+      continue;
+    }
+    const { note } = store.add({ ...n, ...base });
+    if (note) saved.push(note);
+    else skipped++; // the whole note was a secret
+  }
+  return { saved, skipped };
 }
 
 export interface CaptureInput {
@@ -176,23 +197,13 @@ export async function capture(input: CaptureInput, store: Store, config: Config,
     return { saved: [], skipped: 0, reason: `model returned no JSON: ${clip(reply.replace(/\s+/g, ' '), 120)}` };
   }
 
-  const saved: Note[] = [];
-  let skipped = 0;
-  for (const n of found) {
-    if (duplicates(n.body, [...existing, ...saved])) {
-      skipped++;
-      continue;
-    }
-    const { note } = store.add({ ...n, space, source: input.agent, project });
-    if (note) saved.push(note);
-    else skipped++;
-  }
+  const { saved, skipped } = saveNotes(found, existing, store, { space, source: input.agent, project });
   store.writeCaptured(input.sessionId, turns.length);
   return { saved, skipped };
 }
 
 // `claude -p` with no tools, no saved session, and no user settings (so no hooks of any kind).
-export function claudeSummarizer(model = 'haiku'): Summarize {
+export function claudeSummarizer(model = 'haiku', onCost?: (usd: number) => void): Summarize {
   return (prompt) =>
     new Promise((resolve, reject) => {
       const child = spawn(
@@ -208,7 +219,9 @@ export function claudeSummarizer(model = 'haiku'): Summarize {
       child.on('close', (code) => {
         if (code !== 0) return reject(new Error(`claude exited ${code}: ${err.trim().slice(0, 200)}`));
         try {
-          resolve((JSON.parse(out) as { result?: string }).result ?? '');
+          const parsed = JSON.parse(out) as { result?: string; total_cost_usd?: number };
+          if (typeof parsed.total_cost_usd === 'number') onCost?.(parsed.total_cost_usd);
+          resolve(parsed.result ?? '');
         } catch {
           resolve(out);
         }
