@@ -23,7 +23,7 @@ const AGENT_ALIASES: Array<[string, string[]]> = [
   ['제미나이', ['gemini', 'gemini-cli']],
 ];
 
-const TOPIC_ALIASES: Record<string, string[]> = {
+export const TOPIC_ALIASES: Record<string, string[]> = {
   coding: ['coding', 'code', 'programming', 'development', 'dev', '코딩', '개발', '코드'],
   'side projects': ['side project', 'side projects', 'projects', 'project', '사이드 프로젝트', '프로젝트'],
   writing: ['writing', 'write', 'emails', 'posts', 'essays', '글쓰기', '글', '작문'],

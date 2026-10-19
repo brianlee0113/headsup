@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config.js';
 import { installClaudeHook, isInstalled, uninstallClaudeHook } from '../src/install.js';
-import { runSetup } from '../src/setup.js';
+import { runSetup, USAGE_EXAMPLE } from '../src/setup.js';
 import { parseUsage } from '../src/usage.js';
 
 const tmp = () => mkdtempSync(join(tmpdir(), 'headsup-'));
@@ -22,6 +22,13 @@ describe('usage profile', () => {
   it('reads Korean and agents that share topics', () => {
     expect(parseUsage('클로드랑 코덱스는 코딩, 챗GPT는 글쓰기나 일상')).toEqual([
       { agents: ['claude-code', 'claude-ai', 'codex'], topics: ['coding'] },
+      { agents: ['chatgpt'], topics: ['writing', 'everyday'] },
+    ]);
+  });
+
+  it('parses the example shown in setup', () => {
+    expect(parseUsage(USAGE_EXAMPLE)).toEqual([
+      { agents: ['claude-code'], topics: ['coding', 'side projects'] },
       { agents: ['chatgpt'], topics: ['writing', 'everyday'] },
     ]);
   });

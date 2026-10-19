@@ -7,7 +7,10 @@ import { join } from 'node:path';
 import { agentName } from './agents.js';
 import { loadConfig, saveConfig, type Config, type Preset } from './config.js';
 import { claudeSettingsPath, hookCommand, installClaudeHook } from './install.js';
-import { parseUsage } from './usage.js';
+import { parseUsage, TOPIC_ALIASES } from './usage.js';
+
+// Shown under the question; a test keeps it parseable.
+export const USAGE_EXAMPLE = 'Claude Code - coding, side projects · ChatGPT - writing, everyday';
 
 export interface SetupIO {
   ask(question: string, prefill?: string): Promise<string>; // prefill: editable starting text
@@ -66,6 +69,8 @@ export async function runSetup(io: SetupIO, opts: SetupOptions): Promise<Config>
 
   io.print(`Step 2/5 ${c.bold('How do you split your AI tools?')}  ${c.dim('(optional, recommended)')}`);
   io.print(c.dim('  In your own words — which AI do you use for what?'));
+  io.print(c.dim(`  e.g. ${USAGE_EXAMPLE}`));
+  io.print(c.dim(`  topics it knows: ${Object.keys(TOPIC_ALIASES).join(' · ')}`));
   let draft = '';
   for (;;) {
     // On [e] the previous answer comes back pre-typed, so a fix is a small edit, not a rewrite.
