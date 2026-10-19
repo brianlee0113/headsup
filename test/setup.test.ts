@@ -92,7 +92,7 @@ describe('setup wizard', () => {
     const prefills: string[] = [];
     await runSetup(
       { ask: async (q, prefill = '') => (out.push(q), prefills.push(prefill), queue.shift() ?? ''), print: (l = '') => out.push(l), color: false },
-      { home, settingsPath, userHome, command: CMD, version: '0.0.1' },
+      { home, settingsPath, userHome, command: CMD, version: '0.0.1', browserDirs: [] },
     );
     return { home, settingsPath, out: out.join('\n'), prefills };
   };
@@ -105,6 +105,17 @@ describe('setup wizard', () => {
     expect(config.preset).toBe('cautious');
     expect(isInstalled(r.settingsPath)).toBe(true);
     expect(r.out).toContain('Try it: ask Claude Code to do something you usually do in ChatGPT.');
+  });
+
+  it('connects installed browsers when asked', async () => {
+    const home = tmp();
+    const hostDir = join(tmp(), 'Google', 'Chrome', 'NativeMessagingHosts');
+    const answers = ['', '', '', '', 'n', 'y'];
+    await runSetup(
+      { ask: async () => answers.shift() ?? '', print: () => {}, color: false },
+      { home, settingsPath: join(tmp(), 'settings.json'), userHome: tmp(), command: CMD, version: '0.0.1', browserDirs: [hostDir] },
+    );
+    expect(existsSync(join(hostDir, 'ai.headsup.host.json'))).toBe(true);
   });
 
   it('lets the user edit the parsed profile and skip the hook', async () => {

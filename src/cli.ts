@@ -8,6 +8,8 @@ import { capture, CAPTURING_ENV, claudeSummarizer } from './capture.js';
 import { headsupHome, loadConfig } from './config.js';
 import { handleUserPromptSubmit, type UserPromptSubmitInput } from './hooks/claude-code.js';
 import { claudeSettingsPath, uninstallClaudeHook } from './install.js';
+import { browserHostDirs, encode, EXTENSION_ID, installNativeHost, readMessage, uninstallNativeHost } from './native.js';
+import { handleWeb, type WebRequest } from './web.js';
 import type { NoteType } from './note.js';
 import { NoteIndex } from './search.js';
 import { importChatGPT } from './import/flow.js';
@@ -21,7 +23,8 @@ const VERSION = (JSON.parse(readFileSync(new URL('../package.json', import.meta.
 const HELP = `headsup — gives your AI a heads-up before it answers
 
   headsup setup                 connect Claude Code and choose what may be shared
-  headsup uninstall             remove the Claude Code hook (your notes stay)
+  headsup connect-browser       let the Chrome extension reach headsup on this computer
+  headsup uninstall             remove the Claude Code hook and browser connection (your notes stay)
   headsup review                see what was shared where, and fix or delete notes
   headsup import chatgpt <export.zip> [--since YYYY-MM-DD] [--limit N] [--space <space>] [--yes]
                                 turn your ChatGPT history into notes (default: the last 12 months)
@@ -147,8 +150,28 @@ async function main(argv: string[]): Promise<number> {
       }
       return 0;
     }
+    case 'native-host': {
+      // Started by the browser. Every outcome, errors included, goes back as one framed reply.
+      let reply: unknown;
+      try {
+        reply = handleWeb((await readMessage(process.stdin)) as WebRequest, store, config, VERSION);
+      } catch (err) {
+        reply = { type: 'error', message: err instanceof Error ? err.message : String(err) };
+      }
+      process.stdout.write(encode(reply));
+      return 0;
+    }
+    case 'connect-browser': {
+      const dirs = browserHostDirs();
+      if (!dirs.length) throw new Error('no Chrome-family browser found (Chrome, Brave, Edge, Arc, Chromium)');
+      const r = installNativeHost(headsupHome(), dirs);
+      console.log(`connected ${r.manifests.length} browser${r.manifests.length === 1 ? '' : 's'} (extension ${EXTENSION_ID})`);
+      for (const m of r.manifests) console.log(`  ${m}`);
+      return 0;
+    }
     case 'uninstall':
       console.log(uninstallClaudeHook() ? `removed the headsup hook from ${claudeSettingsPath()}` : 'no headsup hook found');
+      console.log(`removed the browser connection from ${uninstallNativeHost()} browser(s)`);
       console.log(`notes are still in ${headsupHome()} — delete that folder to remove them too`);
       return 0;
     case 'add': {

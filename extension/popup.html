@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>headsup</title>
+<style>
+  :root { --bg:#ffffff; --border:#d9d7cf; --fg:#1b1c1f; --muted:#6b6d73; --amber:#a85f00; --how:#1f7a3e; --blocked:#b42318; --code:#fafaf7; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#212121; --border:#2a2c33; --fg:#e6e6e3; --muted:#8c8f96; --amber:#ffb224; --how:#4ade80; --blocked:#ff7a7a; --code:#0e0f12; }
+  }
+  body { margin: 0; width: 360px; background: var(--bg); color: var(--fg); font: 13px/18px ui-sans-serif, -apple-system, system-ui, sans-serif; }
+  main { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .head { display: flex; justify-content: space-between; align-items: center; }
+  .brand { font: 700 13px/18px ui-monospace, Menlo, monospace; color: var(--amber); }
+  .status { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+  .dot.ok { background: var(--how); } .dot.bad { background: var(--blocked); }
+  .muted { color: var(--muted); font-size: 12px; margin: 0; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 0; }
+  .section { font-size: 11px; letter-spacing: .06em; color: var(--muted); margin: 0; }
+  .row { display: flex; gap: 16px; justify-content: space-between; align-items: flex-start; }
+  .row b { font-weight: 500; display: block; }
+  .row.off { opacity: .55; }
+  .toggle { appearance: none; width: 32px; height: 18px; border-radius: 999px; background: var(--border); position: relative; cursor: pointer; flex: none; margin: 0; }
+  .toggle::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #e6e6e3; transition: left .15s; }
+  .toggle:checked { background: var(--amber); } .toggle:checked::after { left: 16px; }
+  .toggle:disabled { cursor: default; }
+  code { display: block; font: 12px/16px ui-monospace, Menlo, monospace; background: var(--code); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="head">
+    <span class="brand">◆ headsup</span>
+    <span class="status"><span class="dot" id="dot"></span><span id="status">Checking…</span></span>
+  </div>
+  <p class="muted" id="summary"></p>
+
+  <section id="connected" hidden>
+    <hr>
+    <p class="section" style="margin:14px 0 10px">ON THIS SITE</p>
+    <div class="row" id="site-row">
+      <span><b id="site-title">Add context on this site</b><span class="muted">Shows the ◆ mark when your notes can help.</span></span>
+      <input type="checkbox" class="toggle" id="site-toggle">
+    </div>
+    <hr style="margin-top:14px">
+    <p class="section" style="margin:14px 0 10px">KEEP IN SYNC</p>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="row off"><span><b>Capture new ChatGPT chats</b><span class="muted">Phone and desktop app chats too. Coming in the next update.</span></span><input type="checkbox" class="toggle" disabled></div>
+      <div class="row off"><span><b>Capture new Claude chats</b><span class="muted">claude.ai and the Claude apps. Coming in the next update.</span></span><input type="checkbox" class="toggle" disabled></div>
+      <div class="row off"><span><b>Keep "About me" in ChatGPT current</b><span class="muted">So the ChatGPT apps know how you work. Coming in the next update.</span></span><input type="checkbox" class="toggle" disabled></div>
+    </div>
+  </section>
+
+  <section id="unreachable" hidden style="display:flex;flex-direction:column;gap:10px">
+    <p style="margin:0">headsup isn't running on this computer, so nothing is being added right now.</p>
+    <code>npx headsup-ai connect-browser</code>
+    <p class="muted">That command lets this extension reach headsup. Your chats are untouched.</p>
+  </section>
+
+  <hr>
+  <p class="muted">Notes stay on this computer. See what was shared where: <span style="font-family:ui-monospace,Menlo,monospace">headsup review</span></p>
+</main>
+<script src="popup.js"></script>
+</body>
+</html>

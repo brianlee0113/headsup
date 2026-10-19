@@ -44,7 +44,8 @@ export interface Decision {
 export interface DetectInput {
   prompt: string;
   agent: string;
-  cwd: string;
+  cwd?: string; // terminal agents: the working folder decides the space and project
+  space?: string; // web: no folder, so the caller names the space
   knownText: string; // agent context files + current transcript
   notes: Note[];
   config: Config;
@@ -91,13 +92,13 @@ function relevantEnough(h: Hit, hasSignal: boolean): boolean {
 
 export function detect(input: DetectInput): Decision {
   const { prompt, agent, config } = input;
-  const targetSpace = resolveSpace(input.cwd, config);
+  const targetSpace = input.space ?? (input.cwd ? resolveSpace(input.cwd, config) : config.defaultSpace);
   const signals: Signals = { references: findReferences(prompt), usageMismatch: findUsageMismatch(prompt, agent, config) };
   const empty: Decision = { targetSpace, signals, inject: [], ask: [], blocked: [], skippedKnown: [] };
 
   // An agent's own notes come back only from other projects: a quorum note can help in northwind,
   // but echoing a project's own sessions into it is noise (that belongs in its CLAUDE.md).
-  const project = projectOf(input.cwd);
+  const project = input.cwd ? projectOf(input.cwd) : undefined;
   const others = input.notes.filter((n) => n.source !== agent || (n.project !== undefined && n.project !== project));
   if (!others.length) return empty;
 

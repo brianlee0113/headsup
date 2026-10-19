@@ -3,11 +3,12 @@
 
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { agentName } from './agents.js';
 import type { Summarize } from './capture.js';
 import { expandHome, loadConfig, saveConfig, type Config, type Preset } from './config.js';
 import { importChatGPT } from './import/flow.js';
+import { browserHostDirs, installNativeHost } from './native.js';
 import { Store } from './store.js';
 import { claudeSettingsPath, hookCommand, installClaudeHook } from './install.js';
 import { parseUsage, TOPIC_ALIASES } from './usage.js';
@@ -28,7 +29,11 @@ export interface SetupOptions {
   command?: string; // hook command to register
   version: string;
   importSummarize?: Summarize; // tests replace the model
+  browserDirs?: string[]; // where browsers look for native hosts; tests pass []
 }
+
+// Until the extension is in the Chrome Web Store, it is loaded from the checkout.
+const EXTENSION_HINT = 'chrome://extensions → Developer mode → Load unpacked → extension/build';
 
 // Paths dragged into a terminal arrive quoted or with escaped spaces.
 function unquotePath(raw: string): string {
@@ -160,6 +165,20 @@ export async function runSetup(io: SetupIO, opts: SetupOptions): Promise<Config>
     io.print(c.dim('  Skipped. Run headsup setup again whenever you\'re ready.'));
   }
   io.print();
+
+  const browsers = opts.browserDirs ?? browserHostDirs();
+  if (browsers.length) {
+    const names = browsers.map((d) => basename(dirname(d)).replace(/^User Data$/, 'Arc'));
+    io.print(`${c.bold('Connect your browser')}  ${c.dim(`lets the headsup extension reach this computer (${names.join(', ')})`)}`);
+    io.print(c.dim('  Adds a small native-messaging entry; no server, no open port. Undo with: headsup uninstall'));
+    if (yes(await io.ask('  Connect? [Y/n] '), true)) {
+      installNativeHost(opts.home, browsers);
+      io.print(`  ${c.green('✓')} connected · then add the extension: ${EXTENSION_HINT}`);
+    } else {
+      io.print(c.dim('  Skipped. Later: headsup connect-browser'));
+    }
+    io.print();
+  }
 
   io.print(`${c.green('✓ Ready.')} Memory lives in ${tilde(opts.home)} — plain Markdown you can read and edit.`);
   const writer = config.usage.find((r) => !r.agents.includes('claude-code'));
