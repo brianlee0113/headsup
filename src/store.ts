@@ -63,6 +63,15 @@ export class Store {
     return notes;
   }
 
+  filePath(note: Pick<Note, 'id' | 'space'>): string {
+    return join(this.notesDir(note.space), `${note.id}.md`);
+  }
+
+  // Rewrites a note in place (type, share, topics or body changed in review).
+  update(note: Note): void {
+    writeFileSync(this.filePath(note), serializeNote(note));
+  }
+
   remove(id: string): boolean {
     const note = this.list().find((n) => n.id === id);
     if (!note) return false;

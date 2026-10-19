@@ -10,6 +10,7 @@ import { handleUserPromptSubmit, type UserPromptSubmitInput } from './hooks/clau
 import { claudeSettingsPath, uninstallClaudeHook } from './install.js';
 import type { NoteType } from './note.js';
 import { NoteIndex } from './search.js';
+import { runReview } from './review/tui.js';
 import { runSetup } from './setup.js';
 import { Store } from './store.js';
 
@@ -20,6 +21,7 @@ const HELP = `headsup — gives your AI a heads-up before it answers
 
   headsup setup                 connect Claude Code and choose what may be shared
   headsup uninstall             remove the Claude Code hook (your notes stay)
+  headsup review                see what was shared where, and fix or delete notes
   headsup add <text> --type how|fact --space <space> --source <agent> [--topics a,b]
   headsup list
   headsup search <query>
@@ -101,6 +103,9 @@ async function main(argv: string[]): Promise<number> {
       }
       return 0;
     }
+    case 'review':
+      await runReview(store, config, headsupHome());
+      return 0;
     case 'uninstall':
       console.log(uninstallClaudeHook() ? `removed the headsup hook from ${claudeSettingsPath()}` : 'no headsup hook found');
       console.log(`notes are still in ${headsupHome()} — delete that folder to remove them too`);
