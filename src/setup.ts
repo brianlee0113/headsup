@@ -10,7 +10,7 @@ import { claudeSettingsPath, hookCommand, installClaudeHook } from './install.js
 import { parseUsage } from './usage.js';
 
 export interface SetupIO {
-  ask(question: string): Promise<string>;
+  ask(question: string, prefill?: string): Promise<string>; // prefill: editable starting text
   print(line?: string): void;
   color: boolean;
 }
@@ -66,8 +66,11 @@ export async function runSetup(io: SetupIO, opts: SetupOptions): Promise<Config>
 
   io.print(`Step 2/5 ${c.bold('How do you split your AI tools?')}  ${c.dim('(optional, recommended)')}`);
   io.print(c.dim('  In your own words — which AI do you use for what?'));
+  let draft = '';
   for (;;) {
-    const answer = (await io.ask(`  ${c.orange('›')} `)).trim();
+    // On [e] the previous answer comes back pre-typed, so a fix is a small edit, not a rewrite.
+    const answer = (await io.ask(`  ${c.orange('›')} `, draft)).trim();
+    draft = answer;
     if (!answer) break;
     const usage = parseUsage(answer);
     if (!usage.length) {

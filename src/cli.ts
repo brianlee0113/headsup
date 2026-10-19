@@ -32,8 +32,20 @@ async function readStdin(): Promise<string> {
   return Buffer.concat(chunks).toString('utf8');
 }
 
-// Buffers stdin lines so answers piped in ahead of their question aren't dropped; EOF answers ''.
+// In a terminal, readline edits the line in place, which lets an answer start pre-typed. Piped
+// input is buffered instead, so answers sent ahead of their question aren't dropped; EOF answers ''.
 function lineReader() {
+  if (process.stdin.isTTY) {
+    const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+    return {
+      ask(question: string, prefill = ''): Promise<string> {
+        const answer = new Promise<string>((resolve) => rl.question(question, resolve));
+        if (prefill) rl.write(prefill);
+        return answer;
+      },
+      close: () => rl.close(),
+    };
+  }
   const rl = createInterface({ input: process.stdin });
   const buffered: string[] = [];
   const waiting: Array<(line: string) => void> = [];
@@ -45,8 +57,7 @@ function lineReader() {
   });
   return {
     ask(question: string): Promise<string> {
-      process.stdout.write(question);
-      if (!process.stdin.isTTY) process.stdout.write('\n');
+      process.stdout.write(question + '\n');
       if (buffered.length) return Promise.resolve(buffered.shift()!);
       return closed ? Promise.resolve('') : new Promise((resolve) => waiting.push(resolve));
     },

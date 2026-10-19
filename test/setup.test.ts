@@ -82,11 +82,12 @@ describe('setup wizard', () => {
     const settingsPath = join(userHome, '.claude', 'settings.json');
     const out: string[] = [];
     const queue = [...answers];
+    const prefills: string[] = [];
     await runSetup(
-      { ask: async (q) => (out.push(q), queue.shift() ?? ''), print: (l = '') => out.push(l), color: false },
+      { ask: async (q, prefill = '') => (out.push(q), prefills.push(prefill), queue.shift() ?? ''), print: (l = '') => out.push(l), color: false },
       { home, settingsPath, userHome, command: CMD, version: '0.0.1' },
     );
-    return { home, settingsPath, out: out.join('\n') };
+    return { home, settingsPath, out: out.join('\n'), prefills };
   };
 
   it('saves the profile, spaces and preset, then installs the hook', async () => {
@@ -101,6 +102,7 @@ describe('setup wizard', () => {
 
   it('lets the user edit the parsed profile and skip the hook', async () => {
     const r = await run(['Claude for coding', 'e', 'ChatGPT for writing', '', '', '', 'n']);
+    expect(r.prefills.slice(0, 3)).toEqual(['', '', 'Claude for coding']); // the edit starts from the last answer
     expect(loadConfig(r.home).usage).toEqual([{ agents: ['chatgpt'], topics: ['writing'] }]);
     expect(loadConfig(r.home).preset).toBe('balanced');
     expect(existsSync(r.settingsPath)).toBe(false);
