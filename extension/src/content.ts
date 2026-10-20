@@ -2,7 +2,7 @@
 // ticked notes at the end of the message when it is sent, and folds that block in sent messages.
 
 import { BLOCK_MARKER, buildBlock, splitBlock, type WebNote } from '../../src/shared/block.js';
-import { siteFor, type Site } from './sites.js';
+import { siteFor, type Part, type Site } from './sites.js';
 
 interface Detect {
   type: 'detect';
@@ -15,6 +15,7 @@ type Reply = Detect | { type: 'error'; message: string; unreachable?: boolean } 
 
 const DEBOUNCE_MS = 450;
 const MIN_PROMPT = 8;
+const HEALTH_GRACE_MS = 8000;
 
 const site = siteFor(location.hostname);
 if (site) start(site);
@@ -145,6 +146,27 @@ function start(site: Site): void {
     render();
   });
 
+  // ---------- Noticing when the site changed under us ----------
+  // A selector that stops matching fails silently: the send button goes out without notes, folding
+  // and the already-known check stop. The popup and the toolbar icon say so instead.
+  const missing = new Set<Part>();
+  const reportHealth = () => void send({ type: 'health', site: site.host, missing: [...missing] }).catch(() => {});
+  function check(part: Part, found: boolean): void {
+    if (found === !missing.has(part)) return;
+    if (found) missing.delete(part);
+    else missing.add(part);
+    reportHealth();
+  }
+  let path = location.pathname;
+  let since = Date.now();
+  function checkPage(): void {
+    if (location.pathname !== path) [path, since] = [location.pathname, Date.now()];
+    // Give a conversation time to load before calling anything missing.
+    if (!site.chatPage(path) || Date.now() - since < HEALTH_GRACE_MS || document.hidden) return;
+    check('composer', !!site.composer());
+    check('messages', site.userMessages().length > 0);
+  }
+
   // ---------- Asking the core ----------
   const send = (message: unknown) => chrome.runtime.sendMessage(message) as Promise<Reply>;
   const draft = () => (site.composer()?.innerText ?? '').trim();
@@ -157,6 +179,7 @@ function start(site: Site): void {
       render();
       return;
     }
+    check('send button', !!site.sendButton()); // the sites show it once there is a draft
     const reply = await send({ type: 'detect', site: site.host, prompt, conversation: site.conversationText() }).catch(() => null);
     if (mine !== seq) return; // the draft changed while we waited
     state.unreachable = !!reply && reply.type === 'error' && 'unreachable' in reply && !!reply.unreachable;
@@ -325,6 +348,8 @@ function start(site: Site): void {
   addEventListener('resize', place);
   addEventListener('scroll', place, true);
   setInterval(place, 500); // the composer moves and remounts as the page navigates
+  setInterval(checkPage, 2000);
+  reportHealth(); // a fresh page starts healthy; clears what the tab showed before a reload
 }
 
 const css = `

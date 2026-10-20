@@ -26,6 +26,9 @@
   .toggle:checked { background: var(--amber); } .toggle:checked::after { left: 16px; }
   .toggle:disabled { cursor: default; }
   code { display: block; font: 12px/16px ui-monospace, Menlo, monospace; background: var(--code); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+  .warn { margin-top: 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent);
+    background: color-mix(in srgb, var(--amber) 10%, transparent); display: flex; flex-direction: column; gap: 6px; }
+  .warn b { color: var(--amber); font-weight: 600; } .warn p { margin: 0; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -43,6 +46,11 @@
     <div class="row" id="site-row">
       <span><b id="site-title">Add context on this site</b><span class="muted">Shows the ◆ mark when your notes can help.</span></span>
       <input type="checkbox" class="toggle" id="site-toggle">
+    </div>
+    <div class="warn" id="broken" hidden>
+      <b id="broken-title"></b>
+      <div id="broken-lines" style="display:flex;flex-direction:column;gap:6px"></div>
+      <p class="muted">Updating headsup fixes this. Until then the toolbar icon shows ! on this tab.</p>
     </div>
     <hr style="margin-top:14px">
     <p class="section" style="margin:14px 0 10px">KEEP IN SYNC</p>

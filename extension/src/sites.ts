@@ -1,5 +1,8 @@
 // Where things are on each chat site. Selectors change when the sites ship redesigns; every lookup
-// has fallbacks, and a miss just means headsup stays out of the way on that page.
+// has fallbacks, and a miss is reported (see health in content.ts) rather than failing silently.
+
+// What headsup looks for on the page; the popup explains what stops working without each.
+export type Part = 'composer' | 'send button' | 'messages';
 
 export interface Site {
   host: string;
@@ -8,6 +11,7 @@ export interface Site {
   sendButton(): HTMLButtonElement | null;
   userMessages(): HTMLElement[];
   conversationText(): string;
+  chatPage(path: string): boolean; // an open conversation: a composer and at least one message of yours
 }
 
 const first = <T extends Element>(selectors: string[]): T | null => {
@@ -50,6 +54,7 @@ const chatgpt: Site = {
   // 2026-10: data-message-author-role is gone; turns carry data-chatgpt-search-unit-key="…:user" / "…:assistant".
   userMessages: () => all(['[data-message-author-role="user"]', '[data-user-message-bubble="true"]']),
   conversationText: () => tail(all(['[data-message-author-role]', '[data-chatgpt-search-unit-key]'])),
+  chatPage: (path) => /^\/(?:g\/[^/]+\/)?c\/[^/]+/.test(path),
 };
 
 const claude: Site = {
@@ -61,6 +66,7 @@ const claude: Site = {
   // all() stops at the first selector that matches, so both sides of the conversation go in one selector.
   conversationText: () =>
     tail(all(['[data-testid="user-message"], [data-testid="assistant-message"]', '[data-testid="user-message"], .font-claude-message'])),
+  chatPage: (path) => /^\/chat\/[^/]+/.test(path),
 };
 
 export function siteFor(hostname: string): Site | null {
