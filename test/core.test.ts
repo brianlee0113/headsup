@@ -3,7 +3,7 @@ import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG, resolveSpace, type Config } from '../src/config.js';
-import { detect } from '../src/gap.js';
+import { detect, findUsageMismatch } from '../src/gap.js';
 import { parseNote, serializeNote, type Note } from '../src/note.js';
 import { verdictFor } from '../src/policy.js';
 import { redactSecrets } from '../src/secrets.js';
@@ -116,5 +116,15 @@ describe('gap detector', () => {
   it('does nothing for a self-contained prompt', () => {
     const d = run('What is the time complexity of quicksort?', 'chatgpt', [...quorum, ...northwind]);
     expect([...d.inject, ...d.ask, ...d.blocked]).toHaveLength(0);
+  });
+
+  it('does not call a topic off-pattern when this agent covers it too', () => {
+    const usage = { ...DEFAULT_CONFIG, usage: [
+      { agents: ['claude-code'], topics: ['coding', 'side projects'] },
+      { agents: ['chatgpt'], topics: ['writing'] },
+      { agents: ['codex'], topics: ['coding'] },
+    ] };
+    expect(findUsageMismatch('fix the failing test and commit', 'claude-code', usage)).toBeUndefined();
+    expect(findUsageMismatch('fix the failing test and commit', 'chatgpt', usage)?.usualAgents).toEqual(['claude-code']);
   });
 });

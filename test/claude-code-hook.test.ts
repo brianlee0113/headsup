@@ -50,4 +50,10 @@ describe('Claude Code hook', () => {
   it('returns nothing when there is nothing to add', () => {
     expect(prompt(setup(), 'explain how a hash map works')).toBeNull();
   });
+
+  it('skips messages nobody typed, like a background task finishing', () => {
+    const store = setup();
+    expect(prompt(store, '<task-notification>\n<status>completed</status>\n<summary>set up CI tests</summary>\n</task-notification>')).toBeNull();
+    expect(store.readLog()).toHaveLength(0);
+  });
 });

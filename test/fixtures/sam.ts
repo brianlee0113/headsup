@@ -7,8 +7,8 @@ import { join } from 'node:path';
 import { DEFAULT_CONFIG, type Config } from '../../src/config.js';
 import type { Note } from '../../src/note.js';
 
-const n = (id: string, source: string, space: string, type: Note['type'], body: string, topics: string[] = []): Note => ({
-  id, type, space, source, topics, body, created: '2026-10-01T00:00:00.000Z',
+const n = (id: string, source: string, space: string, type: Note['type'], body: string, topics: string[] = [], project?: string): Note => ({
+  id, type, space, source, topics, body, created: '2026-10-01T00:00:00.000Z', ...(project ? { project } : {}),
 });
 
 export const samNotes: Note[] = [
@@ -26,6 +26,14 @@ export const samNotes: Note[] = [
   n('food', 'chatgpt', 'personal', 'fact', 'Vegetarian and allergic to peanuts', ['food']),
   n('jobsearch', 'chatgpt', 'personal', 'fact', 'Applying to product roles for summer 2027', ['job search']),
   n('bullets', 'chatgpt', 'personal', 'how', 'Likes bullet-point summaries over long paragraphs', ['format']),
+];
+
+// Korean, captured from a Claude Code session in the quorum repo. Kept apart so the English sets are
+// scored on the corpus they were tuned on.
+export const samKoreanNotes: Note[] = [
+  ...samNotes,
+  n('quorum-domain', 'claude-code', 'personal', 'fact', 'quorum 출시에서 도메인 확보가 가장 먼저 풀려야 한다. Vercel 배포, Resend SPF/DKIM 검증, Supabase Redirect URL 설정이 도메인이 정해져야 진행 가능하다.', ['quorum', 'launch'], 'quorum'),
+  n('quorum-expired', 'claude-code', 'personal', 'fact', 'quorum.app은 사용자 소유가 아니며 2026-10-18에 만료되어 등록 업체가 정지시킨 상태다. 출시용 도메인은 아직 확보되지 않았다.', ['quorum', 'domain'], 'quorum'),
 ];
 
 export const samConfig: Config = {
@@ -83,4 +91,19 @@ export const samHoldout: EvalCase[] = [
   { agent: 'claude-code', cwd: quorum, prompt: 'fix the off-by-one error in the date range loop', expect: [] },
   { agent: 'claude-code', cwd: quorum, prompt: 'rename this variable to something clearer', expect: [] },
   { agent: 'chatgpt', cwd: '/', prompt: 'Convert 72 Fahrenheit to Celsius', expect: [] },
+];
+
+// Korean. The silent ones are real prompts from another project's Claude Code session (2026-10-19) that
+// the quorum launch notes got attached to: one Korean word counted as several shared words through its
+// bigrams, and coding in Claude Code was taken as off-pattern because Codex is also used for coding.
+const other = join(homedir(), 'side', 'dasi');
+export const samKorean: EvalCase[] = [
+  { agent: 'chatgpt', cwd: '/', prompt: 'quorum 출시 준비 체크리스트 만들어줘. 도메인부터 뭘 해야 해?', expect: ['quorum-domain', 'quorum-expired'], ok: ['quorum-what', 'quorum-traction'] },
+  { agent: 'claude-code', cwd: other, prompt: '다 넣었어. 근데 지금 이거 외에 카카오톡 봇도 설정이 되어있어야하는거 아니야?', expect: [] },
+  // Hand testing, but how-you-work notes pass on a shared concept by design; Vitest is harmless here.
+  { agent: 'claude-code', cwd: other, prompt: '배포하면 내가 일단 셀프로 테스트는 가능한 상태인건가? (아직 아무도 들어오지 않는다는 가정하에) 그리고 배포하기 전에 해야할 것들은 다 완료되어있는 상태야?', expect: [], ok: ['vitest'] },
+  // Committing is where the commit-style note belongs.
+  { agent: 'claude-code', cwd: other, prompt: '응 그렇게 진행하고 커밋하고 배포해줘', expect: [], ok: ['commits'] },
+  { agent: 'claude-code', cwd: other, prompt: '응 코드 작업 진행하고 커밋하고 배포해줘', expect: [], ok: ['commits'] },
+  { agent: 'claude-code', cwd: other, prompt: '2는 Vercel에 알림톡 템플릿 ID 등록해줘. 1은 계속 챗봇으로 하자', expect: [] },
 ];

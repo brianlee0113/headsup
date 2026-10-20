@@ -58,14 +58,18 @@ export function findReferences(prompt: string): string[] {
 export function findUsageMismatch(prompt: string, agent: string, config: Config): Signals['usageMismatch'] {
   const concepts = new Set(conceptsOf(prompt));
   const words = new Set(tokenize(prompt));
+  // Known topics resolve through the concept lexicon; anything else the user typed matches by word.
+  const about = (topic: string) => {
+    const known = TOPIC_CONCEPTS[topic.toLowerCase()];
+    return known ? known.some((c) => concepts.has(c)) : tokenize(topic).some((w) => words.has(w));
+  };
+  const own = config.usage.filter((r) => r.agents.includes(agent));
+  // Coding in Claude Code is not off-pattern just because Codex is also used for coding.
+  if (own.some((r) => r.topics.some(about))) return undefined;
   for (const rule of config.usage) {
     if (rule.agents.includes(agent)) continue;
-    for (const topic of rule.topics) {
-      // Known topics resolve through the concept lexicon; anything else the user typed matches by word.
-      const known = TOPIC_CONCEPTS[topic.toLowerCase()];
-      const hit = known ? known.some((c) => concepts.has(c)) : tokenize(topic).some((w) => words.has(w));
-      if (hit) return { topic, usualAgents: rule.agents };
-    }
+    const topic = rule.topics.find(about);
+    if (topic) return { topic, usualAgents: rule.agents };
   }
   return undefined;
 }

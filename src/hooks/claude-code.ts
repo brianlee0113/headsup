@@ -24,7 +24,11 @@ const AGENT = 'claude-code';
 const APPROVE = /^\s*(?:y|yes|yep|sure|ok(?:ay)?|share(?:\s+(?:them|it))?|go ahead|include (?:them|it)|응|네|예|좋아|공유)\b/i;
 const DECLINE = /^\s*(?:n|no|nope|don'?t|skip|keep (?:them|it) (?:private|home)|아니|괜찮아|공유하지)/i;
 
+// Claude Code also submits messages nobody typed, such as a background task finishing.
+const GENERATED = /^\s*<(?:task-notification|local-command-stdout|local-command-stderr|local-command-caveat)>/;
+
 export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Store, config: Config): HookOutput | null {
+  if (GENERATED.test(input.prompt)) return null;
   const notes = store.list();
   const pending = store.readPending(input.session_id);
   if (pending.length) {
