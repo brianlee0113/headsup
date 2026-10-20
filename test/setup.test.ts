@@ -98,10 +98,11 @@ describe('setup wizard', () => {
   };
 
   it('saves the profile, spaces and preset, then installs the hook', async () => {
-    const r = await run(['Claude for coding, ChatGPT for writing', '', '~/work, ~/clients', '1', '', 'y']);
+    const r = await run(['Claude for coding, ChatGPT for writing', '', '~/work, ~/clients', '', '1', '', 'y']);
     const config = loadConfig(r.home);
     expect(config.usage).toHaveLength(2);
     expect(config.spaces).toEqual([{ path: '~/work', space: 'work' }, { path: '~/clients', space: 'work' }]);
+    expect(r.out).toMatch(/ChatGPT · Claude\.ai +→ personal {3}browser chats have no folder/);
     expect(config.preset).toBe('cautious');
     expect(isInstalled(r.settingsPath)).toBe(true);
     expect(r.out).toContain('Try it: ask Claude Code to do something you usually do in ChatGPT.');
@@ -124,5 +125,11 @@ describe('setup wizard', () => {
     expect(loadConfig(r.home).usage).toEqual([{ agents: ['chatgpt'], topics: ['writing'] }]);
     expect(loadConfig(r.home).preset).toBe('balanced');
     expect(existsSync(r.settingsPath)).toBe(false);
+  });
+
+  it('lets the user edit the work folders before saving them', async () => {
+    const r = await run(['', '~/work', 'e', '~/work, ~/clients', '', '', '', 'n']);
+    expect(r.prefills.slice(1, 4)).toEqual(['', '', '~/work']);
+    expect(loadConfig(r.home).spaces).toEqual([{ path: '~/work', space: 'work' }, { path: '~/clients', space: 'work' }]);
   });
 });

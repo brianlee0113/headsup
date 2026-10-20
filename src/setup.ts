@@ -15,6 +15,7 @@ import { parseUsage, TOPIC_ALIASES } from './usage.js';
 
 // Shown under the question; a test keeps it parseable.
 export const USAGE_EXAMPLE = 'Claude Code - coding, side projects · ChatGPT - writing, everyday';
+export const SPACES_EXAMPLE = '~/work, ~/Developer/acme-api';
 
 export interface SetupIO {
   ask(question: string, prefill?: string): Promise<string>; // prefill: editable starting text
@@ -109,16 +110,37 @@ export async function runSetup(io: SetupIO, opts: SetupOptions): Promise<Config>
   }
   io.print();
 
-  io.print(`Step 3/5 ${c.bold('Spaces')}  ${c.dim('which folders belong together?')}`);
+  io.print(`Step 3/5 ${c.bold('Which folders are work?')}  ${c.dim('(optional)')}`);
+  io.print(c.dim(`  Notes stay in the space they came from: work or ${config.defaultSpace}.`));
+  io.print(c.dim(`  Name your work folders (job, clients, school). Everything else is ${config.defaultSpace}.`));
   const currentWork = config.spaces.filter((s) => s.space === 'work').map((s) => s.path);
-  const hint = currentWork.length ? currentWork.join(', ') : 'e.g. ~/work';
-  const work = (await io.ask(`  Work folders, comma-separated ${c.dim(`(${hint}; enter to ${currentWork.length ? 'keep' : 'skip'})`)} `)).trim();
-  if (work) {
-    const paths = work.split(',').map((p) => p.trim()).filter(Boolean);
-    config.spaces = [...config.spaces.filter((s) => s.space !== 'work'), ...paths.map((path) => ({ path, space: 'work' }))];
+  io.print(c.dim(currentWork.length ? `  enter keeps these; clear the line to make it all ${config.defaultSpace}` : `  e.g. ${SPACES_EXAMPLE}   (enter if it's all ${config.defaultSpace})`));
+  const editAnytime = `Edit anytime: ${tilde(join(opts.home, 'config.json'))}`;
+  let spaceDraft = currentWork.join(', ');
+  for (;;) {
+    const answer = (await io.ask(`  ${c.orange('›')} `, spaceDraft)).trim();
+    spaceDraft = answer;
+    const paths = answer.split(',').map((p) => p.trim()).filter(Boolean);
+    const spaces = [...config.spaces.filter((s) => s.space !== 'work'), ...paths.map((path) => ({ path, space: 'work' }))];
+    if (!spaces.length && !config.spaces.length) {
+      io.print(c.dim(`  Everything stays ${config.defaultSpace}. ${editAnytime}`));
+      break;
+    }
+    // Web chats have no folder, so they always land in the default space (see web.ts).
+    const rows = [
+      ...spaces.map((s) => [s.path, s.space === 'work' ? c.blue(s.space) : c.green(s.space), '']),
+      ['everything else', c.green(config.defaultSpace), ''],
+      ['ChatGPT · Claude.ai', c.green(config.defaultSpace), c.dim('   browser chats have no folder')],
+    ];
+    const width = Math.max(...rows.map((r) => r[0]!.length)) + 3;
+    io.print('  Got it:');
+    for (const [label, space, note] of rows) io.print(`    ${label!.padEnd(width)}${c.dim('→')} ${space}${note}`);
+    io.print(c.dim(`  Step 4 decides what may cross between them. ${editAnytime}`));
+    if (!(await io.ask(`  ${c.orange('[enter]')} looks right   ${c.orange('[e]')} edit `)).trim().toLowerCase().startsWith('e')) {
+      config.spaces = spaces;
+      break;
+    }
   }
-  for (const s of config.spaces) io.print(`  ${s.path.padEnd(14)} → ${s.space === 'work' ? c.blue(s.space) : c.green(s.space)}`);
-  io.print(`  ${c.dim('everything else →')} ${c.green(config.defaultSpace)}   ${c.dim(`(edit anytime: ${tilde(join(opts.home, 'config.json'))})`)}`);
   io.print();
 
   io.print(`Step 4/5 ${c.bold('Sharing preset')}  ${c.dim('what may travel between spaces?')}`);
