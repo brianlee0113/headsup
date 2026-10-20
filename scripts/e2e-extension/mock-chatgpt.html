@@ -3,7 +3,7 @@
 <style>body{background:#212121;color:#eee;font-family:sans-serif} #thread{min-height:300px;padding:20px} #composer{position:fixed;bottom:40px;left:20%;right:20%;background:#303030;border-radius:24px;padding:12px 18px;display:flex;gap:8px}
 .ProseMirror{flex:1;outline:none;min-height:20px;white-space:pre-wrap} .whitespace-pre-wrap{white-space:pre-wrap}</style></head>
 <body><div id="thread"></div>
-<form id="composer" onsubmit="return false"><div id="editor" style="flex:1"></div><button type="button" data-testid="send-button">Send</button></form>
+<form id="composer" onsubmit="return false"><div id="editor" style="flex:1"></div><button type="submit" aria-label="Send">Send</button></form>
 <script type="module">
 import { EditorState } from 'https://esm.sh/prosemirror-state@1.4.3';
 import { EditorView } from 'https://esm.sh/prosemirror-view@1.38.1';
@@ -12,15 +12,17 @@ import { keymap } from 'https://esm.sh/prosemirror-keymap@1.2.2';
 const send = () => {
   const text = view.state.doc.textBetween(0, view.state.doc.content.size, '\n');
   if (!text.trim()) return true;
-  const m = document.createElement('div'); m.dataset.messageAuthorRole = 'user';
+  // Same shape as chatgpt.com in 2026-10: no data-message-author-role, a search-unit turn around a bubble.
+  const n = document.querySelectorAll('[data-chatgpt-search-unit-key]').length;
+  const turn = document.createElement('div'); turn.dataset.chatgptSearchUnitKey = `fallback-turn-0:${n}:user`;
+  const m = document.createElement('div'); m.dataset.userMessageBubble = 'true';
   const inner = document.createElement('div'); inner.className = 'whitespace-pre-wrap'; inner.textContent = text; m.appendChild(inner);
-  document.getElementById('thread').appendChild(m);
+  turn.appendChild(m); document.getElementById('thread').appendChild(turn);
   window.__sentTexts = [...(window.__sentTexts || []), text];
   view.dispatch(view.state.tr.delete(0, view.state.doc.content.size));
   return true;
 };
 const view = new EditorView(document.getElementById('editor'), { state: EditorState.create({ schema, plugins: [keymap({ Enter: send })] }) });
-view.dom.id = 'prompt-textarea';
-document.querySelector('[data-testid="send-button"]').addEventListener('click', send);
+document.querySelector('button[aria-label="Send"]').addEventListener('click', send);
 window.__ready = true;
 </script></body></html>

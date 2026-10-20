@@ -33,9 +33,14 @@ const chatgpt: Site = {
   host: 'chatgpt.com',
   composer: () => first(['#prompt-textarea', 'div.ProseMirror[contenteditable="true"]', 'textarea[name="prompt-textarea"]']),
   anchor: (c) => c.closest<HTMLElement>('form') ?? c,
-  sendButton: () => first(['button[data-testid="send-button"]', 'button[aria-label="Send prompt"]', '#composer-submit-button']),
-  userMessages: () => all(['[data-message-author-role="user"]']),
-  conversationText: () => tail(all(['[data-message-author-role]'])),
+  // 2026-10: no test id or id on the button any more, just aria-label="Send" and type="submit" in the composer form.
+  sendButton: () =>
+    first<HTMLButtonElement>(['button[data-testid="send-button"]', 'button[aria-label="Send prompt"]', 'button[aria-label="Send"]', '#composer-submit-button']) ??
+    chatgpt.composer()?.closest('form')?.querySelector<HTMLButtonElement>('button[type="submit"]') ??
+    null,
+  // 2026-10: data-message-author-role is gone; turns carry data-chatgpt-search-unit-key="…:user" / "…:assistant".
+  userMessages: () => all(['[data-message-author-role="user"]', '[data-user-message-bubble="true"]']),
+  conversationText: () => tail(all(['[data-message-author-role]', '[data-chatgpt-search-unit-key]'])),
 };
 
 const claude: Site = {

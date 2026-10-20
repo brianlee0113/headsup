@@ -44,7 +44,7 @@ try {
   const js = async (expr) => (await cdp('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true })).result?.result?.value;
   const key = async (k, code, vk, text) => { await cdp('Input.dispatchKeyEvent', { type: 'keyDown', key: k, code, windowsVirtualKeyCode: vk, text }); await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code, windowsVirtualKeyCode: vk }); };
   const chip = () => js(`document.querySelector('headsup-root')?.shadowRoot?.querySelector('.chip')?.textContent ?? '(no chip)'`);
-  const type = async (s) => { await js(`document.getElementById('prompt-textarea').focus()`); await cdp('Input.insertText', { text: s }); };
+  const type = async (s) => { await js(`document.querySelector('.ProseMirror').focus()`); await cdp('Input.insertText', { text: s }); };
 
   await cdp('Page.navigate', { url: 'https://chatgpt.com/' });
   for (let i = 0; i < 40 && !(await js('window.__ready === true')); i++) await sleep(250);
@@ -63,7 +63,7 @@ try {
   await sleep(1500);
   const sent = await js('JSON.stringify(window.__sentTexts)');
   console.log('sent text:', sent);
-  console.log('bubble shows:', JSON.stringify(await js(`document.querySelector('[data-message-author-role="user"]').innerText`)));
+  console.log('bubble shows:', JSON.stringify(await js(`document.querySelector('[data-user-message-bubble="true"]').innerText`)));
   writeFileSync(H + 'shot-sent.png', Buffer.from((await cdp('Page.captureScreenshot', { format: 'png' })).result.data, 'base64'));
   console.log('pill:', JSON.stringify(await js(`document.querySelector('.headsup-pill')?.textContent`)));
 
@@ -81,7 +81,7 @@ try {
   await js(`document.querySelector('headsup-root').shadowRoot.querySelector('.chip').click()`); await sleep(150);
   await js(`document.querySelector('headsup-root').shadowRoot.querySelector('[data-action=accept]').click()`); await sleep(150);
   console.log('after include chip:', JSON.stringify(await chip()));
-  await cdp('Runtime.evaluate', { expression: `document.querySelector('[data-testid="send-button"]').click()` });
+  await cdp('Runtime.evaluate', { expression: `document.querySelector('button[aria-label="Send"]').click()` });
   await sleep(1500);
   console.log('third sent has block:', JSON.parse(await js('JSON.stringify(window.__sentTexts)'))[2]?.includes('Northwind'));
 
