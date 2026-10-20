@@ -26,8 +26,17 @@ const all = (selectors: string[]): HTMLElement[] => {
   return [];
 };
 
-// The last stretch of the visible conversation, so the core can skip what the AI already has.
-const tail = (els: HTMLElement[]) => els.map((e) => e.innerText).join('\n').slice(-20_000);
+// Every text node, hidden ones included: innerText would skip a block we folded away, and the AI still has it.
+// Joined with spaces so words from neighbouring elements don't run together.
+const textOf = (el: HTMLElement) => {
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  const parts: string[] = [];
+  while (walker.nextNode()) parts.push((walker.currentNode as Text).data);
+  return parts.join(' ');
+};
+
+// The last stretch of the conversation, so the core can skip what the AI already has.
+const tail = (els: HTMLElement[]) => els.map(textOf).join('\n').slice(-20_000);
 
 const chatgpt: Site = {
   host: 'chatgpt.com',
@@ -49,7 +58,9 @@ const claude: Site = {
   anchor: (c) => c.closest<HTMLElement>('fieldset') ?? c.closest<HTMLElement>('form') ?? c,
   sendButton: () => first(['button[aria-label="Send message"]', 'button[aria-label="Send Message"]', 'button[type="submit"]']),
   userMessages: () => all(['[data-testid="user-message"]']),
-  conversationText: () => tail(all(['[data-testid="user-message"]', '.font-claude-message', '[data-is-streaming]'])),
+  // all() stops at the first selector that matches, so both sides of the conversation go in one selector.
+  conversationText: () =>
+    tail(all(['[data-testid="user-message"], [data-testid="assistant-message"]', '[data-testid="user-message"], .font-claude-message'])),
 };
 
 export function siteFor(hostname: string): Site | null {
