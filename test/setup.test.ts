@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config.js';
-import { installClaudeHook, isInstalled, uninstallClaudeHook } from '../src/install.js';
+import { hookCommand, installClaudeHook, isInstalled, uninstallClaudeHook } from '../src/install.js';
 import { runSetup, USAGE_EXAMPLE } from '../src/setup.js';
 import { parseUsage } from '../src/usage.js';
 
@@ -82,7 +82,7 @@ describe('Claude Code settings', () => {
 });
 
 describe('setup wizard', () => {
-  const run = async (answers: string[]) => {
+  const run = async (answers: string[], isolated = false) => {
     const home = tmp();
     const userHome = tmp();
     mkdirSync(join(userHome, '.claude'));
@@ -92,7 +92,7 @@ describe('setup wizard', () => {
     const prefills: string[] = [];
     await runSetup(
       { ask: async (q, prefill = '') => (out.push(q), prefills.push(prefill), queue.shift() ?? ''), print: (l = '') => out.push(l), color: false },
-      { home, settingsPath, userHome, command: CMD, version: '0.0.1', browserDirs: [] },
+      { home, settingsPath, userHome, command: CMD, version: '0.0.1', browserDirs: [], isolated },
     );
     return { home, settingsPath, out: out.join('\n'), prefills };
   };
@@ -127,9 +127,28 @@ describe('setup wizard', () => {
     expect(existsSync(r.settingsPath)).toBe(false);
   });
 
+  it('leaves Claude Code alone on enter when HEADSUP_HOME is set', async () => {
+    const r = await run(['', '', '', '', ''], true);
+    expect(r.out).toContain('Add it? [y/N]');
+    expect(existsSync(r.settingsPath)).toBe(false);
+  });
+
   it('lets the user edit the work folders before saving them', async () => {
     const r = await run(['', '~/work', 'e', '~/work, ~/clients', '', '', '', 'n']);
     expect(r.prefills.slice(1, 4)).toEqual(['', '', '~/work']);
     expect(loadConfig(r.home).spaces).toEqual([{ path: '~/work', space: 'work' }, { path: '~/clients', space: 'work' }]);
+  });
+});
+
+describe('hook command', () => {
+  it('carries a custom HEADSUP_HOME, since Claude Code runs hooks without it', () => {
+    const before = process.env.HEADSUP_HOME;
+    process.env.HEADSUP_HOME = "/tmp/it's here";
+    try {
+      expect(hookCommand()).toMatch(/^HEADSUP_HOME='\/tmp\/it'\\''s here' .*hook claude-code$/);
+    } finally {
+      if (before === undefined) delete process.env.HEADSUP_HOME;
+      else process.env.HEADSUP_HOME = before;
+    }
   });
 });

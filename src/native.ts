@@ -7,6 +7,7 @@ import { chmodSync, existsSync, mkdirSync, realpathSync, rmSync, writeFileSync }
 import { homedir, platform } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { Readable } from 'node:stream';
+import { shellQuote } from './config.js';
 
 export const HOST_NAME = 'ai.headsup.host';
 // Fixed by the public key in extension/manifest.json, so the host can trust exactly this extension.
@@ -56,7 +57,8 @@ function launcher(): string {
 export function installNativeHost(headsupHome: string, dirs = browserHostDirs()): { script: string; manifests: string[] } {
   const script = join(headsupHome, 'native-host');
   mkdirSync(dirname(script), { recursive: true });
-  writeFileSync(script, `#!/bin/sh\n${launcher()}\n`);
+  // Chrome starts the host without our environment, so the launcher names the home it belongs to.
+  writeFileSync(script, `#!/bin/sh\nexport HEADSUP_HOME=${shellQuote(headsupHome)}\n${launcher()}\n`);
   chmodSync(script, 0o755);
   const manifest = {
     name: HOST_NAME,

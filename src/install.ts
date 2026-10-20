@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { shellQuote } from './config.js';
 
 interface HookEntry {
   matcher?: string;
@@ -22,8 +23,13 @@ export function claudeSettingsPath(): string {
 }
 
 // Prefer the installed binary; fall back to npx (slower, but survives cache cleanup) and, when run
-// from a checkout, to this very file.
+// from a checkout, to this very file. A custom HEADSUP_HOME goes along, since hooks run without it.
 export function hookCommand(): string {
+  const env = process.env.HEADSUP_HOME ? `HEADSUP_HOME=${shellQuote(process.env.HEADSUP_HOME)} ` : '';
+  return env + binary();
+}
+
+function binary(): string {
   if (spawnSync('sh', ['-c', 'command -v headsup'], { encoding: 'utf8' }).stdout.trim()) return 'headsup hook claude-code';
   const self = process.argv[1] ? realpathSync(process.argv[1]) : '';
   if (!self || self.includes('/_npx/')) return 'npx -y headsup-ai hook claude-code';

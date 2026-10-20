@@ -50,6 +50,7 @@ describe('native messaging', () => {
     expect(m).toMatchObject({ name: HOST_NAME, type: 'stdio', path: r.script, allowed_origins: [`chrome-extension://${EXTENSION_ID}/`] });
     expect(statSync(r.script).mode & 0o111).toBeTruthy();
     expect(readFileSync(r.script, 'utf8')).toMatch(/native-host "\$@"/);
+    expect(readFileSync(r.script, 'utf8')).toContain(`export HEADSUP_HOME='${home}'`); // Chrome starts it without our env
     expect(uninstallNativeHost(dirs)).toBe(2);
   });
 });

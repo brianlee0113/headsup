@@ -105,7 +105,7 @@ async function main(argv: string[]): Promise<number> {
       try {
         await runSetup(
           { ask: lines.ask, print: (l = '') => console.log(l), color: !!process.stdout.isTTY && !process.env.NO_COLOR },
-          { home: headsupHome(), version: VERSION },
+          { home: headsupHome(), version: VERSION, isolated: !!process.env.HEADSUP_HOME },
         );
       } finally {
         lines.close();

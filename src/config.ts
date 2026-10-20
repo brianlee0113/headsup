@@ -22,6 +22,9 @@ export function headsupHome(): string {
   return process.env.HEADSUP_HOME ?? join(homedir(), '.headsup');
 }
 
+// For commands headsup writes into other programs' config, which run without our environment.
+export const shellQuote = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
+
 export function expandHome(p: string): string {
   return p === '~' || p.startsWith('~/') ? join(homedir(), p.slice(1)) : p;
 }

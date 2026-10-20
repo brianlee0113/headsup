@@ -31,6 +31,7 @@ export interface SetupOptions {
   version: string;
   importSummarize?: Summarize; // tests replace the model
   browserDirs?: string[]; // where browsers look for native hosts; tests pass []
+  isolated?: boolean; // HEADSUP_HOME is set: changes outside it default to no, so a trial run stays a trial
 }
 
 // Until the extension is in the Chrome Web Store, it is loaded from the checkout.
@@ -180,7 +181,8 @@ export async function runSetup(io: SetupIO, opts: SetupOptions): Promise<Config>
   io.print(c.dim(`  command: ${command}`));
   io.print(c.dim('  At the end of a session headsup saves a few notes, summarized by your own `claude` login.'));
   io.print(c.dim('  Only headsup\'s own entries are touched; a backup is saved first. Undo with: headsup uninstall'));
-  if (yes(await io.ask('  Add it? [Y/n] '), true)) {
+  if (opts.isolated) io.print(c.dim(`  HEADSUP_HOME is set, so this defaults to no: it changes your real ${tilde(settingsPath)}.`));
+  if (yes(await io.ask(`  Add it? ${opts.isolated ? '[y/N]' : '[Y/n]'} `), !opts.isolated)) {
     const result = installClaudeHook(command, settingsPath);
     io.print(`  ${c.green('✓')} hook ${result}`);
   } else {
@@ -193,7 +195,8 @@ export async function runSetup(io: SetupIO, opts: SetupOptions): Promise<Config>
     const names = browsers.map((d) => basename(dirname(d)).replace(/^User Data$/, 'Arc'));
     io.print(`${c.bold('Connect your browser')}  ${c.dim(`lets the headsup extension reach this computer (${names.join(', ')})`)}`);
     io.print(c.dim('  Adds a small native-messaging entry; no server, no open port. Undo with: headsup uninstall'));
-    if (yes(await io.ask('  Connect? [Y/n] '), true)) {
+    if (opts.isolated) io.print(c.dim('  HEADSUP_HOME is set, so this defaults to no: your browsers would point here instead.'));
+    if (yes(await io.ask(`  Connect? ${opts.isolated ? '[y/N]' : '[Y/n]'} `), !opts.isolated)) {
       installNativeHost(opts.home, browsers);
       io.print(`  ${c.green('✓')} connected · then add the extension: ${EXTENSION_HINT}`);
     } else {
