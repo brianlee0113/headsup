@@ -1,6 +1,7 @@
 // What the extension asks the core, through the native host. Typing only asks ("detect"); the log
 // is written once the message is actually sent ("sent"), so review shows real heads-ups only.
 
+import { aboutLines } from './about.js';
 import { agentName } from './agents.js';
 import type { Config } from './config.js';
 import { detect } from './gap.js';
@@ -15,6 +16,8 @@ export type WebRequest =
   | { type: 'status' }
   | { type: 'detect'; site: string; prompt: string; conversation?: string }
   | { type: 'sent'; site: string; prompt: string; injected: string[]; offered: string[]; included: string[]; blocked: string[] }
+  | { type: 'about-me'; site: string; room: number }
+  | { type: 'about-written'; site: string; ids: string[] }
   | SyncRequest;
 
 export interface DetectReply {
@@ -43,6 +46,14 @@ export function handleWeb(req: WebRequest, store: Store, config: Config, version
     case 'sync-start':
     case 'sync-chats':
       return handleSync(req, store);
+    case 'about-me': {
+      const agent = SITES[req.site];
+      if (!agent) return { type: 'error', message: `headsup doesn't know ${req.site}` };
+      return { type: 'about-me', ...aboutLines(store.list(), config, agent, req.room) };
+    }
+    case 'about-written':
+      store.log({ event: 'about-me', agent: SITES[req.site] ?? req.site, notes: req.ids });
+      return { type: 'ok' };
     case 'detect': {
       const agent = SITES[req.site];
       if (!agent) return { type: 'error', message: `headsup doesn't know ${req.site}` };

@@ -32,6 +32,10 @@
   .btn { font: inherit; border: 1px solid var(--border); background: transparent; color: var(--fg); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
   .btn.primary { background: var(--amber); border-color: var(--amber); color: #111; }
   .row .muted { display: block; }
+  .row a { color: var(--amber); text-decoration: none; }
+  .yes { color: var(--how); } .no { color: var(--blocked); }
+  pre { margin: 10px 0 0; white-space: pre-wrap; font: 11px/16px ui-monospace, Menlo, monospace; color: var(--fg); padding: 8px 10px; border-radius: 8px;
+    border: 1px dashed var(--amber); background: color-mix(in srgb, var(--amber) 10%, transparent); }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -70,7 +74,21 @@
     <div style="display:flex;flex-direction:column;gap:12px">
       <div class="row" data-sync="chatgpt.com"><span><b>Capture new ChatGPT chats</b><span class="muted" data-detail></span></span><input type="checkbox" class="toggle"></div>
       <div class="row" data-sync="claude.ai"><span><b>Capture new Claude chats</b><span class="muted" data-detail></span></span><input type="checkbox" class="toggle"></div>
-      <div class="row off"><span><b>Keep "About me" in ChatGPT current</b><span class="muted">So the ChatGPT apps know how you work. Coming in the next update.</span></span><input type="checkbox" class="toggle" disabled></div>
+      <div class="row" id="about-row"><span><b>Keep "About me" current</b><span class="muted"><span id="about-detail"></span> <a href="#" id="about-show">See what it writes →</a></span></span><input type="checkbox" class="toggle" id="about-toggle"></div>
+    </div>
+    <pre id="about-preview" hidden></pre>
+    <div id="about-ask" hidden style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+      <b style="font-size:15px;font-weight:600">Keep the ChatGPT and Claude apps in the loop?</b>
+      <p class="muted">The ChatGPT and Claude apps on your phone and desktop can't see headsup. headsup can keep a short block in ChatGPT's custom instructions and Claude's personal preferences, and each one syncs it to all its apps.</p>
+      <p class="section" style="margin:0">WHAT GOES IN</p>
+      <p style="margin:0"><span class="yes">✓</span> How you work, and personal facts</p>
+      <p style="margin:0"><span class="no">✕</span> Work facts, and notes you marked never-share</p>
+      <p style="margin:0"><span class="yes">✓</span> Your own text stays exactly as you wrote it</p>
+      <div style="display:flex;gap:8px">
+        <button class="btn primary" id="about-yes">Turn on</button>
+        <button class="btn" id="about-no">Not now</button>
+      </div>
+      <p class="muted">Turning it off later removes both blocks. You can read every line before it is written. Only sites you use get one.</p>
     </div>
     <div class="warn" id="sync-broken" hidden>
       <b id="sync-broken-title"></b>

@@ -1,6 +1,7 @@
 // The toolbar popup: is headsup reachable, is it on for the site in the current tab, and is each
 // account catching up.
 
+import { aboutBlock } from '../../src/shared/about.js';
 import type { Part } from './sites.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -35,6 +36,7 @@ async function main(): Promise<void> {
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   await showSync(status.sync ?? {}, tab);
+  await showAbout();
   await showSite(tab);
 }
 
@@ -88,6 +90,46 @@ async function showSync(sync: Record<string, SiteSync>, tab: chrome.tabs.Tab | u
     $('sync-broken-line').textContent = `headsup can't read your new ${NAMES[host]} chats right now, so they aren't becoming notes. Adding context as you type still works.`;
     $('sync-broken').hidden = false;
   }
+}
+
+type AboutStatus = { at: number; on: boolean; lines?: number; error?: 'changed' | 'failed' };
+
+async function showAbout(): Promise<void> {
+  const keys = ['about', 'sync:chatgpt.com', 'sync:claude.ai', ...SITES.map((s) => `about:${s}`)];
+  const got = (await chrome.storage.local.get(keys)) as Record<string, unknown>;
+  const on = got.about as boolean | undefined;
+  const toggle = $<HTMLInputElement>('about-toggle');
+  const set = (value: boolean) => void chrome.storage.local.set({ about: value }).then(() => location.reload());
+
+  // Asked once, after the chats question, and off until the person says yes.
+  const syncDecided = got['sync:chatgpt.com'] !== undefined || got['sync:claude.ai'] !== undefined;
+  $('about-ask').hidden = !syncDecided || on !== undefined;
+  $('about-yes').onclick = () => set(true);
+  $('about-no').onclick = () => set(false);
+  toggle.checked = !!on;
+  toggle.onchange = () => set(toggle.checked);
+
+  let line = 'In ChatGPT and Claude, so their phone and desktop apps know how you work.';
+  if (on) {
+    const done = SITES.flatMap((s) => {
+      const st = got[`about:${s}`] as AboutStatus | undefined;
+      if (!st?.on) return [];
+      if (st.error === 'changed') return [`${NAMES[s]}: ${s} changed its settings, so it can't be updated right now.`];
+      if (st.error) return [`${NAMES[s]}: couldn't update; tries again next time.`];
+      return [`${NAMES[s]} ${clock(new Date(st.at).toISOString())}`];
+    });
+    line = done.length ? `Updated ${done.join(' · ')}.` : 'Updates the next time you open chatgpt.com or claude.ai.';
+  }
+  $('about-detail').textContent = line;
+
+  $('about-show').onclick = async (e) => {
+    e.preventDefault();
+    const pre = $('about-preview');
+    if (!pre.hidden) return void (pre.hidden = true);
+    const r = (await chrome.runtime.sendMessage({ type: 'about-me', site: 'chatgpt.com', room: 1200 }).catch(() => null)) as { type: string; lines?: string[] } | null;
+    pre.textContent = r?.type === 'about-me' && r.lines?.length ? aboutBlock(r.lines) : 'Nothing to write yet: no how-you-work or personal notes.';
+    pre.hidden = false;
+  };
 }
 
 async function showSite(tab: chrome.tabs.Tab | undefined): Promise<void> {

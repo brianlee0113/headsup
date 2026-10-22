@@ -1,6 +1,7 @@
 // Runs on chatgpt.com and claude.ai. Watches the draft, shows the ◆ mark by the composer, adds the
 // ticked notes at the end of the message when it is sent, and folds that block in sent messages.
 
+import { aboutBlock, ownText, spliceAbout } from '../../src/shared/about.js';
 import { BLOCK_MARKER, buildBlock, splitBlock, type WebNote } from '../../src/shared/block.js';
 import { accountFor, ShapeError } from './account.js';
 import { siteFor, type Part, type Site } from './sites.js';
@@ -21,6 +22,7 @@ const SYNC_DELAY_MS = 5000; // let the page load its own requests first
 const SYNC_GAP_MS = 1000; // between chat fetches, so a backfill reads like a person scrolling, not a burst
 const SYNC_AGAIN_MS = 30 * 60_000; // a tab left open catches up again when it comes back to the front
 const SYNC_BATCH = 5;
+const ABOUT_ROOM = 1200; // the block stays short even where the site allows far more
 
 const site = siteFor(location.hostname);
 if (site) start(site);
@@ -218,12 +220,52 @@ function start(site: Site): void {
       void send({ type: 'sync-unlock', site: site.host }).catch(() => {});
     }
   }
-  setTimeout(() => void catchUp(), SYNC_DELAY_MS);
+
+  // ---------- Keeping "About me" current ----------
+  // The phone and desktop apps can't see headsup, but they read ChatGPT's custom instructions and
+  // Claude's personal preferences. headsup keeps one fenced block there; turning it off removes it.
+  const aboutStatus = `about:${site.host}`;
+  let lastAbout = 0;
+  async function keepAbout(): Promise<void> {
+    if (document.hidden) return;
+    lastAbout = Date.now();
+    const on = (await chrome.storage.local.get('about')).about as boolean | undefined;
+    const account = accountFor(site.host);
+    if (on === undefined || !account) return; // not asked yet: the field is never touched
+    try {
+      const field = await account.about();
+      let lines: string[] = [];
+      let ids: string[] = [];
+      if (on) {
+        const room = Math.min(ABOUT_ROOM, field.limit - ownText(field.text).length - 2);
+        const r = (await send({ type: 'about-me', site: site.host, room })) as { type: string; lines?: string[]; ids?: string[] };
+        if (r.type !== 'about-me') return; // headsup unreachable: try again next time
+        [lines, ids] = [r.lines ?? [], r.ids ?? []];
+      }
+      const next = spliceAbout(field.text, aboutBlock(lines));
+      if (next !== field.text) {
+        await field.write(next);
+        if (lines.length) void send({ type: 'about-written', site: site.host, ids }).catch(() => {});
+      }
+      await chrome.storage.local.set({ [aboutStatus]: { at: Date.now(), on, lines: lines.length } });
+    } catch (err) {
+      // "changed": the settings API answered in a shape headsup doesn't know.
+      await chrome.storage.local.set({ [aboutStatus]: { at: Date.now(), on, error: err instanceof ShapeError ? 'changed' : 'failed' } });
+    }
+  }
+
+  setTimeout(() => {
+    void catchUp();
+    void keepAbout();
+  }, SYNC_DELAY_MS);
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && Date.now() - lastSync > SYNC_AGAIN_MS) void catchUp();
+    if (document.hidden) return;
+    if (Date.now() - lastSync > SYNC_AGAIN_MS) void catchUp();
+    if (Date.now() - lastAbout > SYNC_AGAIN_MS) void keepAbout();
   });
   chrome.storage.onChanged.addListener((changes) => {
     if (syncKey in changes) void catchUp(); // turned on in the popup while this tab was open
+    if ('about' in changes) void keepAbout();
   });
 
   // ---------- Asking the core ----------

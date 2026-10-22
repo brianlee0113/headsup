@@ -8,6 +8,13 @@ export class ShapeError extends Error {}
 export interface Account {
   changed(since: number, seen: Record<string, string>): Promise<string[]>; // ids, newest first
   chat(id: string): Promise<unknown>;
+  about(): Promise<AboutField>; // where the "About me" block lives on this site
+}
+
+export interface AboutField {
+  text: string;
+  limit: number; // characters the site accepts in that field
+  write(text: string): Promise<void>;
 }
 
 interface Listed {
@@ -97,6 +104,25 @@ function chatgpt(): Account {
       return out;
     },
     chat: async (id) => json(`/backend-api/conversation/${id}`, await auth()),
+    // Custom instructions are one object; saving sends all of it back with only "More about you" changed.
+    async about() {
+      const current = (await json('/backend-api/user_system_messages', await auth())) as Record<string, unknown>;
+      if (typeof current.other_user_message !== 'string') throw new ShapeError('chatgpt.com custom instructions without other_user_message');
+      const { object: _, ...fields } = current;
+      return {
+        text: current.other_user_message,
+        limit: 1500,
+        write: async (text) => {
+          const init = await auth();
+          await json('/backend-api/user_system_messages', {
+            ...init,
+            method: 'POST',
+            headers: { ...(init.headers as Record<string, string>), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...fields, other_user_message: text }),
+          });
+        },
+      };
+    },
   };
 }
 
@@ -128,6 +154,18 @@ function claude(): Account {
       return out;
     },
     chat: async (id) => json(`/api/organizations/${await orgId()}/chat_conversations/${id}?tree=False&rendering_mode=messages`),
+    async about() {
+      const profile = (await json('/api/account_profile')) as { conversation_preferences?: unknown; conversation_preferences_cloud_max_chars?: unknown };
+      const text = profile.conversation_preferences ?? '';
+      if (typeof text !== 'string') throw new ShapeError('claude.ai profile without conversation_preferences');
+      return {
+        text,
+        limit: typeof profile.conversation_preferences_cloud_max_chars === 'number' ? profile.conversation_preferences_cloud_max_chars : 4000,
+        write: async (next) => {
+          await json('/api/account_profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversation_preferences: next }) });
+        },
+      };
+    },
   };
 }
 
