@@ -17,6 +17,7 @@ import { runReview } from './review/tui.js';
 import { runSetup } from './setup.js';
 import { Store } from './store.js';
 import { runSync } from './sync.js';
+import { tidy, tidyDue } from './tidy.js';
 
 // src/cli.ts and dist/cli.js both sit one level below package.json.
 const VERSION = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
@@ -34,6 +35,7 @@ const HELP = `headsup — gives your AI a heads-up before it answers
   headsup search <query>
   headsup log
   headsup sync-run              turn chats the extension read from your accounts into notes (runs on its own)
+  headsup tidy                  merge notes that say the same thing, set aside ones a newer note replaced (runs on its own)
   headsup capture --session <id> --transcript <path> --cwd <dir>
                                 save notes from a Claude Code session (SessionEnd runs this)
   headsup hook claude-code      (reads a UserPromptSubmit or SessionEnd payload on stdin)
@@ -233,15 +235,23 @@ async function main(argv: string[]): Promise<number> {
         store.log({ event: 'captured', ...base, saved: r.saved.map((n) => n.id), skipped: r.skipped, ...(r.reason ? { reason: r.reason } : {}) });
         console.log(r.reason ?? `saved ${r.saved.length} notes, skipped ${r.skipped}`);
         for (const n of r.saved) console.log(`  ${n.id}  ${n.type.padEnd(4)} ${n.body}`);
+        if (r.saved.length && tidyDue(store)) await tidy(store, claudeSummarizer());
       } catch (err) {
         store.log({ event: 'capture-failed', ...base, error: err instanceof Error ? err.message : String(err) });
         throw err;
       }
       return 0;
     }
+    case 'tidy': {
+      // Normally runs on its own after new notes come in; this runs a pass now.
+      const r = await tidy(store, claudeSummarizer());
+      console.log(r ? `merged ${r.merged} notes · took out ${r.dropped} · moved to ${store.home}/archive${r.failed ? ` · ${r.failed} spaces failed` : ''}` : 'a tidy pass is already running');
+      return 0;
+    }
     case 'sync-run': {
       // Started by the native host when the extension hands over chats; quiet unless run by hand.
       const r = await runSync(store, config, claudeSummarizer());
+      if (r?.saved && tidyDue(store)) await tidy(store, claudeSummarizer());
       console.log(r ? `read ${r.chats} chats · ${r.saved} notes${r.failed ? ` · ${r.failed} batches failed, queued for next time` : ''}` : 'another sync is already running');
       return 0;
     }
