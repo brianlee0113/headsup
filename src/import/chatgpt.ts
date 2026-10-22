@@ -25,12 +25,12 @@ interface ExportNode {
   } | null;
 }
 
-interface ExportChat {
+export interface ExportChat {
   id?: string;
   conversation_id?: string;
   title?: string;
   create_time?: number;
-  update_time?: number;
+  update_time?: number | string; // seconds in the export, sometimes an ISO string from the site
   current_node?: string;
   mapping?: Record<string, ExportNode>;
 }
@@ -50,29 +50,36 @@ export function readExport(path: string): string {
 export function parseExport(json: string): Chat[] {
   const raw = JSON.parse(json) as unknown;
   if (!Array.isArray(raw)) throw new Error('conversations.json should be a list of conversations');
-  return (raw as ExportChat[]).map((c) => {
-    // A chat is a tree (edits and regenerations branch it); the visible branch runs from current_node up.
-    const branch: ExportNode[] = [];
-    const seen = new Set<string>();
-    for (let id = c.current_node; id && c.mapping?.[id] && !seen.has(id); id = c.mapping[id]!.parent ?? undefined) {
-      seen.add(id);
-      branch.unshift(c.mapping[id]!);
-    }
-    const turns: Chat['turns'] = [];
-    for (const node of branch) {
-      const m = node.message;
-      const role = m?.author?.role;
-      if ((role !== 'user' && role !== 'assistant') || m?.metadata?.is_visually_hidden_from_conversation) continue;
-      const text = (m?.content?.parts ?? []).filter((p): p is string => typeof p === 'string').join('\n').trim();
-      if (text) turns.push({ role, text });
-    }
-    return {
-      id: c.conversation_id ?? c.id ?? `${c.create_time}`,
-      title: c.title ?? '',
-      updated: new Date(((c.update_time ?? c.create_time ?? 0) as number) * 1000),
-      turns,
-    };
-  });
+  return (raw as ExportChat[]).map(parseChatGPTChat);
+}
+
+// One chat in the export, or one chat as chatgpt.com's own conversation endpoint returns it (same shape).
+export function parseChatGPTChat(c: ExportChat): Chat {
+  // A chat is a tree (edits and regenerations branch it); the visible branch runs from current_node up.
+  const branch: ExportNode[] = [];
+  const seen = new Set<string>();
+  for (let id = c.current_node; id && c.mapping?.[id] && !seen.has(id); id = c.mapping[id]!.parent ?? undefined) {
+    seen.add(id);
+    branch.unshift(c.mapping[id]!);
+  }
+  const turns: Chat['turns'] = [];
+  for (const node of branch) {
+    const m = node.message;
+    const role = m?.author?.role;
+    if ((role !== 'user' && role !== 'assistant') || m?.metadata?.is_visually_hidden_from_conversation) continue;
+    // Only text: reasoning ("thoughts", "reasoning_recap") and tool output are not the person or the answer.
+    const kind = m?.content?.content_type;
+    if (kind && kind !== 'text' && kind !== 'multimodal_text') continue;
+    const text = (m?.content?.parts ?? []).filter((p): p is string => typeof p === 'string').join('\n').trim();
+    if (text) turns.push({ role, text });
+  }
+  const time = c.update_time ?? c.create_time ?? 0;
+  return {
+    id: c.conversation_id ?? c.id ?? `${c.create_time}`,
+    title: c.title ?? '',
+    updated: typeof time === 'string' ? new Date(time) : new Date(time * 1000),
+    turns,
+  };
 }
 
 const MIN_USER_CHARS = 80; // shorter chats rarely say anything about the person
@@ -111,13 +118,13 @@ export function planImport(chats: Chat[], opts: { since: Date; done: Set<string>
 }
 
 // The person's own words carry the facts; replies are clipped hard and only give context.
-function chatText(chat: Chat): string {
-  const lines = chat.turns.map((t) => `${t.role === 'user' ? 'USER' : 'CHATGPT'}: ${clip(t.text, t.role === 'user' ? 1500 : 300)}`);
+function chatText(chat: Chat, assistant = 'CHATGPT'): string {
+  const lines = chat.turns.map((t) => `${t.role === 'user' ? 'USER' : assistant}: ${clip(t.text, t.role === 'user' ? 1500 : 300)}`);
   return clip(lines.join('\n'), BATCH_CHARS / 2);
 }
 
-export function buildImportPrompt(batch: Chat[], existing: Note[]): Prompt {
-  const system = `You read a person's old ChatGPT conversations and write durable memory notes about them. The notes are later shared with their other AI tools (mostly coding assistants), so another assistant can help them without asking again. You never answer or continue the conversations: they are only material to take notes from.
+export function buildImportPrompt(batch: Chat[], existing: Note[], from = 'ChatGPT'): Prompt {
+  const system = `You read a person's ${from} conversations and write durable memory notes about them. The notes are later shared with their other AI tools (mostly coding assistants), so another assistant can help them without asking again. You never answer or continue the conversations: they are only material to take notes from.
 
 Return ONLY a JSON array, possibly empty. Each item: {"type": "how" | "fact", "body": "...", "topics": ["..."]}
 - "how": how the person likes things done: writing voice and tone, formats they prefer, tools, habits.
@@ -125,7 +132,7 @@ Return ONLY a JSON array, possibly empty. Each item: {"type": "how" | "fact", "b
 
 Rules:
 - Only things still likely true in a few months. Skip one-off questions, trivia, homework answers and anything the person merely asked about.
-- Only what the person said about themselves, not what ChatGPT suggested.
+- Only what the person said about themselves, not what ${from} suggested.
 - Never include health, medical, mental health, relationships, family matters, money and finances, legal matters, religion or politics.
 - Never include secrets, credentials, addresses, phone numbers, email addresses, account details, or private details about other people.
 - One idea per note, under 200 characters, readable on its own.
@@ -137,7 +144,7 @@ Rules:
 ${existing.length ? existing.slice(-80).map((n) => `- ${n.body}`).join('\n') : '(none)'}
 </existing_notes>
 
-${batch.map((c) => `<conversation title="${c.title.replace(/"/g, "'")}" date="${c.updated.toISOString().slice(0, 10)}">\n${chatText(c)}\n</conversation>`).join('\n\n')}
+${batch.map((c) => `<conversation title="${c.title.replace(/"/g, "'")}" date="${c.updated.toISOString().slice(0, 10)}">\n${chatText(c, from.toUpperCase())}\n</conversation>`).join('\n\n')}
 
 Take notes about the person from the conversations above. Output only the JSON array.`;
   return { system, user };

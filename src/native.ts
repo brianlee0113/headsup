@@ -57,8 +57,10 @@ function launcher(): string {
 export function installNativeHost(headsupHome: string, dirs = browserHostDirs()): { script: string; manifests: string[] } {
   const script = join(headsupHome, 'native-host');
   mkdirSync(dirname(script), { recursive: true });
-  // Chrome starts the host without our environment, so the launcher names the home it belongs to.
-  writeFileSync(script, `#!/bin/sh\nexport HEADSUP_HOME=${shellQuote(headsupHome)}\n${launcher()}\n`);
+  // Chrome starts the host without our environment, so the launcher names the home it belongs to,
+  // and keeps this shell's PATH so account sync can find `claude` to summarize with.
+  const env = [`export HEADSUP_HOME=${shellQuote(headsupHome)}`, ...(process.env.PATH ? [`export PATH=${shellQuote(process.env.PATH)}`] : [])];
+  writeFileSync(script, `#!/bin/sh\n${env.join('\n')}\n${launcher()}\n`);
   chmodSync(script, 0o755);
   const manifest = {
     name: HOST_NAME,

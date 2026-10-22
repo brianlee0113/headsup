@@ -2,7 +2,7 @@
 // has fallbacks, and a miss is reported (see health in content.ts) rather than failing silently.
 
 // What headsup looks for on the page; the popup explains what stops working without each.
-export type Part = 'composer' | 'send button' | 'messages';
+export type Part = 'composer' | 'send button' | 'messages' | 'chat list';
 
 export interface Site {
   host: string;

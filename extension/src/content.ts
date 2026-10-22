@@ -2,6 +2,7 @@
 // ticked notes at the end of the message when it is sent, and folds that block in sent messages.
 
 import { BLOCK_MARKER, buildBlock, splitBlock, type WebNote } from '../../src/shared/block.js';
+import { accountFor, ShapeError } from './account.js';
 import { siteFor, type Part, type Site } from './sites.js';
 
 interface Detect {
@@ -16,6 +17,10 @@ type Reply = Detect | { type: 'error'; message: string; unreachable?: boolean } 
 const DEBOUNCE_MS = 450;
 const MIN_PROMPT = 8;
 const HEALTH_GRACE_MS = 8000;
+const SYNC_DELAY_MS = 5000; // let the page load its own requests first
+const SYNC_GAP_MS = 1000; // between chat fetches, so a backfill reads like a person scrolling, not a burst
+const SYNC_AGAIN_MS = 30 * 60_000; // a tab left open catches up again when it comes back to the front
+const SYNC_BATCH = 5;
 
 const site = siteFor(location.hostname);
 if (site) start(site);
@@ -166,6 +171,60 @@ function start(site: Site): void {
     check('composer', !!site.composer());
     check('messages', site.userMessages().length > 0);
   }
+
+  // ---------- Catching up on the account ----------
+  // Only while this site is open, and only once the person said yes in the popup. Chats from the
+  // phone and desktop apps are in the same account lists, so they come in this way too.
+  const syncKey = `sync:${site.host}`;
+  let syncing = false;
+  let lastSync = 0;
+  async function catchUp(): Promise<void> {
+    if (syncing || document.hidden) return;
+    const pref = (await chrome.storage.local.get(syncKey))[syncKey] as { on?: boolean; backfill?: boolean } | undefined;
+    const account = accountFor(site.host);
+    if (!pref?.on || !account) return;
+    const lock = await send({ type: 'sync-lock', site: site.host }).catch(() => null);
+    if (lock?.type !== 'ok') return; // another tab of this site is already on it
+    syncing = true;
+    lastSync = Date.now();
+    const hand = async (chats: unknown[], done: boolean) => {
+      const r = await send({ type: 'sync-chats', site: site.host, chats, done });
+      // The core refuses a chat shape it doesn't know; that is the site changing, not a hiccup.
+      if (r.type === 'error') throw 'unreachable' in r && r.unreachable ? new Error((r as { message: string }).message) : new ShapeError((r as { message: string }).message);
+    };
+    try {
+      const start = (await send({ type: 'sync-start', site: site.host, backfill: !!pref.backfill })) as { type: string; since?: string; seen?: Record<string, string> };
+      if (start.type !== 'sync-start') return;
+      const ids = await account.changed(new Date(start.since!).getTime(), start.seen ?? {});
+      const progress = (done: number) => void send({ type: 'sync-progress', site: site.host, done, total: ids.length }).catch(() => {});
+      progress(0);
+      let batch: unknown[] = [];
+      for (const [i, id] of ids.entries()) {
+        batch.push(await account.chat(id));
+        if (batch.length === SYNC_BATCH || i === ids.length - 1) {
+          await hand(batch, false);
+          batch = [];
+        }
+        progress(i + 1);
+        await new Promise((r) => setTimeout(r, SYNC_GAP_MS));
+      }
+      await hand([], true);
+      check('chat list', true);
+    } catch (err) {
+      if (err instanceof ShapeError) check('chat list', false);
+      // Anything else (signed out, rate limited, offline) waits for the next time the site is opened.
+    } finally {
+      syncing = false;
+      void send({ type: 'sync-unlock', site: site.host }).catch(() => {});
+    }
+  }
+  setTimeout(() => void catchUp(), SYNC_DELAY_MS);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && Date.now() - lastSync > SYNC_AGAIN_MS) void catchUp();
+  });
+  chrome.storage.onChanged.addListener((changes) => {
+    if (syncKey in changes) void catchUp(); // turned on in the popup while this tab was open
+  });
 
   // ---------- Asking the core ----------
   const send = (message: unknown) => chrome.runtime.sendMessage(message) as Promise<Reply>;

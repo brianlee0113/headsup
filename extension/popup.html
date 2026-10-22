@@ -29,6 +29,9 @@
   .warn { margin-top: 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent);
     background: color-mix(in srgb, var(--amber) 10%, transparent); display: flex; flex-direction: column; gap: 6px; }
   .warn b { color: var(--amber); font-weight: 600; } .warn p { margin: 0; }
+  .btn { font: inherit; border: 1px solid var(--border); background: transparent; color: var(--fg); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+  .btn.primary { background: var(--amber); border-color: var(--amber); color: #111; }
+  .row .muted { display: block; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -53,11 +56,26 @@
       <p class="muted">Updating headsup fixes this. Until then the toolbar icon shows ! on this tab.</p>
     </div>
     <hr style="margin-top:14px">
+    <div id="first-run" hidden style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+      <b style="font-size:15px;font-weight:600">Bring in your past chats?</b>
+      <p class="muted">headsup can read the last 12 months of chats in your ChatGPT and Claude accounts from this browser, and keep the useful parts as notes. After this, new chats come in each time you open ChatGPT or Claude here.</p>
+      <p class="muted">Left out: health, relationships, money, legal matters, religion, politics. Secrets are never stored. Summarized with your own Claude login.</p>
+      <div style="display:flex;gap:8px">
+        <button class="btn primary" id="backfill-yes">Bring them in</button>
+        <button class="btn" id="backfill-no">Skip</button>
+      </div>
+      <p class="muted">Skip still brings in new chats from now on. You can turn either site off below.</p>
+    </div>
     <p class="section" style="margin:14px 0 10px">KEEP IN SYNC</p>
     <div style="display:flex;flex-direction:column;gap:12px">
-      <div class="row off"><span><b>Capture new ChatGPT chats</b><span class="muted">Phone and desktop app chats too. Coming in the next update.</span></span><input type="checkbox" class="toggle" disabled></div>
-      <div class="row off"><span><b>Capture new Claude chats</b><span class="muted">claude.ai and the Claude apps. Coming in the next update.</span></span><input type="checkbox" class="toggle" disabled></div>
+      <div class="row" data-sync="chatgpt.com"><span><b>Capture new ChatGPT chats</b><span class="muted" data-detail></span></span><input type="checkbox" class="toggle"></div>
+      <div class="row" data-sync="claude.ai"><span><b>Capture new Claude chats</b><span class="muted" data-detail></span></span><input type="checkbox" class="toggle"></div>
       <div class="row off"><span><b>Keep "About me" in ChatGPT current</b><span class="muted">So the ChatGPT apps know how you work. Coming in the next update.</span></span><input type="checkbox" class="toggle" disabled></div>
+    </div>
+    <div class="warn" id="sync-broken" hidden>
+      <b id="sync-broken-title"></b>
+      <p id="sync-broken-line"></p>
+      <p class="muted">Updating headsup fixes this. Nothing is lost: it catches up once it can read them again.</p>
     </div>
   </section>
 

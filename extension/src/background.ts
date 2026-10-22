@@ -2,6 +2,10 @@
 // Chrome starts the host per message, so there is nothing to keep alive here.
 
 const HOST = 'ai.headsup.host';
+const LOCK_MS = 10 * 60_000; // a tab that went away without unlocking stops holding the site
+
+// One tab per site catches up at a time; two chatgpt.com tabs would read the same chats twice.
+const syncing = new Map<string, { tabId: number; at: number }>();
 
 chrome.runtime.onMessage.addListener((message, sender, reply) => {
   if (message?.type === 'health') {
@@ -12,6 +16,26 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     // Per tab, so the red "not connected" badge stays global; null hands the tab back to it.
     void chrome.action.setBadgeText({ tabId, text: missing.length ? '!' : (null as unknown as string) });
     void chrome.action.setBadgeBackgroundColor({ tabId, color: '#ffb224' });
+    reply({ type: 'ok' });
+    return false;
+  }
+  if (message?.type === 'sync-lock' || message?.type === 'sync-unlock') {
+    const tabId = sender.tab?.id ?? -1;
+    const held = syncing.get(message.site);
+    if (message.type === 'sync-unlock') {
+      if (held?.tabId === tabId) syncing.delete(message.site);
+      reply({ type: 'ok' });
+    } else if (held && held.tabId !== tabId && Date.now() - held.at < LOCK_MS) {
+      reply({ type: 'busy' });
+    } else {
+      syncing.set(message.site, { tabId, at: Date.now() });
+      reply({ type: 'ok' });
+    }
+    return false;
+  }
+  if (message?.type === 'sync-progress') {
+    // The popup reads this to show "Reading ChatGPT · 158 of 412".
+    void chrome.storage.session.set({ [`progress:${message.site}`]: { done: message.done, total: message.total, at: Date.now() } });
     reply({ type: 'ok' });
     return false;
   }

@@ -7,13 +7,15 @@ import { detect } from './gap.js';
 import type { Note } from './note.js';
 import type { WebNote } from './shared/block.js';
 import type { Store } from './store.js';
+import { handleSync, syncStatus, type SyncRequest } from './sync.js';
 
 export const SITES: Record<string, string> = { 'chatgpt.com': 'chatgpt', 'claude.ai': 'claude-ai' };
 
 export type WebRequest =
   | { type: 'status' }
   | { type: 'detect'; site: string; prompt: string; conversation?: string }
-  | { type: 'sent'; site: string; prompt: string; injected: string[]; offered: string[]; included: string[]; blocked: string[] };
+  | { type: 'sent'; site: string; prompt: string; injected: string[]; offered: string[]; included: string[]; blocked: string[] }
+  | SyncRequest;
 
 export interface DetectReply {
   type: 'detect';
@@ -36,8 +38,11 @@ export function handleWeb(req: WebRequest, store: Store, config: Config, version
   switch (req.type) {
     case 'status': {
       const notes = store.list();
-      return { type: 'status', version, notes: notes.length, preset: config.preset, space: config.defaultSpace };
+      return { type: 'status', version, notes: notes.length, preset: config.preset, space: config.defaultSpace, sync: syncStatus(store) };
     }
+    case 'sync-start':
+    case 'sync-chats':
+      return handleSync(req, store);
     case 'detect': {
       const agent = SITES[req.site];
       if (!agent) return { type: 'error', message: `headsup doesn't know ${req.site}` };

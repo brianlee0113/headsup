@@ -16,6 +16,7 @@ import { importChatGPT } from './import/flow.js';
 import { runReview } from './review/tui.js';
 import { runSetup } from './setup.js';
 import { Store } from './store.js';
+import { runSync } from './sync.js';
 
 // src/cli.ts and dist/cli.js both sit one level below package.json.
 const VERSION = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
@@ -32,6 +33,7 @@ const HELP = `headsup — gives your AI a heads-up before it answers
   headsup list
   headsup search <query>
   headsup log
+  headsup sync-run              turn chats the extension read from your accounts into notes (runs on its own)
   headsup capture --session <id> --transcript <path> --cwd <dir>
                                 save notes from a Claude Code session (SessionEnd runs this)
   headsup hook claude-code      (reads a UserPromptSubmit or SessionEnd payload on stdin)
@@ -235,6 +237,12 @@ async function main(argv: string[]): Promise<number> {
         store.log({ event: 'capture-failed', ...base, error: err instanceof Error ? err.message : String(err) });
         throw err;
       }
+      return 0;
+    }
+    case 'sync-run': {
+      // Started by the native host when the extension hands over chats; quiet unless run by hand.
+      const r = await runSync(store, config, claudeSummarizer());
+      console.log(r ? `read ${r.chats} chats · ${r.saved} notes${r.failed ? ` · ${r.failed} batches failed, queued for next time` : ''}` : 'another sync is already running');
       return 0;
     }
     default:
