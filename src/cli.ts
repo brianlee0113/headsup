@@ -1,10 +1,13 @@
 #!/usr/bin/env node
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { createInterface } from 'node:readline';
 import { parseArgs } from 'node:util';
 import { agentName } from './agents.js';
 import { capture, CAPTURING_ENV, claudeSummarizer } from './capture.js';
+import { buildCard, type CardData } from './card.js';
+import { cardPage } from './card-page.js';
 import { headsupHome, loadConfig } from './config.js';
 import { handleUserPromptSubmit, type UserPromptSubmitInput } from './hooks/claude-code.js';
 import { claudeSettingsPath, uninstallClaudeHook } from './install.js';
@@ -35,6 +38,7 @@ const HELP = `headsup — gives your AI a heads-up before it answers
   headsup search <query>
   headsup log
   headsup sync-run              turn chats the extension read from your accounts into notes (runs on its own)
+  headsup card                  make a card to share: which AI you use for what (opens in your browser)
   headsup tidy                  merge notes that say the same thing, set aside ones a newer note replaced (runs on its own)
   headsup capture --session <id> --transcript <path> --cwd <dir>
                                 save notes from a Claude Code session (SessionEnd runs this)
@@ -95,6 +99,8 @@ async function main(argv: string[]): Promise<number> {
       cwd: { type: 'string' },
       since: { type: 'string' },
       limit: { type: 'string' },
+      port: { type: 'string' },
+      'no-open': { type: 'boolean' },
       yes: { type: 'boolean', short: 'y' },
       help: { type: 'boolean', short: 'h' },
     },
@@ -240,6 +246,35 @@ async function main(argv: string[]): Promise<number> {
         store.log({ event: 'capture-failed', ...base, error: err instanceof Error ? err.message : String(err) });
         throw err;
       }
+      return 0;
+    }
+    case 'card': {
+      // A page on this computer only; it stops on its own after a while.
+      const name = (() => {
+        try {
+          return execFileSync('git', ['config', '--global', 'user.name'], { encoding: 'utf8' }).trim().split(/\s+/)[0] ?? '';
+        } catch {
+          return '';
+        }
+      })();
+      let card: Promise<CardData> | undefined;
+      const server = createServer((req, res) => {
+        if (req.url === '/data') {
+          card ??= buildCard(store, config, claudeSummarizer());
+          card.then(
+            (d) => res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(d)),
+            (err: unknown) => res.writeHead(500).end(err instanceof Error ? err.message : String(err)),
+          );
+          return;
+        }
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }).end(cardPage(name));
+      });
+      await new Promise<void>((r) => server.listen(Number(values.port ?? 0), '127.0.0.1', r));
+      const url = `http://localhost:${(server.address() as { port: number }).port}/`;
+      setTimeout(() => process.exit(0), 20 * 60_000).unref();
+      if (!values['no-open']) spawn(process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'explorer' : 'xdg-open', [url], { stdio: 'ignore', detached: true }).unref();
+      console.log(`Your card is at ${url} (this page stops in 20 minutes; Ctrl-C to stop now)`);
+      await new Promise(() => {}); // keep serving
       return 0;
     }
     case 'tidy': {

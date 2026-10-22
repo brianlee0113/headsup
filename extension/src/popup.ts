@@ -37,6 +37,13 @@ async function main(): Promise<void> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   await showSync(status.sync ?? {}, tab);
   await showAbout();
+  $('card').hidden = false;
+  $('card').onclick = async (e) => {
+    e.preventDefault();
+    const r = (await chrome.runtime.sendMessage({ type: 'card' }).catch(() => null)) as { type: string; url?: string } | null;
+    // The page needs a moment to start listening.
+    if (r?.url) setTimeout(() => void chrome.tabs.create({ url: r.url }), 600);
+  };
   await showSite(tab);
 }
 

@@ -133,6 +133,21 @@ export class Store {
     writeFileSync(this.stateFile(`import-${source}`, 'json'), JSON.stringify({ ids }));
   }
 
+  // How many prompts headsup looked at, so the share card can say how few it stepped into.
+  countPrompt(now = new Date()): void {
+    const { count, since } = this.readPromptCount() ?? { count: 0, since: now.toISOString() };
+    mkdirSync(join(this.home, 'state'), { recursive: true });
+    writeFileSync(join(this.home, 'state', 'prompts.json'), JSON.stringify({ count: count + 1, since }));
+  }
+
+  readPromptCount(): { count: number; since: string } | null {
+    try {
+      return JSON.parse(readFileSync(join(this.home, 'state', 'prompts.json'), 'utf8')) as { count: number; since: string };
+    } catch {
+      return null;
+    }
+  }
+
   private pendingFile(sessionId: string): string {
     return this.stateFile(sessionId, 'json');
   }

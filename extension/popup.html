@@ -36,6 +36,7 @@
   .yes { color: var(--how); } .no { color: var(--blocked); }
   pre { margin: 10px 0 0; white-space: pre-wrap; font: 11px/16px ui-monospace, Menlo, monospace; color: var(--fg); padding: 8px 10px; border-radius: 8px;
     border: 1px dashed var(--amber); background: color-mix(in srgb, var(--amber) 10%, transparent); }
+  .share { color: var(--amber); font-weight: 500; text-decoration: none; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -104,6 +105,7 @@
   </section>
 
   <hr>
+  <a href="#" id="card" class="share" hidden>Share my card →</a>
   <p class="muted">Notes stay on this computer. See what was shared where: <span style="font-family:ui-monospace,Menlo,monospace">headsup review</span></p>
 </main>
 <script src="popup.js"></script>

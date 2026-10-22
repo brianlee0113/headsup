@@ -29,6 +29,7 @@ const GENERATED = /^\s*<(?:task-notification|local-command-stdout|local-command-
 
 export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Store, config: Config): HookOutput | null {
   if (GENERATED.test(input.prompt)) return null;
+  store.countPrompt();
   const notes = store.list();
   const pending = store.readPending(input.session_id);
   if (pending.length) {

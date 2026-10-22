@@ -1,6 +1,7 @@
 // What the extension asks the core, through the native host. Typing only asks ("detect"); the log
 // is written once the message is actually sent ("sent"), so review shows real heads-ups only.
 
+import { spawn } from 'node:child_process';
 import { aboutLines } from './about.js';
 import { agentName } from './agents.js';
 import type { Config } from './config.js';
@@ -18,6 +19,7 @@ export type WebRequest =
   | { type: 'sent'; site: string; prompt: string; injected: string[]; offered: string[]; included: string[]; blocked: string[] }
   | { type: 'about-me'; site: string; room: number }
   | { type: 'about-written'; site: string; ids: string[] }
+  | { type: 'card' }
   | SyncRequest;
 
 export interface DetectReply {
@@ -54,6 +56,12 @@ export function handleWeb(req: WebRequest, store: Store, config: Config, version
     case 'about-written':
       store.log({ event: 'about-me', agent: SITES[req.site] ?? req.site, notes: req.ids });
       return { type: 'ok' };
+    case 'card': {
+      // The popup's "Share my card": the native host must answer at once, so the page runs on its own.
+      const port = 41000 + Math.floor(Math.random() * 1000);
+      spawn(process.execPath, [process.argv[1]!, 'card', '--port', String(port), '--no-open'], { detached: true, stdio: 'ignore' }).unref();
+      return { type: 'card', url: `http://localhost:${port}/` };
+    }
     case 'detect': {
       const agent = SITES[req.site];
       if (!agent) return { type: 'error', message: `headsup doesn't know ${req.site}` };
@@ -69,6 +77,7 @@ export function handleWeb(req: WebRequest, store: Store, config: Config, version
     }
     case 'sent': {
       const agent = SITES[req.site] ?? req.site;
+      store.countPrompt();
       if (!req.injected.length && !req.offered.length && !req.blocked.length) return { type: 'ok' };
       const session = `web-${Date.now()}`;
       store.log({
