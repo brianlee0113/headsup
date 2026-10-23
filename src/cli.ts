@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 import { execFileSync, spawn } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { createInterface } from 'node:readline';
 import { parseArgs } from 'node:util';
 import { agentName } from './agents.js';
 import { capture, CAPTURING_ENV, claudeSummarizer } from './capture.js';
+import { catchUp, catchUpDue, claudeProjectsDir, IDLE_MS } from './catchup.js';
 import { buildCard, type CardData } from './card.js';
 import { cardPage } from './card-page.js';
 import { headsupHome, loadConfig } from './config.js';
@@ -42,9 +43,19 @@ const HELP = `headsup — gives your AI a heads-up before it answers
   headsup tidy                  merge notes that say the same thing, set aside ones a newer note replaced (runs on its own)
   headsup capture --session <id> --transcript <path> --cwd <dir>
                                 save notes from a Claude Code session (SessionEnd runs this)
+  headsup catch-up              save notes from Claude Code sessions that went quiet or never ended,
+                                like tmux panes and reboots (runs on its own)
   headsup hook claude-code      (reads a UserPromptSubmit or SessionEnd payload on stdin)
 
 Memory lives in ${headsupHome()}`;
+
+const mtime = (path: string) => {
+  try {
+    return statSync(path).mtimeMs;
+  } catch {
+    return Date.now();
+  }
+};
 
 async function readStdin(): Promise<string> {
   const chunks: Buffer[] = [];
@@ -224,6 +235,13 @@ async function main(argv: string[]): Promise<number> {
         }
         return 0;
       }
+      // A session idle this long is captured now; its new prompt may already be in the file, so
+      // catch-up is told rather than left to judge by the file's time.
+      const idle = !!input.transcript_path && Date.now() - mtime(input.transcript_path) >= IDLE_MS;
+      if (idle || catchUpDue(store)) {
+        const args = ['catch-up', ...(idle ? ['--session', input.session_id] : [])];
+        spawn(process.execPath, [process.argv[1]!, ...args], { detached: true, stdio: 'ignore' }).unref();
+      }
       const out = handleUserPromptSubmit(input, store, config);
       if (out) process.stdout.write(JSON.stringify(out));
       return 0;
@@ -246,6 +264,14 @@ async function main(argv: string[]): Promise<number> {
         store.log({ event: 'capture-failed', ...base, error: err instanceof Error ? err.message : String(err) });
         throw err;
       }
+      return 0;
+    }
+    case 'catch-up': {
+      const r = await catchUp(store, config, claudeSummarizer(), { include: values.session });
+      if (r?.saved.length && tidyDue(store)) await tidy(store, claudeSummarizer());
+      if (!r) console.log('a catch-up is already running');
+      else console.log(`looked in ${claudeProjectsDir()} · summarized ${r.sessions} sessions · ${r.saved.length} notes${r.failed ? ` · ${r.failed} failed` : ''}`);
+      for (const n of r?.saved ?? []) console.log(`  ${n.id}  ${n.type.padEnd(4)} ${n.body}`);
       return 0;
     }
     case 'card': {

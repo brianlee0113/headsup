@@ -1,6 +1,7 @@
-// Turns a finished Claude Code session into notes. The SessionEnd hook only gets ~1.5s, so it
-// spawns `headsup capture` in the background, which summarizes the transcript with `claude -p`
-// (the user's own Claude login, no API key) and stores what is worth remembering.
+// Turns a Claude Code session into notes. The SessionEnd hook only gets ~1.5s, so it spawns
+// `headsup capture` in the background (catchup.ts covers sessions that never end), which
+// summarizes the transcript with `claude -p` (the user's own Claude login, no API key) and stores
+// what is worth remembering.
 
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
@@ -34,6 +35,7 @@ export const CAPTURING_ENV = 'HEADSUP_CAPTURING';
 const MAX_CONVERSATION_CHARS = 60_000;
 const MAX_NOTES = 8;
 const MAX_BODY = 300;
+export const TOO_SHORT = 'too short to learn from';
 
 // Claude Code wraps harness text in tags inside user messages; none of it is the user speaking.
 const HARNESS_TAGS = /<(system-reminder|command-[\w-]+|local-command-[\w-]+|user-prompt-submit-hook|bash-[\w-]+)>[\s\S]*?<\/\1>/g;
@@ -182,7 +184,7 @@ export async function capture(input: CaptureInput, store: Store, config: Config,
   const fresh = turns.slice(done);
   const userText = fresh.filter((t) => t.role === 'user').map((t) => t.text).join(' ');
   if (fresh.filter((t) => t.role === 'user').length < 2 && userText.length < 200) {
-    return { saved: [], skipped: 0, reason: 'too short to learn from' };
+    return { saved: [], skipped: 0, reason: TOO_SHORT };
   }
 
   const space = resolveSpace(input.cwd, config);
