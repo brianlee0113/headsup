@@ -14,7 +14,7 @@ export function cardPage(defaultName: string): string {
   @font-face { font-family: Geist; font-weight: 100 900; font-display: block; src: url(/fonts/geist-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
   @font-face { font-family: "JetBrains Mono"; font-weight: 100 900; font-display: block; src: url(/fonts/jetbrains-mono-latin.woff2) format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
   @font-face { font-family: "JetBrains Mono"; font-weight: 100 900; font-display: block; src: url(/fonts/jetbrains-mono-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
-  :root { --bg:#09090b; --panel:#141518; --fg:#f2f2f0; --muted:#9a9ca3; --border:#26282e; --amber:#ffb224; --amber-bg:#2e2209; }
+  :root { --bg:#0a0a0a; --panel:#141414; --fg:#fafafa; --muted:#8f8f8f; --border:#262626; --accent:#ff3d8b; --accent-bg:#33101f; }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 Geist, system-ui, sans-serif; }
   main { display: flex; gap: 40px; padding: 32px; flex-wrap: wrap; justify-content: center; }
@@ -27,15 +27,15 @@ export function cardPage(defaultName: string): string {
   .group { display: flex; flex-direction: column; gap: 10px; }
   .label { font: 11px JetBrains Mono, monospace; letter-spacing: .08em; color: var(--muted); }
   label.row { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-size: 13px; }
-  label.row input { margin: 2px 0 0; accent-color: var(--amber); }
+  label.row input { margin: 2px 0 0; accent-color: var(--accent); }
   label.row.off span { color: var(--muted); }
   input[type=text] { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; color: var(--fg); font: inherit; padding: 6px 10px; }
   .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; align-self: flex-start; }
   .seg button { background: transparent; border: 0; color: var(--muted); font: 500 12px Geist, sans-serif; padding: 6px 12px; cursor: pointer; }
-  .seg button.on { background: var(--amber-bg); color: var(--amber); }
+  .seg button.on { background: var(--accent-bg); color: var(--accent); }
   .actions { display: flex; gap: 8px; }
   .btn { font: 500 13px Geist, sans-serif; border-radius: 999px; padding: 7px 16px; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--fg); }
-  .btn.primary { background: var(--amber); border-color: var(--amber); color: #111; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   #status { color: var(--muted); font-size: 12px; min-height: 18px; }
 </style>
 </head>
@@ -56,7 +56,7 @@ export function cardPage(defaultName: string): string {
   </aside>
 </main>
 <script>
-const C = { bg:'#0e0f12', fg:'#e6e6e3', muted:'#8c8f96', amber:'#ffb224', track:'#1a1b20', border:'#2a2c33' };
+const C = { bg:'#0a0a0a', fg:'#fafafa', muted:'#8f8f8f', accent:'#ff3d8b', track:'#1c1c1c', border:'#262626' };
 const SANS = 'Geist, system-ui, sans-serif', MONO = '"JetBrains Mono", ui-monospace, monospace';
 const canvas = document.getElementById('card'), ctx = canvas.getContext('2d');
 let data = null, fmt = 'portrait';
@@ -80,7 +80,15 @@ function wrap(s, width) {
   }
   return out;
 }
-const bar = (x, y, w, h, share) => { ctx.fillStyle = C.track; round(x, y, w, h); ctx.fillStyle = C.amber; round(x, y, Math.max(h, w * share), h); };
+const bar = (x, y, w, h, share) => { ctx.fillStyle = C.track; round(x, y, w, h); ctx.fillStyle = C.accent; round(x, y, Math.max(h, w * share), h); };
+// The headsup mark: an up-caret with a magenta dot, as in the extension and Figma (Brand/Glyph).
+function mark(x, y, size) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(size / 24, size / 24);
+  ctx.strokeStyle = C.fg; ctx.lineWidth = 3.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(4, 18); ctx.lineTo(12, 10); ctx.lineTo(20, 18); ctx.stroke();
+  ctx.fillStyle = C.accent; ctx.beginPath(); ctx.arc(19.5, 4.5, 3.5, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
 function round(x, y, w, h) { ctx.beginPath(); ctx.roundRect(x, y, w, h, h / 2); ctx.fill(); }
 
 function pick() {
@@ -100,9 +108,9 @@ function drawPortrait(p) {
   const X = 72, W = 936;
   // Blocks are laid out top to bottom with the spare height shared between them.
   const blocks = [];
-  blocks.push({ h: 34, draw: (y) => { text('◆ headsup', X, y + 26, C.amber, 700, 26, true); rightText(data.month, X + W, y + 26, C.muted, 400, 22, true); } });
+  blocks.push({ h: 34, draw: (y) => { mark(X, y + 1, 30); text('headsup', X + 40, y + 26, C.fg, 700, 26, true); rightText(data.month, X + W, y + 26, C.muted, 400, 22, true); } });
   font(600, 64); const head = wrap(data.headline, W);
-  blocks.push({ h: 40 + head.length * 72, draw: (y) => { text(p.who, X, y + 22, C.amber, 700, 22, true, 2); head.forEach((l, i) => text(l, X, y + 40 + 58 + i * 72, C.fg, 600, 64)); } });
+  blocks.push({ h: 40 + head.length * 72, draw: (y) => { text(p.who, X, y + 22, C.accent, 700, 22, true, 2); head.forEach((l, i) => text(l, X, y + 40 + 58 + i * 72, C.fg, 600, 64)); } });
   if (p.tools.length) blocks.push({ h: 40 + p.tools.length * 66, draw: (y) => {
     text('WHERE EACH AI FITS', X, y + 20, C.muted, 400, 20, true, 1.6);
     p.tools.forEach((t, i) => { const ty = y + 40 + i * 66 + 30; const w = text(t.name, X, ty, C.fg, 600, 30);
@@ -111,18 +119,18 @@ function drawPortrait(p) {
   if (p.flows.length) blocks.push({ h: 40 + p.flows.length * 46, draw: (y) => {
     text('CONTEXT THAT CROSSED OVER', X, y + 20, C.muted, 400, 20, true, 1.6);
     p.flows.forEach((f, i) => { const fy = y + 40 + i * 46 + 32; const w = text(f.from + ' → ' + f.to, X, fy, C.fg, 500, 28);
-      text(f.what, X + w + 16, fy, C.muted, 400, 24); rightText(f.times + '×', X + W, fy, C.amber, 700, 26, true); });
+      text(f.what, X + w + 16, fy, C.muted, 400, 24); rightText(f.times + '×', X + W, fy, C.accent, 700, 26, true); });
   } });
   if (p.style.length) blocks.push({ h: 40 + p.style.length * 48, draw: (y) => {
     text('MY AI STYLE', X, y + 20, C.muted, 400, 20, true, 1.6);
-    p.style.forEach((s, i) => { const sy = y + 40 + i * 48 + 34; text('◆', X, sy - 4, C.amber, 700, 20, true); text(s, X + 36, sy, C.fg, 400, 30); });
+    p.style.forEach((s, i) => { const sy = y + 40 + i * 48 + 34; mark(X, sy - 22, 22); text(s, X + 36, sy, C.fg, 400, 30); });
   } });
   if (p.numbers) blocks.push({ h: 84, draw: (y) => {
     const n = data.numbers, cells = [[String(n.tools), 'AI tools'], [String(n.notes), 'notes kept']];
     if (n.prompts) cells.push([n.steppedIn + ' of ' + n.prompts, 'prompts it stepped in']);
     cells.forEach(([a, b], i) => { const cx = X + i * (W / 3); text(a, cx, y + 48, C.fg, 600, 48); text(b, cx, y + 80, C.muted, 400, 22); });
   } });
-  blocks.push({ h: 48, draw: (y) => { ctx.fillStyle = C.border; ctx.fillRect(X, y, W, 1); text('Made on my computer. It only steps in when it helps.', X, y + 44, C.muted, 400, 20); rightText('npx headsup-ai', X + W, y + 44, C.amber, 400, 20, true); } });
+  blocks.push({ h: 48, draw: (y) => { ctx.fillStyle = C.border; ctx.fillRect(X, y, W, 1); text('Made on my computer. It only steps in when it helps.', X, y + 44, C.muted, 400, 20); rightText('npx headsup-ai', X + W, y + 44, C.accent, 400, 20, true); } });
   const used = blocks.reduce((s, b) => s + b.h, 0), gap = Math.max(24, (1350 - 144 - used) / (blocks.length - 1));
   let y = 72; for (const b of blocks) { b.draw(y); y += b.h + gap; }
 }
@@ -131,16 +139,16 @@ function drawLandscape(p) {
   canvas.width = 1200; canvas.height = 630;
   ctx.fillStyle = C.bg; ctx.fillRect(0, 0, 1200, 630);
   const X = 56, LW = 480, RX = 592, RW = 552;
-  text('◆ headsup', X, 76, C.amber, 700, 20, true);
-  text(p.who, X, 110, C.amber, 700, 16, true, 1.6);
+  mark(X, 56, 24); text('headsup', X + 32, 76, C.fg, 700, 20, true);
+  text(p.who, X, 110, C.accent, 700, 16, true, 1.6);
   font(600, 44); const head = wrap(data.headline, LW);
   head.forEach((l, i) => text(l, X, 160 + i * 50, C.fg, 600, 44));
   let y = 160 + head.length * 50 + 30;
   if (p.style.length) {
     text('MY AI STYLE', X, y, C.muted, 400, 14, true, 1.2);
-    p.style.slice(0, 2).forEach((s, i) => { text('◆', X, y + 32 + i * 32 - 3, C.amber, 700, 14, true); text(s, X + 24, y + 32 + i * 32, C.fg, 400, 20); });
+    p.style.slice(0, 2).forEach((s, i) => { mark(X, y + 32 + i * 32 - 16, 16); text(s, X + 24, y + 32 + i * 32, C.fg, 400, 20); });
   }
-  text('npx headsup-ai', X, 574, C.amber, 400, 16, true);
+  text('npx headsup-ai', X, 574, C.accent, 400, 16, true);
   y = 76;
   if (p.tools.length) {
     text('WHERE EACH AI FITS', RX, y, C.muted, 400, 14, true, 1.2); y += 14;
@@ -151,7 +159,7 @@ function drawLandscape(p) {
   if (p.flows.length) {
     text('CONTEXT THAT CROSSED OVER', RX, y, C.muted, 400, 14, true, 1.2); y += 6;
     p.flows.slice(0, 3).forEach((f) => { y += 30; const w = text(f.from + ' → ' + f.to, RX, y, C.fg, 500, 19);
-      text(f.what, RX + w + 10, y, C.muted, 400, 15); rightText(f.times + '×', RX + RW, y, C.amber, 700, 17, true); });
+      text(f.what, RX + w + 10, y, C.muted, 400, 15); rightText(f.times + '×', RX + RW, y, C.accent, 700, 17, true); });
   }
 }
 

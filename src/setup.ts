@@ -45,7 +45,7 @@ function unquotePath(raw: string): string {
 
 const paint = (on: boolean) => {
   const c = (code: string) => (s: string) => (on ? `\x1b[${code}m${s}\x1b[0m` : s);
-  return { bold: c('1'), dim: c('2'), green: c('32'), blue: c('34'), orange: c('38;5;214') };
+  return { bold: c('1'), dim: c('2'), green: c('32'), blue: c('34'), accent: c('38;5;205') };
 };
 
 // Phase 1 connects Claude Code only; the rest are listed so people see where headsup is going.
@@ -71,7 +71,7 @@ export async function runSetup(io: SetupIO, opts: SetupOptions): Promise<Config>
   const settingsPath = opts.settingsPath ?? claudeSettingsPath();
   const userHome = opts.userHome ?? homedir();
 
-  io.print(`${c.orange('◆ headsup')} ${opts.version}  ${c.dim('gives your AI a heads-up before it answers')}`);
+  io.print(`${c.accent('⌃ headsup')} ${opts.version}  ${c.dim('gives your AI a heads-up before it answers')}`);
   io.print();
 
   io.print(`Step 1/5 ${c.bold('Agents found')}`);
@@ -91,7 +91,7 @@ export async function runSetup(io: SetupIO, opts: SetupOptions): Promise<Config>
   let draft = '';
   for (;;) {
     // On [e] the previous answer comes back pre-typed, so a fix is a small edit, not a rewrite.
-    const answer = (await io.ask(`  ${c.orange('›')} `, draft)).trim();
+    const answer = (await io.ask(`  ${c.accent('›')} `, draft)).trim();
     draft = answer;
     if (!answer) break;
     const usage = parseUsage(answer);
@@ -104,7 +104,7 @@ export async function runSetup(io: SetupIO, opts: SetupOptions): Promise<Config>
       io.print(`    ${rule.agents.map(agentName).join(' · ').padEnd(24)} ${c.blue(rule.topics.join(', '))}`);
     }
     io.print(c.dim('  headsup uses this to notice when a question lands in the "other" tool.'));
-    if (!(await io.ask(`  ${c.orange('[enter]')} looks right   ${c.orange('[e]')} edit `)).trim().toLowerCase().startsWith('e')) {
+    if (!(await io.ask(`  ${c.accent('[enter]')} looks right   ${c.accent('[e]')} edit `)).trim().toLowerCase().startsWith('e')) {
       config.usage = usage;
       break;
     }
@@ -119,7 +119,7 @@ export async function runSetup(io: SetupIO, opts: SetupOptions): Promise<Config>
   const editAnytime = `Edit anytime: ${tilde(join(opts.home, 'config.json'))}`;
   let spaceDraft = currentWork.join(', ');
   for (;;) {
-    const answer = (await io.ask(`  ${c.orange('›')} `, spaceDraft)).trim();
+    const answer = (await io.ask(`  ${c.accent('›')} `, spaceDraft)).trim();
     spaceDraft = answer;
     const paths = answer.split(',').map((p) => p.trim()).filter(Boolean);
     const spaces = [...config.spaces.filter((s) => s.space !== 'work'), ...paths.map((path) => ({ path, space: 'work' }))];
@@ -137,7 +137,7 @@ export async function runSetup(io: SetupIO, opts: SetupOptions): Promise<Config>
     io.print('  Got it:');
     for (const [label, space, note] of rows) io.print(`    ${label!.padEnd(width)}${c.dim('→')} ${space}${note}`);
     io.print(c.dim(`  Step 4 decides what may cross between them. ${editAnytime}`));
-    if (!(await io.ask(`  ${c.orange('[enter]')} looks right   ${c.orange('[e]')} edit `)).trim().toLowerCase().startsWith('e')) {
+    if (!(await io.ask(`  ${c.accent('[enter]')} looks right   ${c.accent('[e]')} edit `)).trim().toLowerCase().startsWith('e')) {
       config.spaces = spaces;
       break;
     }
@@ -148,10 +148,10 @@ export async function runSetup(io: SetupIO, opts: SetupOptions): Promise<Config>
   PRESETS.forEach((p, i) => {
     const name = p.id[0]!.toUpperCase() + p.id.slice(1);
     const current = p.id === config.preset;
-    io.print(`  ${current ? c.orange('●') : '○'} ${i + 1} ${(current ? c.bold : String)(name.padEnd(9))} ${c.dim(`${p.rule} · secrets: never stored`)}${p.id === 'balanced' ? c.dim('  (recommended)') : ''}`);
+    io.print(`  ${current ? c.accent('●') : '○'} ${i + 1} ${(current ? c.bold : String)(name.padEnd(9))} ${c.dim(`${p.rule} · secrets: never stored`)}${p.id === 'balanced' ? c.dim('  (recommended)') : ''}`);
   });
   io.print(`  ${c.dim('○   Custom    rules per space, repo or single note  (soon)')}`);
-  io.print(`  ${c.orange('Share how you work, not what you work on.')}`);
+  io.print(`  ${c.accent('Share how you work, not what you work on.')}`);
   const pick = (await io.ask(`  Choose 1-3 ${c.dim(`(enter keeps ${config.preset})`)} `)).trim();
   const chosen = PRESETS[Number(pick) - 1];
   if (chosen) config.preset = chosen.id;

@@ -28,7 +28,7 @@ const CONCURRENCY = 3;
 export async function importChatGPT(io: ImportIO, store: Store, opts: ImportOptions): Promise<number> {
   const on = io.color;
   const c = (code: string) => (s: string) => (on ? `\x1b[${code}m${s}\x1b[0m` : s);
-  const [dim, green, orange] = [c('2'), c('32'), c('38;5;214')];
+  const [dim, green, accent] = [c('2'), c('32'), c('38;5;205')];
 
   const now = opts.now ?? new Date();
   const since = opts.since ?? new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
@@ -36,7 +36,7 @@ export async function importChatGPT(io: ImportIO, store: Store, opts: ImportOpti
   const plan = planImport(chats, { since, done: new Set(store.readImported('chatgpt')), limit: opts.limit });
   const day = `${since.getFullYear()}-${String(since.getMonth() + 1).padStart(2, '0')}-${String(since.getDate()).padStart(2, '0')}`;
 
-  io.print(`${orange('◆ headsup import')} · ChatGPT`);
+  io.print(`${accent('⌃ headsup import')} · ChatGPT`);
   io.print(`  ${plan.total} chats in the export · ${plan.inRange} since ${day} · ${plan.todo.length} to read ${dim('(long enough, not imported before)')}`);
   if (!plan.todo.length) {
     io.print(dim('  Nothing new to import. Use --since to reach further back.'));
@@ -64,7 +64,7 @@ export async function importChatGPT(io: ImportIO, store: Store, opts: ImportOpti
     `  ${green('✓')} Saved ${result.saved.length} notes from ChatGPT` +
       `${result.skipped ? dim(` (skipped ${result.skipped} duplicates)`) : ''}${cost ? dim(` · cost ${cost < 0.01 ? 'under $0.01' : `$${cost.toFixed(2)}`}`) : ''}.`,
   );
-  if (result.failed) io.print(orange(`  ${result.failed} batches failed; run the same command again to retry them.`));
+  if (result.failed) io.print(accent(`  ${result.failed} batches failed; run the same command again to retry them.`));
   for (const n of result.saved.slice(0, 5)) io.print(dim(`    ${n.type.padEnd(4)} ${n.body}`));
   if (result.saved.length > 5) io.print(dim(`    … and ${result.saved.length - 5} more`));
   io.print(dim('  Check or delete them anytime: headsup review → Notes'));

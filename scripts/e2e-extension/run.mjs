@@ -88,7 +88,7 @@ try {
   const sentTexts = JSON.parse(await js('JSON.stringify(window.__sentTexts)'));
   const checks = {
     'same-space note added at send': sentTexts[0]?.includes('Quorum v0.3 adds recurring meetings'),
-    'block folded into a pill': (await js(`document.querySelector('.headsup-pill')?.textContent`)) === '◆ 1 note',
+    'block folded into a pill': (await js(`document.querySelector('.headsup-pill')?.textContent`)) === '1 note',
     'work note left out without an OK': !sentTexts[1]?.includes('Northwind'),
     'work note added after including it': !!sentTexts[2]?.includes('Northwind'),
   };

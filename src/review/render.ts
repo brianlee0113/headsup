@@ -8,7 +8,7 @@ import { PRESETS, VIEWS, targetNote, visibleNotes, visibleRows, type HeadsUp, ty
 interface Paint {
   bold(s: string): string;
   dim(s: string): string;
-  orange(s: string): string;
+  accent(s: string): string;
   green(s: string): string;
   blue(s: string): string;
   red(s: string): string;
@@ -19,7 +19,7 @@ interface Paint {
 export function paint(on: boolean): Paint {
   const c = (open: string, close = '\x1b[0m') => (s: string) => (on ? `\x1b[${open}m${s}${close}` : s);
   return {
-    bold: c('1'), dim: c('2'), orange: c('38;5;214'), green: c('32'), blue: c('34'), red: c('31'),
+    bold: c('1'), dim: c('2'), accent: c('38;5;205'), green: c('32'), blue: c('34'), red: c('31'),
     selected: c('48;5;58'), badge: c('30;42'),
   };
 }
@@ -69,7 +69,7 @@ function outcomeText(r: HeadsUp): string {
 }
 
 function outcomeColor(p: Paint, o: Outcome, s: string): string {
-  return o === 'injected' ? p.green(s) : o === 'shared' ? p.blue(s) : o === 'blocked' ? p.red(s) : o === 'waiting' ? p.orange(s) : p.dim(s);
+  return o === 'injected' ? p.green(s) : o === 'shared' ? p.blue(s) : o === 'blocked' ? p.red(s) : o === 'waiting' ? p.accent(s) : p.dim(s);
 }
 
 function what(r: HeadsUp): string {
@@ -98,7 +98,7 @@ function noteLine(p: Paint, n: Note | undefined, w: number, focused: boolean, st
   const badge = n.type === 'how' ? ' how you work ' : ' fact ';
   const tail = `${from(n)} · ${ago(n.created, now)}${n.share === 'never' ? ' · never shared' : ''}${status ? ` · ${status}` : ''}`;
   const room = w - 4 - width(badge) - width(tail) - 2;
-  const line = `${focused ? p.orange('›') : ' '} ${n.type === 'how' ? p.badge(badge) : p.blue(badge)} ${fit(n.body, Math.max(10, room))}  ${p.dim(tail)}`;
+  const line = `${focused ? p.accent('›') : ' '} ${n.type === 'how' ? p.badge(badge) : p.blue(badge)} ${fit(n.body, Math.max(10, room))}  ${p.dim(tail)}`;
   return line;
 }
 
@@ -110,11 +110,11 @@ export function render(s: State, cols: number, rows: number, color: boolean, now
   const out: string[] = [];
 
   out.push(
-    `${p.bold('headsup review')}   preset: ${p.orange(s.config.preset[0]!.toUpperCase() + s.config.preset.slice(1))}   spaces: ${spaces.map((x) => spaceColor(p, x)).join(' · ')}   ` +
+    `${p.bold('headsup review')}   preset: ${p.accent(s.config.preset[0]!.toUpperCase() + s.config.preset.slice(1))}   spaces: ${spaces.map((x) => spaceColor(p, x)).join(' · ')}   ` +
       `notes: ${s.notes.length}   heads-ups this week: ${s.rows.filter((r) => r.at.getTime() >= weekAgo).length}`,
   );
   out.push('');
-  out.push(VIEWS.map((v) => (v === s.view ? p.orange(`[ ${v} ]`) : p.dim(v))).join('   '));
+  out.push(VIEWS.map((v) => (v === s.view ? p.accent(`[ ${v} ]`) : p.dim(v))).join('   '));
   out.push(p.dim('─'.repeat(w)));
 
   const detail: string[] = [];
@@ -186,11 +186,11 @@ export function render(s: State, cols: number, rows: number, color: boolean, now
     const rules = { cautious: 'how-you-work: ask  · facts: blocked', balanced: 'how-you-work: auto · facts: ask', open: 'how-you-work: auto · facts: auto' };
     PRESETS.forEach((preset, i) => {
       const current = preset === s.config.preset;
-      const line = `  ${current ? p.orange('●') : '○'} ${fit(preset[0]!.toUpperCase() + preset.slice(1), 10)} ${p.dim(`${rules[preset]} · secrets: never stored`)}`;
+      const line = `  ${current ? p.accent('●') : '○'} ${fit(preset[0]!.toUpperCase() + preset.slice(1), 10)} ${p.dim(`${rules[preset]} · secrets: never stored`)}`;
       out.push(i === s.cursor ? p.selected(line) : line);
     });
     out.push('');
-    out.push(p.orange('  Share how you work, not what you work on.'));
+    out.push(p.accent('  Share how you work, not what you work on.'));
   }
 
   while (out.length < 4 + listHeight + 1) out.push('');
@@ -200,14 +200,14 @@ export function render(s: State, cols: number, rows: number, color: boolean, now
 
   const note = targetNote(s);
   if (s.view === 'Heads-ups' || s.view === 'Notes') {
-    const act = (k: string, label: string) => `${note ? p.orange(`[${k}]`) : p.dim(`[${k}]`)} ${note ? label : p.dim(label)}`;
+    const act = (k: string, label: string) => `${note ? p.accent(`[${k}]`) : p.dim(`[${k}]`)} ${note ? label : p.dim(label)}`;
     const never = note?.share === 'never' ? 'allow sharing' : 'never share this note';
-    out.push(`${act('e', 'edit')}   ${act('d', 'delete')}   ${act('r', note ? `reclassify as ${note.type === 'how' ? 'fact' : 'how'}` : 'reclassify')}   ${act('n', never)}   ${p.orange('[p]')} change preset`);
+    out.push(`${act('e', 'edit')}   ${act('d', 'delete')}   ${act('r', note ? `reclassify as ${note.type === 'how' ? 'fact' : 'how'}` : 'reclassify')}   ${act('n', never)}   ${p.accent('[p]')} change preset`);
   }
   out.push('');
-  if (s.confirm) out.push(p.orange(`Delete this note for good? y / n`));
+  if (s.confirm) out.push(p.accent(`Delete this note for good? y / n`));
   else if (s.searching) out.push(`/${s.query}${p.dim('▏  enter keep · esc clear')}`);
-  else if (s.status) out.push(p.orange(s.status));
+  else if (s.status) out.push(p.accent(s.status));
   else {
     const enter = s.view === 'Heads-ups' ? (s.inner === null ? 'enter pick a note' : 'esc back') : s.view === 'Preset' ? 'enter choose' : '';
     out.push(p.dim(`↑↓ move   ${enter ? `${enter}   ` : ''}/ search${s.query ? ` (${s.query})` : ''}   tab switch view   q quit`));

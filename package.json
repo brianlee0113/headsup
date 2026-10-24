@@ -19,7 +19,7 @@
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc --noEmit -p extension",
-    "build:ext": "tsup extension/src/background.ts extension/src/content.ts extension/src/popup.ts --format iife --target chrome120 --out-dir extension/build --clean && for f in background content popup; do mv extension/build/$f.global.js extension/build/$f.js; done && cp extension/manifest.json extension/popup.html extension/build/"
+    "build:ext": "tsup extension/src/background.ts extension/src/content.ts extension/src/popup.ts --format iife --target chrome120 --out-dir extension/build --clean && for f in background content popup; do mv extension/build/$f.global.js extension/build/$f.js; done && cp -R extension/manifest.json extension/popup.html extension/icons extension/build/"
   },
   "devDependencies": {
     "@types/chrome": "^0.3.5",

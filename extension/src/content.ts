@@ -1,9 +1,10 @@
-// Runs on chatgpt.com and claude.ai. Watches the draft, shows the ◆ mark by the composer, adds the
+// Runs on chatgpt.com and claude.ai. Watches the draft, shows the headsup mark by the composer, adds the
 // ticked notes at the end of the message when it is sent, and folds that block in sent messages.
 
 import { aboutBlock, ownText, spliceAbout } from '../../src/shared/about.js';
 import { BLOCK_MARKER, buildBlock, splitBlock, type WebNote } from '../../src/shared/block.js';
 import { accountFor, ShapeError } from './account.js';
+import { ACCENT, glyph } from './brand.js';
 import { siteFor, type Part, type Site } from './sites.js';
 
 interface Detect {
@@ -61,17 +62,17 @@ function start(site: Site): void {
   };
 
   function chipLabel(): [string, string] {
-    if (!state.enabled) return ['paused', '◆ paused on this site'];
-    if (state.unreachable) return ['paused', '◆ not connected'];
+    if (!state.enabled) return ['paused', 'paused on this site'];
+    if (state.unreachable) return ['paused', 'not connected'];
     const d = state.detect;
-    if (!d || (!d.inject.length && !d.ask.length && !d.blocked.count)) return ['quiet', '◆'];
+    if (!d || (!d.inject.length && !d.ask.length && !d.blocked.count)) return ['quiet', ''];
     const going = d.inject.filter((n) => !state.unchecked.has(n.id)).length;
     const asking = d.ask.length && !state.askAccepted ? d.ask.length : 0;
-    if (asking) return ['needs', going ? `◆ ${plural(going, 'note')} · ${asking} need${asking === 1 ? 's' : ''} your OK` : `◆ ${asking} ${d.ask[0]!.space} note${asking === 1 ? ' needs' : 's need'} your OK`];
+    if (asking) return ['needs', going ? `${plural(going, 'note')} · ${asking} need${asking === 1 ? 's' : ''} your OK` : `${asking} ${d.ask[0]!.space} note${asking === 1 ? ' needs' : 's need'} your OK`];
     const sending = included();
-    if (!sending.length) return ['quiet', '◆'];
+    if (!sending.length) return ['quiet', ''];
     const sources = [...new Set(sending.map((n) => n.from.replace(/ \(.*\)$/, '')))];
-    return ['attached', `◆ ${plural(sending.length, 'note')} · ${sources.length === 1 ? sources[0] : `${sources.length} tools`}`];
+    return ['attached', `${plural(sending.length, 'note')} · ${sources.length === 1 ? sources[0] : `${sources.length} tools`}`];
   }
 
   const noteRow = (n: WebNote, checked: boolean) => `
@@ -94,7 +95,7 @@ function start(site: Site): void {
     const d = state.detect;
     const parts: string[] = [];
     const sending = included();
-    parts.push(`<div class="head"><b>◆ heads-up</b><span>${sending.length ? `${plural(sending.length, 'note')} will go in with this message` : 'Nothing to add for this message'}</span></div>`);
+    parts.push(`<div class="head"><b>${glyph(true)}heads-up</b><span>${sending.length ? `${plural(sending.length, 'note')} will go in with this message` : 'Nothing to add for this message'}</span></div>`);
     if (d?.inject.length) parts.push(d.inject.map((n) => noteRow(n, !state.unchecked.has(n.id))).join(''));
     if (d?.ask.length) {
       parts.push(`<p class="section">From your ${esc(d.ask[0]!.space)} space — ${state.askAccepted ? 'included' : 'needs your OK'}</p>`);
@@ -113,7 +114,7 @@ function start(site: Site): void {
     root.innerHTML = `<style>${css}</style>
       <div class="wrap ${dark() ? 'dark' : 'light'}">
         ${state.open ? `<div class="pop">${popover()}</div>` : ''}
-        <button class="chip ${kind}" data-action="toggle" title="headsup">${esc(label)}</button>
+        <button class="chip ${kind}" data-action="toggle" title="headsup">${glyph(kind === 'attached' || kind === 'needs')}${label ? `<span>${esc(label)}</span>` : ''}</button>
       </div>`;
     place();
   }
@@ -394,6 +395,8 @@ function start(site: Site): void {
     let at = nodes.findIndex((n) => n.data.includes(BLOCK_MARKER));
     if (at < 0) return;
     let offset = nodes[at]!.data.indexOf(BLOCK_MARKER);
+    const mark = /[◆⌃] ?$/.exec(nodes[at]!.data.slice(0, offset));
+    if (mark) offset -= mark[0].length;
     const dash = nodes[at]!.data.lastIndexOf('---', offset);
     if (dash >= 0 && offset - dash < 8) offset = dash;
     else if (at > 0 && nodes[at - 1]!.data.trim() === '---') {
@@ -415,9 +418,12 @@ function start(site: Site): void {
     });
     const pill = document.createElement('span');
     pill.className = 'headsup-pill';
-    pill.textContent = `◆ ${plural(count, 'note')}`;
+    pill.innerHTML = `${glyph(true)}${plural(count, 'note')}`;
     pill.title = 'Added by headsup — click to show';
-    pill.style.cssText = 'display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;font:11px/16px ui-monospace,Menlo,monospace;color:#ffb224;background:rgba(255,178,36,.14);cursor:pointer;vertical-align:middle;';
+    pill.style.cssText = 'display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;font:11px/16px ui-monospace,Menlo,monospace;color:inherit;background:rgba(255,61,139,.14);cursor:pointer;vertical-align:middle;';
+    const dot = pill.querySelector<SVGElement>('.dot');
+    if (dot) dot.style.fill = dark() ? ACCENT.dark : ACCENT.light;
+    pill.querySelector<SVGElement>('.glyph')!.style.cssText = 'vertical-align:-1px;margin-right:5px;';
     pill.addEventListener('click', () => {
       const show = spans[0]!.style.display === 'none';
       for (const s of spans) s.style.display = show ? '' : 'none';
@@ -457,23 +463,26 @@ function start(site: Site): void {
 }
 
 const css = `
-.light { --bg:#ffffff; --chrome:#ecebe5; --border:#d9d7cf; --fg:#1b1c1f; --muted:#6b6d73; --amber:#a85f00; --amber-bg:#fff1d6;
+.light { --bg:#ffffff; --chrome:#ffffff; --border:#e5e5e5; --fg:#0a0a0a; --muted:#6b6b6b; --accent:#e0186c; --accent-bg:#fde7f0;
   --how:#1f7a3e; --how-bg:#e3f5e9; --fact:#1d5fd1; --fact-bg:#e4ecfb; }
-.dark { --bg:#212121; --chrome:#1a1b20; --border:#2a2c33; --fg:#e6e6e3; --muted:#8c8f96; --amber:#ffb224; --amber-bg:#2e2209;
+.dark { --bg:#0a0a0a; --chrome:#141414; --border:#262626; --fg:#fafafa; --muted:#8f8f8f; --accent:#ff3d8b; --accent-bg:#33101f;
   --how:#4ade80; --how-bg:#0f2a19; --fact:#7aa7ff; --fact-bg:#14203a; }
 .wrap { font: 13px/18px ui-sans-serif, -apple-system, system-ui, sans-serif; color: var(--fg); }
-.chip { position: fixed; border: 1px solid transparent; border-radius: 999px; padding: 3px 10px; cursor: pointer;
+.glyph { flex: none; }
+.glyph .dot { fill: var(--accent); }
+.head b { display: inline-flex; gap: 6px; align-items: center; }
+.chip { display: inline-flex; gap: 6px; align-items: center; position: fixed; border: 1px solid transparent; border-radius: 999px; padding: 3px 10px; cursor: pointer;
   font: 12px/16px ui-monospace, Menlo, monospace; background: transparent; color: var(--muted); }
 .chip.quiet { padding: 3px 7px; opacity: .7; }
-.chip.attached { background: var(--amber-bg); color: var(--amber); }
+.chip.attached { background: var(--accent-bg); color: var(--fg); }
 .chip.needs { background: var(--fact-bg); color: var(--fact); }
 .chip.paused { border-color: var(--border); }
 .pop { position: fixed; width: 440px; max-width: calc(100vw - 16px); background: var(--chrome); border: 1px solid var(--border);
   border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 12px 32px rgba(0,0,0,.35); }
 .head { display: flex; gap: 8px; align-items: baseline; }
-.head b { font: 700 13px/18px ui-monospace, Menlo, monospace; color: var(--amber); }
+.head b { font: 700 13px/18px ui-monospace, Menlo, monospace; color: var(--accent); }
 .note { display: grid; grid-template-columns: 16px auto 1fr; gap: 4px 8px; align-items: baseline; cursor: pointer; }
-.note input { margin: 0; accent-color: var(--amber); }
+.note input { margin: 0; accent-color: var(--accent); }
 .note .origin { grid-column: 3; color: var(--muted); font-size: 12px; }
 .tag { font: 11px/16px ui-monospace, Menlo, monospace; padding: 0 6px; border-radius: 4px; white-space: nowrap; }
 .tag.how { color: var(--how); background: var(--how-bg); }
@@ -485,6 +494,6 @@ const css = `
 .actions { display: flex; gap: 8px; align-items: center; }
 button { font: inherit; }
 .actions button { border: 1px solid var(--border); background: transparent; color: var(--fg); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
-.actions button.primary { background: var(--amber); border-color: var(--amber); color: #111; }
+.actions button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 code { font: 12px/16px ui-monospace, Menlo, monospace; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
 `;

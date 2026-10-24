@@ -23,7 +23,7 @@ describe('Claude Code hook', () => {
   it('injects quietly, and only announces work facts by topic', () => {
     const store = setup();
     const out = prompt(store, 'set up CI like we have at work');
-    expect(out?.systemMessage).toMatch(/^◆ heads-up · /);
+    expect(out?.systemMessage).toMatch(/^⌃ heads-up · /);
     expect(out?.systemMessage).toContain('waiting for your OK (ci, runners)');
     const ctx = out?.hookSpecificOutput?.additionalContext ?? '';
     expect(ctx).toContain('Prefers Vitest');

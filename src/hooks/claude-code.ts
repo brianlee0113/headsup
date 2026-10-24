@@ -66,7 +66,7 @@ export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Stor
 
 function output(message: string, context: string): HookOutput {
   return {
-    ...(message ? { systemMessage: `◆ heads-up · ${message}` } : {}),
+    ...(message ? { systemMessage: `⌃ heads-up · ${message}` } : {}),
     ...(context ? { hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: context } } : {}),
   };
 }

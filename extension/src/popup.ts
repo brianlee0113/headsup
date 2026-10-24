@@ -12,7 +12,7 @@ type Pref = { on?: boolean; backfill?: boolean };
 const NAMES: Record<string, string> = { 'chatgpt.com': 'ChatGPT', 'claude.ai': 'Claude' };
 
 const BROKEN: Record<Exclude<Part, 'chat list'>, string> = {
-  composer: "headsup can't find the message box, so the ◆ mark and your notes are off on this page.",
+  composer: "headsup can't find the message box, so the headsup mark and your notes are off on this page.",
   'send button': "headsup can't find the send button, so clicking Send goes out without your notes. Pressing Enter still adds them.",
   messages: "headsup can't read the conversation, so sent notes won't fold away and notes the AI already has may be added again.",
 };

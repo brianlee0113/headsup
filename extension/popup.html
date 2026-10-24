@@ -4,14 +4,15 @@
 <meta charset="utf-8">
 <title>headsup</title>
 <style>
-  :root { --bg:#ffffff; --border:#d9d7cf; --fg:#1b1c1f; --muted:#6b6d73; --amber:#a85f00; --how:#1f7a3e; --blocked:#b42318; --code:#fafaf7; }
+  :root { --bg:#ffffff; --border:#e5e5e5; --fg:#0a0a0a; --muted:#6b6b6b; --accent:#e0186c; --how:#1f7a3e; --blocked:#b42318; --code:#fafafa; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#212121; --border:#2a2c33; --fg:#e6e6e3; --muted:#8c8f96; --amber:#ffb224; --how:#4ade80; --blocked:#ff7a7a; --code:#0e0f12; }
+    :root { --bg:#0a0a0a; --border:#262626; --fg:#fafafa; --muted:#8f8f8f; --accent:#ff3d8b; --how:#4ade80; --blocked:#ff7a7a; --code:#141414; }
   }
   body { margin: 0; width: 360px; background: var(--bg); color: var(--fg); font: 13px/18px ui-sans-serif, -apple-system, system-ui, sans-serif; }
   main { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
   .head { display: flex; justify-content: space-between; align-items: center; }
-  .brand { font: 700 13px/18px ui-monospace, Menlo, monospace; color: var(--amber); }
+  .brand { font: 700 13px/18px ui-monospace, Menlo, monospace; color: var(--fg); display: inline-flex; gap: 6px; align-items: center; }
+  .glyph .dot { fill: var(--accent); }
   .status { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; }
   .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
   .dot.ok { background: var(--how); } .dot.bad { background: var(--blocked); }
@@ -22,28 +23,28 @@
   .row b { font-weight: 500; display: block; }
   .row.off { opacity: .55; }
   .toggle { appearance: none; width: 32px; height: 18px; border-radius: 999px; background: var(--border); position: relative; cursor: pointer; flex: none; margin: 0; }
-  .toggle::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #e6e6e3; transition: left .15s; }
-  .toggle:checked { background: var(--amber); } .toggle:checked::after { left: 16px; }
+  .toggle::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #ffffff; transition: left .15s; }
+  .toggle:checked { background: var(--accent); } .toggle:checked::after { left: 16px; }
   .toggle:disabled { cursor: default; }
   code { display: block; font: 12px/16px ui-monospace, Menlo, monospace; background: var(--code); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
-  .warn { margin-top: 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent);
-    background: color-mix(in srgb, var(--amber) 10%, transparent); display: flex; flex-direction: column; gap: 6px; }
-  .warn b { color: var(--amber); font-weight: 600; } .warn p { margin: 0; }
+  .warn { margin-top: 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    background: color-mix(in srgb, var(--accent) 10%, transparent); display: flex; flex-direction: column; gap: 6px; }
+  .warn b { color: var(--accent); font-weight: 600; } .warn p { margin: 0; }
   .btn { font: inherit; border: 1px solid var(--border); background: transparent; color: var(--fg); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
-  .btn.primary { background: var(--amber); border-color: var(--amber); color: #111; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   .row .muted { display: block; }
-  .row a { color: var(--amber); text-decoration: none; }
+  .row a { color: var(--accent); text-decoration: none; }
   .yes { color: var(--how); } .no { color: var(--blocked); }
   pre { margin: 10px 0 0; white-space: pre-wrap; font: 11px/16px ui-monospace, Menlo, monospace; color: var(--fg); padding: 8px 10px; border-radius: 8px;
-    border: 1px dashed var(--amber); background: color-mix(in srgb, var(--amber) 10%, transparent); }
-  .share { color: var(--amber); font-weight: 500; text-decoration: none; }
+    border: 1px dashed var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .share { color: var(--accent); font-weight: 500; text-decoration: none; }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <main>
   <div class="head">
-    <span class="brand">◆ headsup</span>
+    <span class="brand"><svg class="glyph" width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18 12 10l8 8" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><circle class="dot" cx="19.5" cy="4.5" r="3.5"/></svg>headsup</span>
     <span class="status"><span class="dot" id="dot"></span><span id="status">Checking…</span></span>
   </div>
   <p class="muted" id="summary"></p>
@@ -52,7 +53,7 @@
     <hr>
     <p class="section" style="margin:14px 0 10px">ON THIS SITE</p>
     <div class="row" id="site-row">
-      <span><b id="site-title">Add context on this site</b><span class="muted">Shows the ◆ mark when your notes can help.</span></span>
+      <span><b id="site-title">Add context on this site</b><span class="muted">Shows the headsup mark when your notes can help.</span></span>
       <input type="checkbox" class="toggle" id="site-toggle">
     </div>
     <div class="warn" id="broken" hidden>

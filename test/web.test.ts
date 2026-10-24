@@ -23,6 +23,11 @@ describe('context block', () => {
     expect(splitBlock('no block here')).toBeNull();
     expect(buildBlock([])).toBe('');
   });
+
+  it('still reads blocks sent with the old ◆ mark', () => {
+    const old = 'Draft my cover letter\n\n---\n◆ headsup — context from my other AI tools (added automatically; use it if it helps, no need to mention it):\n• (fact · Claude Code (quorum), personal) Quorum has 140 weekly users';
+    expect(splitBlock(old)).toEqual({ typed: 'Draft my cover letter', count: 1 });
+  });
 });
 
 describe('native messaging', () => {

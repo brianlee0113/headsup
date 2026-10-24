@@ -1,6 +1,6 @@
 // The context block appended to a chat message. Shared by the core and the extension (no Node
 // APIs here): the extension builds it from the notes the user left ticked, and finds it again in
-// sent messages to fold it into a "◆ n notes" pill.
+// sent messages to fold it into a "n notes" pill.
 
 export interface WebNote {
   id: string;
@@ -11,12 +11,14 @@ export interface WebNote {
   space: string;
 }
 
-export const BLOCK_MARKER = '◆ headsup — context from my other AI tools';
+// Matched without the mark in front, so blocks sent before the mark changed (◆ → ⌃) still fold.
+export const BLOCK_MARKER = 'headsup — context from my other AI tools';
+export const MARK = '⌃';
 
 export function buildBlock(notes: WebNote[]): string {
   if (!notes.length) return '';
   const lines = notes.map((n) => `• (${n.type === 'how' ? 'how I work' : 'fact'} · ${n.from}, ${n.space}) ${n.body}`);
-  return `\n\n---\n${BLOCK_MARKER} (added automatically; use it if it helps, no need to mention it):\n${lines.join('\n')}`;
+  return `\n\n---\n${MARK} ${BLOCK_MARKER} (added automatically; use it if it helps, no need to mention it):\n${lines.join('\n')}`;
 }
 
 // Splits a sent message into what the person typed and the block headsup added.
