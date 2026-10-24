@@ -129,7 +129,8 @@ function start(site: Site): void {
     const chip = root.querySelector<HTMLElement>('.chip');
     const pop = root.querySelector<HTMLElement>('.pop');
     if (chip) Object.assign(chip.style, { right, top: `${Math.max(4, r.top - 34)}px` });
-    if (pop) Object.assign(pop.style, { right, bottom: `${innerHeight - r.top + 44}px` });
+    // A long list scrolls inside the panel instead of running off the top of the window.
+    if (pop) Object.assign(pop.style, { right, bottom: `${innerHeight - r.top + 44}px`, maxHeight: `${Math.max(160, r.top - 52)}px`, overflowY: 'auto' });
   }
 
   root.addEventListener('click', (e) => {
