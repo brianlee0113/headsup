@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { runEval } from './eval.js';
-import { samCases, samHoldout, samKorean, samKoreanNotes } from './fixtures/sam.js';
+import { samCases, samHoldout, samKorean, samKoreanNotes, samPending, samPendingNotes } from './fixtures/sam.js';
 
 // Guards retrieval quality on the Sam eval set (`pnpm tsx test/eval.ts` prints the details).
 describe('retrieval quality', () => {
@@ -26,5 +26,10 @@ describe('retrieval quality', () => {
     const silent = (cases: typeof samCases) => cases.filter((c) => !c.expect.length);
     for (const row of runEval(silent([...samCases, ...samHoldout])).rows) expect(row.noise, row.prompt).toEqual([]);
     for (const row of runEval(silent(samKorean), samKoreanNotes).rows) expect(row.noise, row.prompt).toEqual([]);
+  });
+
+  // Known noise for the pre-launch simulation; this starts failing once the gates are tuned — move the cases into samKorean then.
+  it.fails('stays silent on prompts that only share a testing sense (pending)', () => {
+    expect(runEval(samPending, samPendingNotes).noise).toBe(0);
   });
 });

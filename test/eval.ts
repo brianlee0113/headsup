@@ -1,7 +1,7 @@
 // Prints retrieval quality on the Sam eval set: `pnpm tsx test/eval.ts`.
 
 import { detect } from '../src/gap.js';
-import { samCases, samConfig, samHoldout, samKorean, samKoreanNotes, samNotes, type EvalCase } from './fixtures/sam.js';
+import { samCases, samConfig, samHoldout, samKorean, samKoreanNotes, samNotes, samPending, samPendingNotes, type EvalCase } from './fixtures/sam.js';
 
 export function runEval(cases: EvalCase[], notes = samNotes) {
   let found = 0;
@@ -20,11 +20,11 @@ export function runEval(cases: EvalCase[], notes = samNotes) {
     surfaced += got.length;
     return { prompt: c.prompt, hit, miss, noise };
   });
-  return { rows, recall: found / wanted, precision: surfaced ? (surfaced - extra) / surfaced : 1, noise: extra };
+  return { rows, recall: wanted ? found / wanted : 1, precision: surfaced ? (surfaced - extra) / surfaced : 1, noise: extra };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  for (const [name, cases, notes] of [['tuning', samCases, samNotes], ['holdout', samHoldout, samNotes], ['korean', samKorean, samKoreanNotes]] as const) {
+  for (const [name, cases, notes] of [['tuning', samCases, samNotes], ['holdout', samHoldout, samNotes], ['korean', samKorean, samKoreanNotes], ['pending (known noise)', samPending, samPendingNotes]] as const) {
     const r = runEval(cases, notes);
     console.log(`\n— ${name}`);
     for (const row of r.rows) {

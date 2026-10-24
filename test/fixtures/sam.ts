@@ -107,3 +107,16 @@ export const samKorean: EvalCase[] = [
   { agent: 'claude-code', cwd: other, prompt: '응 코드 작업 진행하고 커밋하고 배포해줘', expect: [], ok: ['commits'] },
   { agent: 'claude-code', cwd: other, prompt: '2는 Vercel에 알림톡 템플릿 ID 등록해줘. 1은 계속 챗봇으로 하자', expect: [] },
 ];
+
+// Known noise, left for the pre-launch simulation that tunes how readily notes step in. A how note
+// passes on one shared concept (gap.ts relevantEnough), so a model-testing note from another project
+// rides along whenever a prompt says "test" or "e2e". Real prompts from the headsup repo (2026-10-21, 2026-10-23).
+export const samPendingNotes: Note[] = [
+  ...samKoreanNotes,
+  n('model-api', 'claude-code', 'personal', 'how', '새 모델을 테스트할 때 노트북에 내려받기보다 온라인 호스팅 API로 먼저 검증하는 방식을 선호한다.', ['testing', 'models'], 'class-notes'),
+];
+export const samPending: EvalCase[] = [
+  { agent: 'claude-code', cwd: other, prompt: 'mock e2e 다시 돌려줘', expect: [], ok: ['vitest'] },
+  { agent: 'claude-code', cwd: other, prompt: 'ChatGPT 휴대폰 앱도 되나?', expect: [] },
+  { agent: 'claude-code', cwd: other, prompt: '배포하면 내가 일단 셀프로 테스트는 가능한 상태인건가?', expect: [], ok: ['vitest'] },
+];
