@@ -1,41 +1,111 @@
-<div align="center">
+<p align="center">
+  <img src="assets/brand/icon.svg" width="72" height="72" alt="headsup">
+</p>
 
-# ◆ headsup
+<h1 align="center">headsup</h1>
 
-**Gives your AI a heads-up before it answers.**
+<p align="center">
+  <strong>Gives your AI a heads-up before it answers.</strong><br>
+  Shared memory between ChatGPT, Claude and your coding agents. It steps in only when a question is missing context, and only with what you allow.
+</p>
 
-Shared memory across ChatGPT, Claude and your coding agents. It steps in only when a question is missing context, and only with what you allow.
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#where-it-works">Where it works</a> ·
+  <a href="#your-data">Your data</a>
+</p>
 
-![status: pre-release](https://img.shields.io/badge/status-pre--release-ffb224)
-![local first](https://img.shields.io/badge/notes-stay%20on%20your%20computer-2a2c33)
-![license: MIT](https://img.shields.io/badge/license-MIT-2a2c33)
+<p align="center">
+  <img src="https://img.shields.io/badge/status-pre--release-FF3D8B" alt="status: pre-release">
+  <img src="https://img.shields.io/badge/license-MIT-0A0A0A" alt="license: MIT">
+  <img src="https://img.shields.io/badge/runtime%20deps-0-0A0A0A" alt="zero runtime dependencies">
+</p>
 
-</div>
+<!-- TODO before launch: a demo GIF goes here (ChatGPT cover letter, work notes ticked before sending). -->
 
 ---
 
-You use ChatGPT for writing and Claude Code for building. Then one day you ask Claude Code for release notes "in my voice", and it has no idea what your voice is. ChatGPT knows, but that knowledge is stuck in ChatGPT.
+You write in ChatGPT and build in Claude Code. Ask Claude Code for release notes "in my voice" and it has no idea what your voice is. ChatGPT knows, but that knowledge is stuck in ChatGPT. headsup notices the gap and passes the right note along before the answer is written:
 
-headsup notices that gap, finds the right note from your other tool, and passes it along before the answer is written. Most of the time it does nothing at all.
+<table>
+<tr>
+<th width="50%">Without headsup</th>
+<th width="50%">With headsup</th>
+</tr>
+<tr>
+<td valign="top">
 
 ```text
-~/work/northwind-api — claude
 > write the v2.3 release notes in my voice
 
-◆ heads-up · added 1 note from ChatGPT · personal (how you work)
-
-● ## v2.3
-  Billing webhooks are faster. Retries no longer double-charge.
-  Checkout errors now show a clear message instead of a stack trace.
+● # 🚀 v2.3 Release Notes
+  We're excited to announce a range of
+  improvements that make billing more
+  robust than ever! ✨
+  ## What's New
+  - Enhanced webhook performance ...
 ```
 
-<!-- TODO before launch: replace the block above with the demo GIF (ChatGPT cover letter, notes ticked before sending). -->
+</td>
+<td valign="top">
 
-## Why
+```text
+> write the v2.3 release notes in my voice
 
-- **Your memory is split by vendor.** ChatGPT, Claude and Gemini each keep their own memory. None of them has a reason to share it.
-- **Importing once isn't enough.** Claude and Gemini can now import another assistant's memory, but that's a one-time move into a new silo. You keep using several tools, and your context keeps drifting apart.
-- **Storing isn't the hard part. Knowing when to speak up is.** Most memory tools save everything and wait for the AI to go looking. headsup reads the question first and only steps in when *this* tool is missing something *another* tool knows.
+⌃ heads-up · added 1 note from ChatGPT
+  · personal (how you work)
+
+● ## v2.3
+  Billing webhooks are faster. Retries no
+  longer double-charge. Checkout errors now
+  show a clear message, not a stack trace.
+```
+
+</td>
+</tr>
+</table>
+
+<sub>Trimmed example output. Most of the time headsup does nothing at all — that's the point.</sub>
+
+## Highlights
+
+- **Steps in only when it helps.** It reads your prompt first and adds a note only when *this* AI is missing something *another* one knows. Unrelated prompts get nothing.
+- **Knows what the AI already knows.** Anything already in `CLAUDE.md`, `AGENTS.md` or the current conversation is left out.
+- **Work stays at work.** Notes live in a work or personal space. Facts that would cross over wait for your OK, and secrets are never stored.
+- **Works where you chat.** Claude Code through hooks, chatgpt.com and claude.ai through a Chrome extension. Chats from the ChatGPT and Claude phone apps come in through your account.
+- **Nothing to maintain.** Notes are collected as you work, repeats are merged, and outdated facts are set aside. No exports to redo, no lists to paste.
+- **Yours, on your computer.** Plain Markdown in `~/.headsup`. No server, no account, no telemetry. Adds well under a second to a prompt, with zero runtime dependencies.
+
+## Quick start
+
+> **Pre-release.** headsup isn't on npm or the Chrome Web Store yet. Once it is, setup is one line: `npx headsup-ai setup`. Until then, run it from source.
+
+You need Node 22+, pnpm and [Claude Code](https://claude.com/claude-code). headsup summarizes chats through your own `claude` login, so there's no API key to paste.
+
+```sh
+git clone https://github.com/brianlee0113/headsup.git
+cd headsup
+pnpm install && pnpm build && npm link   # puts `headsup` on your PATH
+headsup setup
+```
+
+`headsup setup` asks five things:
+
+1. **Agents.** Connect Claude Code. It adds its own hook entries to `~/.claude/settings.json` and backs up the file first.
+2. **How you split your tools**, in your own words. For example: *"Claude for coding and side projects, ChatGPT for writing and everyday stuff."*
+3. **Which folders are work.** Everything else is personal.
+4. **Sharing preset.** Balanced unless you change it.
+5. **Bring existing memory** (optional). Import your ChatGPT data export once. After that, the extension keeps up on its own.
+
+**Chrome extension (chatgpt.com, claude.ai):**
+
+```sh
+pnpm build:ext
+headsup connect-browser
+```
+
+Then open `chrome://extensions`, turn on Developer mode, choose **Load unpacked**, and pick `extension/build`. It also works in Chrome Beta, Chromium, Brave, Edge and Arc.
 
 ## How it works
 
@@ -71,8 +141,8 @@ Every note is either **how you work** (preferences, style, conventions) or a **f
 "Ask first" means headsup names the topic, not the content. In a terminal the agent asks you in the conversation, and nothing is sent until you say yes. In the browser, related notes appear pre-ticked and you untick the ones that should stay home:
 
 ```text
-◆ heads-up · 1 work note waiting for your OK (ci)
-◆ heads-up · 2 work notes stayed home (repo names, runner config) · preset: Cautious
+⌃ heads-up · 1 work note waiting for your OK (ci)
+⌃ heads-up · 2 work notes stayed home (repo names, runner config) · preset: Cautious
 ```
 
 ## Where it works
@@ -85,36 +155,6 @@ Every note is either **how you work** (preferences, style, conventions) or a **f
 | Codex CLI · Gemini CLI | hooks | Coming soon |
 | Cursor · Claude Desktop · Windsurf | MCP | After launch. The AI decides when to call it, so it can miss |
 | Phone only, no desktop Chrome | — | Not supported |
-
-## Quick start
-
-> **Pre-release.** headsup isn't on npm or the Chrome Web Store yet. Once it is, setup is one line: `npx headsup-ai setup`. Until then, run it from source.
-
-You need Node 22+, pnpm and [Claude Code](https://claude.com/claude-code). headsup summarizes chats through your own `claude` login, so there's no API key to paste.
-
-```sh
-git clone https://github.com/brianlee0113/headsup.git
-cd headsup
-pnpm install && pnpm build && npm link   # puts `headsup` on your PATH
-headsup setup
-```
-
-`headsup setup` takes about a minute and asks five things:
-
-1. **Agents.** Connect Claude Code. It adds its own hook entries to `~/.claude/settings.json` and backs up the file first.
-2. **How you split your tools**, in your own words. For example: *"Claude for coding and side projects, ChatGPT for writing and everyday stuff."*
-3. **Which folders are work.** Everything else is personal.
-4. **Sharing preset.** Balanced unless you change it.
-5. **Bring existing memory** (optional). Import your ChatGPT data export once. After that, the extension keeps up on its own.
-
-**Chrome extension (chatgpt.com, claude.ai):**
-
-```sh
-pnpm build:ext
-headsup connect-browser
-```
-
-Then open `chrome://extensions`, turn on Developer mode, choose **Load unpacked**, and pick `extension/build`. It also works in Chrome Beta, Chromium, Brave, Edge and Arc.
 
 ## Your data
 
