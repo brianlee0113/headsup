@@ -265,7 +265,10 @@ function start(site: Site): void {
   });
   chrome.storage.onChanged.addListener((changes) => {
     if (syncKey in changes) void catchUp(); // turned on in the popup while this tab was open
-    if ('about' in changes) void keepAbout();
+    if ('about' in changes) {
+      lastAbout = 0; // a background tab skips this run, so it runs again as soon as the tab is seen
+      void keepAbout();
+    }
   });
 
   // ---------- Asking the core ----------
