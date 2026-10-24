@@ -1,6 +1,6 @@
 // The local page `headsup card` serves: the card drawn on a canvas, a tick box for every line, and
-// Save PNG / Copy image. Everything runs in the browser on this computer; only the fonts come from
-// Google Fonts, and they carry nothing about the person.
+// Save PNG / Copy image. Everything runs in the browser on this computer, fonts included: they ship
+// in the package (assets/fonts) and the same local server hands them out.
 
 export function cardPage(defaultName: string): string {
   return `<!doctype html>
@@ -9,9 +9,11 @@ export function cardPage(defaultName: string): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>headsup card</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
+  @font-face { font-family: Geist; font-weight: 100 900; font-display: block; src: url(/fonts/geist-latin.woff2) format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+  @font-face { font-family: Geist; font-weight: 100 900; font-display: block; src: url(/fonts/geist-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+  @font-face { font-family: "JetBrains Mono"; font-weight: 100 900; font-display: block; src: url(/fonts/jetbrains-mono-latin.woff2) format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+  @font-face { font-family: "JetBrains Mono"; font-weight: 100 900; font-display: block; src: url(/fonts/jetbrains-mono-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
   :root { --bg:#09090b; --panel:#141518; --fg:#f2f2f0; --muted:#9a9ca3; --border:#26282e; --amber:#ffb224; --amber-bg:#2e2209; }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 Geist, system-ui, sans-serif; }

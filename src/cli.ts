@@ -293,6 +293,17 @@ async function main(argv: string[]): Promise<number> {
           );
           return;
         }
+        const fontFile = /^\/fonts\/([a-z-]+\.woff2)$/.exec(req.url ?? '')?.[1];
+        if (fontFile) {
+          // Both src/ and dist/ sit next to assets/.
+          try {
+            const body = readFileSync(new URL(`../assets/fonts/${fontFile}`, import.meta.url));
+            res.writeHead(200, { 'content-type': 'font/woff2', 'cache-control': 'max-age=3600' }).end(body);
+          } catch {
+            res.writeHead(404).end();
+          }
+          return;
+        }
         res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }).end(cardPage(name));
       });
       await new Promise<void>((r) => server.listen(Number(values.port ?? 0), '127.0.0.1', r));
