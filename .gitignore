@@ -3,3 +3,5 @@ dist
 .DS_Store
 extension/build
 dist-ext
+.local
+sim/out

@@ -1,0 +1,105 @@
+[
+  {
+    "id": "w1-s01",
+    "tool": "chatgpt",
+    "day": 1,
+    "topic": "주간 결제 리텐션 리포트 초안을 다듬으며 경영진용 요약 구조를 잡는다",
+    "reveals": [
+      "lumen-pm",
+      "conclusion-first"
+    ]
+  },
+  {
+    "id": "w1-s02",
+    "tool": "claude-ai",
+    "day": 1,
+    "topic": "SQL 윈도우 함수 연습 문제를 풀고 JOIN 방식별 차이를 비교해 정리한다",
+    "reveals": [
+      "sql",
+      "tables"
+    ]
+  },
+  {
+    "id": "w1-s03",
+    "tool": "chatgpt",
+    "day": 2,
+    "topic": "이탈 퍼널 분석 결과를 정리하고 개선 아이디어를 Jira 티켓 문장으로 바꾼다",
+    "reveals": [
+      "tools",
+      "okr"
+    ]
+  },
+  {
+    "id": "w1-s04",
+    "tool": "claude-ai",
+    "day": 2,
+    "topic": "읽고 있는 행동경제학 책의 한 챕터를 요약하고 핵심 개념을 질문한다",
+    "reveals": []
+  },
+  {
+    "id": "w1-s05",
+    "tool": "chatgpt",
+    "day": 3,
+    "topic": "결제 대행 파트너사에 보낼 일정 조율 영어 이메일을 작성한다",
+    "reveals": [
+      "english-mail"
+    ]
+  },
+  {
+    "id": "w1-s06",
+    "tool": "claude-ai",
+    "day": 3,
+    "topic": "AI 스타트업 PM 포지션에 맞춰 이력서의 경력 항목을 다시 쓴다",
+    "reveals": [
+      "jobswitch",
+      "salary"
+    ]
+  },
+  {
+    "id": "w1-s07",
+    "tool": "chatgpt",
+    "day": 4,
+    "topic": "스프린트 회고 회의 메모를 액션 아이템 중심으로 정리한다",
+    "reveals": []
+  },
+  {
+    "id": "w1-s08",
+    "tool": "claude-ai",
+    "day": 4,
+    "topic": "11월 하프마라톤을 위한 주간 훈련 계획을 짜고 장거리 전날 컨디션 관리법을 묻는다",
+    "reveals": [
+      "running",
+      "insomnia"
+    ]
+  },
+  {
+    "id": "w1-s09",
+    "tool": "claude-ai",
+    "day": 5,
+    "topic": "데이터 공부용 S3 업로드 스크립트가 권한 오류를 내는 이유를 물으며 설정 파일을 붙여 넣는다",
+    "reveals": [
+      "aws-key"
+    ]
+  },
+  {
+    "id": "w1-s10",
+    "tool": "chatgpt",
+    "day": 5,
+    "topic": "신규 온보딩 화면에 들어갈 안내 문구 후보를 여러 개 만든다",
+    "reveals": []
+  },
+  {
+    "id": "w1-s11",
+    "tool": "claude-ai",
+    "day": 6,
+    "topic": "주말 여행용 짐 체크리스트와 이동 동선을 정리한다",
+    "reveals": []
+  },
+  {
+    "id": "w1-s12",
+    "tool": "chatgpt",
+    "day": 7,
+    "topic": "다음 주 스프린트 계획 회의 안건과 진행 순서를 구성한다",
+    "reveals": []
+  }
+]

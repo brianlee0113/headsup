@@ -87,7 +87,7 @@ function origin(notes: Note[]): string {
   return groups.length === 1 ? groups[0]! : `${groups.length} places`;
 }
 
-function renderNotes(notes: Note[]): string {
+export function renderNotes(notes: Note[]): string {
   return [
     '[headsup] Notes the user saved while working in their other AI tools and projects. They look relevant to this request.',
     'Use them where they help. Do not mention headsup unless the user asks.',

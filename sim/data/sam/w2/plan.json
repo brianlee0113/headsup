@@ -1,0 +1,102 @@
+[
+  {
+    "id": "w2-s01",
+    "tool": "claude-code",
+    "project": "quorum",
+    "day": 1,
+    "topic": "Fix a timezone bug where availability slots shift by an hour for clubs whose members span daylight-saving boundaries; mentions in passing that Quorum now has 260 weekly users across 15 clubs after the v0.5 release.",
+    "reveals": [
+      "quorum-users"
+    ]
+  },
+  {
+    "id": "w2-s02",
+    "tool": "chatgpt",
+    "day": 1,
+    "topic": "Ask for help rewording a short follow-up email to a professor about moving a project check-in to next week.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s03",
+    "tool": "codex",
+    "project": "quorum",
+    "day": 2,
+    "topic": "Add a Vitest test file next to the calendar-merge utility and refactor it to handle overlapping events; installs a small date helper with pnpm.",
+    "reveals": [
+      "pnpm"
+    ]
+  },
+  {
+    "id": "w2-s04",
+    "tool": "claude-code",
+    "project": "northwind-api",
+    "day": 2,
+    "topic": "Add structured logging with request IDs to the refund-status endpoint and update the existing handler tests.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s05",
+    "tool": "chatgpt",
+    "day": 3,
+    "topic": "Summarize a long HCI reading on participatory design for a seminar discussion, asking for the key points as bullet-point summaries rather than paragraphs.",
+    "reveals": [
+      "bullets"
+    ]
+  },
+  {
+    "id": "w2-s06",
+    "tool": "codex",
+    "project": "quorum",
+    "day": 4,
+    "topic": "Build a reminder-email preview component for club organizers, then stage the changes and write the commit message in a short imperative style without any feat:/fix: prefix.",
+    "reveals": [
+      "commits"
+    ]
+  },
+  {
+    "id": "w2-s07",
+    "tool": "claude-code",
+    "project": "northwind-api",
+    "day": 4,
+    "topic": "Investigate a flaky pagination test in the transactions list endpoint and make the ordering deterministic.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s08",
+    "tool": "chatgpt",
+    "day": 5,
+    "topic": "Brainstorm names and a rough agenda for a lightweight usability study session with five student club leaders.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s09",
+    "tool": "claude-code",
+    "project": "quorum",
+    "day": 5,
+    "topic": "Add rate limiting to the Supabase edge function that sends invite links and review how errors are surfaced to the client.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s10",
+    "tool": "codex",
+    "project": "quorum",
+    "day": 6,
+    "topic": "Clean up unused CSS and dead components in the scheduling page and tidy the TypeScript types for the availability grid.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s11",
+    "tool": "chatgpt",
+    "day": 7,
+    "topic": "Draft a short, warm weekly update message to the Quorum beta group listing what changed this week, in plain short sentences.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s12",
+    "tool": "claude-code",
+    "project": "northwind-api",
+    "day": 7,
+    "topic": "Write a README section documenting how to run the payouts service locally and tidy up the environment variable docs.",
+    "reveals": []
+  }
+]

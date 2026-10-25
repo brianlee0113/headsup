@@ -1,0 +1,123 @@
+[
+  {
+    "id": "w1-s01",
+    "tool": "chatgpt",
+    "day": 1,
+    "topic": "Sam asks for a short email to the club leads about next week's scheduling pilot, wants it warm and plain, and asks for a bullet summary of the key points instead of a long paragraph.",
+    "reveals": [
+      "tone",
+      "bullets"
+    ]
+  },
+  {
+    "id": "w1-s02",
+    "tool": "claude-code",
+    "project": "quorum",
+    "day": 1,
+    "topic": "Sam has Claude Code explain and fix a timezone bug in the availability-overlap function, mentioning what the app does, its stack, and how many people use it.",
+    "reveals": [
+      "quorum-what",
+      "quorum-stack",
+      "quorum-users"
+    ]
+  },
+  {
+    "id": "w1-s03",
+    "tool": "codex",
+    "project": "quorum",
+    "day": 2,
+    "topic": "Sam sets up a new utility module for ranking candidate meeting slots and writes tests for it, installing dependencies and committing the work.",
+    "reveals": [
+      "pnpm",
+      "vitest",
+      "commits"
+    ]
+  },
+  {
+    "id": "w1-s04",
+    "tool": "claude-code",
+    "project": "northwind-api",
+    "day": 2,
+    "topic": "Sam, on day-to-day intern work, asks Claude Code why a lint job is failing in a pipeline config and how to fix a type error in a payout service.",
+    "reveals": [
+      "nw-intern",
+      "nw-ci"
+    ]
+  },
+  {
+    "id": "w1-s05",
+    "tool": "chatgpt",
+    "day": 3,
+    "topic": "Sam drafts a cover letter for a product manager internship application and asks for tightening of the opening paragraph, mentioning degree and loan pressure in passing.",
+    "reveals": [
+      "school",
+      "jobsearch",
+      "loan"
+    ]
+  },
+  {
+    "id": "w1-s06",
+    "tool": "claude-code",
+    "project": "quorum",
+    "day": 3,
+    "topic": "Sam asks Claude Code to refactor the calendar-invite API route to handle errors cleanly and add loading states to the club dashboard.",
+    "reveals": []
+  },
+  {
+    "id": "w1-s07",
+    "tool": "codex",
+    "project": "quorum",
+    "day": 4,
+    "topic": "Sam asks Codex to rename a few React components and clean up unused imports and dead code in the poll page.",
+    "reveals": []
+  },
+  {
+    "id": "w1-s08",
+    "tool": "claude-code",
+    "project": "northwind-api",
+    "day": 4,
+    "topic": "Sam debugs a failing webhook signature check and pastes the config including a live Stripe key into the chat.",
+    "reveals": [
+      "stripe-key"
+    ]
+  },
+  {
+    "id": "w1-s09",
+    "tool": "chatgpt",
+    "day": 5,
+    "topic": "Sam asks for a simple weekly meal plan and grocery list for a busy week, mentioning a peanut allergy in passing.",
+    "reveals": [
+      "allergy"
+    ]
+  },
+  {
+    "id": "w1-s10",
+    "tool": "claude-code",
+    "project": "northwind-api",
+    "day": 5,
+    "topic": "Sam writes a summary of recent work for a team review, and asks for help with a migration script while mentioning the retry feature and the upcoming roadmap.",
+    "reveals": [
+      "nw-payouts",
+      "nw-roadmap"
+    ]
+  },
+  {
+    "id": "w1-s11",
+    "tool": "chatgpt",
+    "day": 6,
+    "topic": "Sam plans a study and deadlines schedule for the next two weeks, noting an every-other-week therapy appointment that needs to fit around it.",
+    "reveals": [
+      "therapy"
+    ]
+  },
+  {
+    "id": "w1-s12",
+    "tool": "claude-code",
+    "project": "quorum",
+    "day": 7,
+    "topic": "Sam needs to pick a date-handling library for Quorum and asks Claude Code to compare options with a short trade-off table before deciding.",
+    "reveals": [
+      "tradeoffs"
+    ]
+  }
+]

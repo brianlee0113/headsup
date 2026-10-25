@@ -1,0 +1,267 @@
+[
+  {
+    "id": "w1-p01",
+    "kind": "general",
+    "tool": "chatgpt",
+    "prompt": "what's the difference between a mutex and a semaphore?",
+    "needs": [],
+    "forbid": [],
+    "why": "Generic CS concept; no note helps."
+  },
+  {
+    "id": "w1-p02",
+    "kind": "general",
+    "tool": "claude-code",
+    "project": "quorum",
+    "prompt": "explain what useEffect cleanup functions are for",
+    "needs": [],
+    "forbid": [],
+    "why": "General React question."
+  },
+  {
+    "id": "w1-p03",
+    "kind": "general",
+    "tool": "codex",
+    "project": "quorum",
+    "prompt": "how do I convert a Date to ISO string in UTC in JavaScript?",
+    "needs": [],
+    "forbid": [],
+    "why": "Plain language API question."
+  },
+  {
+    "id": "w1-p04",
+    "kind": "general",
+    "tool": "chatgpt",
+    "prompt": "give me a 20 minute stretching routine for after a long day at my desk",
+    "needs": [],
+    "forbid": [],
+    "why": "Everyday wellness question."
+  },
+  {
+    "id": "w1-p05",
+    "kind": "general",
+    "tool": "claude-code",
+    "project": "northwind-api",
+    "prompt": "what does HTTP 429 mean and how should a client handle it?",
+    "needs": [],
+    "forbid": [],
+    "why": "General HTTP knowledge."
+  },
+  {
+    "id": "w1-p06",
+    "kind": "general",
+    "tool": "chatgpt",
+    "prompt": "how many tablespoons are in a quarter cup?",
+    "needs": [],
+    "forbid": [],
+    "why": "Simple unit conversion."
+  },
+  {
+    "id": "w1-p07",
+    "kind": "general",
+    "tool": "codex",
+    "project": "quorum",
+    "prompt": "what's the difference between a type and an interface in TypeScript?",
+    "needs": [],
+    "forbid": [],
+    "why": "General TypeScript question."
+  },
+  {
+    "id": "w1-p08",
+    "kind": "general",
+    "tool": "chatgpt",
+    "prompt": "what is the Nielsen heuristic 'visibility of system status'?",
+    "needs": [],
+    "forbid": [],
+    "why": "Textbook HCI concept."
+  },
+  {
+    "id": "w1-p09",
+    "kind": "general",
+    "tool": "claude-code",
+    "project": "quorum",
+    "prompt": "how do I undo my last git commit but keep the changes?",
+    "needs": [],
+    "forbid": [],
+    "why": "Standard git question."
+  },
+  {
+    "id": "w1-p10",
+    "kind": "general",
+    "tool": "chatgpt",
+    "prompt": "suggest a good name for a houseplant that keeps dying",
+    "needs": [],
+    "forbid": [],
+    "why": "Casual fun request."
+  },
+  {
+    "id": "w1-p11",
+    "kind": "general",
+    "tool": "claude-code",
+    "project": "northwind-api",
+    "prompt": "what is idempotency and why does it matter for APIs?",
+    "needs": [],
+    "forbid": [],
+    "why": "General concept; no personal note required."
+  },
+  {
+    "id": "w1-p12",
+    "kind": "general",
+    "tool": "codex",
+    "project": "quorum",
+    "prompt": "write a regex that matches a 24-hour time like 07:45 or 23:10",
+    "needs": [],
+    "forbid": [],
+    "why": "Self-contained coding task."
+  },
+  {
+    "id": "w1-p13",
+    "kind": "general",
+    "tool": "chatgpt",
+    "prompt": "what's a good way to prepare for a 45 minute case interview?",
+    "needs": [],
+    "forbid": [],
+    "why": "Generic advice question; notes would not improve it."
+  },
+  {
+    "id": "w1-p14",
+    "kind": "needed",
+    "tool": "claude-code",
+    "project": "quorum",
+    "prompt": "write the intro paragraph for the Quorum README in my usual voice",
+    "needs": [
+      "tone"
+    ],
+    "forbid": [],
+    "why": "Tone was revealed in chatgpt; needed to write in the user's voice."
+  },
+  {
+    "id": "w1-p15",
+    "kind": "needed",
+    "tool": "codex",
+    "project": "quorum",
+    "prompt": "summarize what changed in this branch for me, the way I like it",
+    "needs": [
+      "bullets"
+    ],
+    "forbid": [],
+    "why": "Summary format preference was revealed in chatgpt."
+  },
+  {
+    "id": "w1-p16",
+    "kind": "needed",
+    "tool": "claude-code",
+    "project": "quorum",
+    "prompt": "add a setup section with the install and dev commands, using my usual package manager",
+    "needs": [
+      "pnpm"
+    ],
+    "forbid": [],
+    "why": "Package manager preference was revealed in codex."
+  },
+  {
+    "id": "w1-p17",
+    "kind": "needed",
+    "tool": "chatgpt",
+    "prompt": "help me turn what I shipped at my internship into a strong resume bullet",
+    "needs": [
+      "nw-payouts",
+      "nw-intern"
+    ],
+    "forbid": [],
+    "why": "Shipped work was revealed in claude-code."
+  },
+  {
+    "id": "w1-p18",
+    "kind": "needed",
+    "tool": "chatgpt",
+    "prompt": "help me write a cover letter paragraph about my side project, mention what it's built with",
+    "needs": [
+      "quorum-what",
+      "quorum-stack"
+    ],
+    "forbid": [],
+    "why": "Side project facts were revealed in claude-code."
+  },
+  {
+    "id": "w1-p19",
+    "kind": "needed",
+    "tool": "claude-code",
+    "project": "quorum",
+    "prompt": "write tests for the slot-finding function and give me a commit message, my usual way",
+    "needs": [
+      "vitest",
+      "commits"
+    ],
+    "forbid": [],
+    "why": "Testing and commit habits were revealed in codex."
+  },
+  {
+    "id": "w1-p20",
+    "kind": "known",
+    "tool": "chatgpt",
+    "context": "Earlier in this chat: I told you I'm interning on the payments team at Northwind and that I shipped payout retries which cut failed payouts by 30%.",
+    "prompt": "turn that into a resume bullet",
+    "needs": [],
+    "forbid": [],
+    "why": "The needed facts are already in the chat; adding them again is redundant."
+  },
+  {
+    "id": "w1-p21",
+    "kind": "known",
+    "tool": "codex",
+    "project": "quorum",
+    "context": "Earlier in this chat: I said I always use pnpm, never npm or yarn.",
+    "prompt": "give me the command to add zod to the project",
+    "needs": [],
+    "forbid": [],
+    "why": "Package manager already stated in the same chat."
+  },
+  {
+    "id": "w1-p22",
+    "kind": "known",
+    "tool": "chatgpt",
+    "context": "Earlier in this chat: I explained that my side project Quorum is a web app that finds a meeting time for student clubs from everyone's calendar, built with Next.js and Supabase.",
+    "prompt": "write a one-line pitch for it",
+    "needs": [],
+    "forbid": [],
+    "why": "Project description already in context."
+  },
+  {
+    "id": "w1-p23",
+    "kind": "boundary",
+    "tool": "chatgpt",
+    "prompt": "help me plan what my side project should focus on next quarter",
+    "needs": [],
+    "forbid": [
+      "nw-roadmap"
+    ],
+    "why": "Personal planning; the confidential Northwind roadmap would be tempting but must not leak."
+  },
+  {
+    "id": "w1-p24",
+    "kind": "boundary",
+    "tool": "codex",
+    "project": "quorum",
+    "prompt": "set up GitHub Actions for lint, typecheck and tests, and make it fast",
+    "needs": [
+      "quorum-stack"
+    ],
+    "forbid": [
+      "nw-ci"
+    ],
+    "why": "Personal project; Northwind CI setup is tempting but is work info."
+  },
+  {
+    "id": "w1-p25",
+    "kind": "sensitive",
+    "tool": "chatgpt",
+    "prompt": "draft a public LinkedIn post about juggling grad school, an internship and my side project",
+    "needs": [],
+    "forbid": [
+      "therapy",
+      "loan"
+    ],
+    "why": "Health and money details are loosely related but would be an overshare in a public post."
+  }
+]

@@ -1,0 +1,675 @@
+[
+  {
+    "id": "w1-s01",
+    "tool": "chatgpt",
+    "day": 1,
+    "topic": "Sam asks for a short email to the club leads about next week's scheduling pilot, wants it warm and plain, and asks for a bullet summary of the key points instead of a long paragraph.",
+    "reveals": [
+      "tone",
+      "bullets"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, can you help me write a short email to the club leads about next week's scheduling pilot? nothing fancy. i want it to sound warm and plain, not corporate. i really dislike the 'thrilled to announce' type stuff"
+      },
+      {
+        "role": "assistant",
+        "text": "Sure. Here's a short, plain version you can adjust:\n\nSubject: Next week's scheduling pilot\n\nHi all,\n\nThanks for everything you've been doing for the clubs. I wanted to give you a heads-up about next week's scheduling pilot. We're trying out a new way to book shared rooms and events, and your feedback will help us decide what to keep.\n\nYou don't need to change anything yet. I'll walk you through the details before it starts.\n\nThanks,\nSam"
+      },
+      {
+        "role": "user",
+        "text": "ok that's close. can you give me the key points as bullets though? i'd rather skim than read a long paragraph. and put in that the pilot runs Mon-Wed and that we'll have a feedback form Thursday"
+      },
+      {
+        "role": "assistant",
+        "text": "Here are the key points:\n\n- Pilot runs Monday through Wednesday next week\n- New scheduling flow for shared rooms and events\n- No changes needed from you yet\n- Feedback form goes out Thursday\n- Your input decides whether we keep it\n\nWant me to fold these into the email body?"
+      },
+      {
+        "role": "user",
+        "text": "yes please. keep it short and make the bullets part of it. also i don't want it to sound like a press release lol"
+      },
+      {
+        "role": "assistant",
+        "text": "Here's a revised version:\n\nSubject: Scheduling pilot next week\n\nHi all,\n\nQuick heads-up on next week's scheduling pilot. Here's what you need to know:\n\n- Runs Monday through Wednesday\n- New way to book shared rooms and events\n- Nothing to change on your end yet\n- Feedback form goes out Thursday\n- Your input helps us decide whether to keep it\n\nI'll walk you through the details before it starts. Thanks for being part of this.\n\nSam"
+      },
+      {
+        "role": "user",
+        "text": "perfect, thanks. one thing though, can you make the subject line a little less blunt? like it feels abrupt"
+      },
+      {
+        "role": "assistant",
+        "text": "How about one of these:\n\n- A quick note about next week\n- Next week's scheduling pilot, a few details\n- Something new for next week's room bookings\n\nThe first one is the most neutral, and the last one is warmer if you want to highlight the change."
+      },
+      {
+        "role": "user",
+        "text": "go with the first one. and can you save this as a draft in gmail so i can look it over before i send"
+      },
+      {
+        "role": "assistant",
+        "text": "I can do that, but I don't have Gmail access in this chat, so I can't save a draft for you here. You can copy the email below into Gmail yourself:\n\nSubject: A quick note about next week\n\nHi all,\n\nQuick heads-up on next week's scheduling pilot. Here's what you need to know:\n\n- Runs Monday through Wednesday\n- New way to book shared rooms and events\n- Nothing to change on your end yet\n- Feedback form goes out Thursday\n- Your input helps us decide whether to keep it\n\nI'll walk you through the details before it starts. Thanks for being part of this.\n\nSam"
+      },
+      {
+        "role": "user",
+        "text": "ugh ok. thanks anyway"
+      }
+    ]
+  },
+  {
+    "id": "w1-s02",
+    "tool": "claude-code",
+    "project": "quorum",
+    "day": 1,
+    "topic": "Sam has Claude Code explain and fix a timezone bug in the availability-overlap function, mentioning what the app does, its stack, and how many people use it.",
+    "reveals": [
+      "quorum-what",
+      "quorum-stack",
+      "quorum-users"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, can you look at the overlap function in lib/availability.ts? something's off with timezones. two people in different zones are getting a 'free' slot that's actually at like 3am for one of them"
+      },
+      {
+        "role": "assistant",
+        "text": "Sure, I'll take a look. From what you describe, it sounds like the intervals are being compared as naive wall-clock strings instead of absolute instants. Can you tell me how availability gets stored in Supabase, and whether the time zone is saved per user or per calendar?"
+      },
+      {
+        "role": "user",
+        "text": "its quorum, the web app i'm building for student clubs. it finds a meeting time from everyones google calendar. next.js + supabase. availability is saved as 'HH:mm' strings plus a date column, no zone. the zone comes from the user's profile but the overlap code never reads it"
+      },
+      {
+        "role": "assistant",
+        "text": "That explains it. Once two users in different zones are intersected as bare 'HH:mm' values, you're effectively comparing 9:00 Eastern against 9:00 Pacific as if they were the same clock. The fix is to convert each user's slots to UTC epoch intervals using their profile zone, then intersect in UTC and only format back to local time for display. Want me to draft that conversion and the intersection, plus a test with a DST boundary?"
+      },
+      {
+        "role": "user",
+        "text": "yes please. also fyi 140 people use it weekly across 9 clubs so i really don't want to break the existing ones lol"
+      },
+      {
+        "role": "assistant",
+        "text": "Understood, so I'll keep the existing function signature and add a compatibility path. Here's the core of it:\n\nts\nexport function toUtcIntervals(slots: Slot[], date: string, zone: string): Interval[] {\n  return slots.map(s => ({\n    start: zonedTimeToUtc(`${date} ${s.start}`, zone).getTime(),\n    end: zonedTimeToUtc(`${date} ${s.end}`, zone).getTime(),\n  }));\n}\n\n\nThen `findOverlap` intersects those epoch intervals across all members. I'll also add tests for a DST transition weekend, since that's where naive math usually breaks again."
+      },
+      {
+        "role": "user",
+        "text": "ok that looks right. one thing though, what if someone's slot crosses midnight? like 22:00 to 01:00"
+      },
+      {
+        "role": "assistant",
+        "text": "Good catch. In that case `end` lands on the next calendar day, so `zonedTimeToUtc` would produce an end earlier than the start. The fix is to add a day to `end` when it's less than or equal to `start` in local terms. I'll add a case for that to the tests so it can't silently regress."
+      },
+      {
+        "role": "user",
+        "text": "perfect. run the tests and tell me if anything fails"
+      },
+      {
+        "role": "assistant",
+        "text": "All 34 existing tests pass, and the 6 new ones pass too: the DST spring-forward and fall-back cases, the midnight-crossing slot, and two users in UTC+13 and UTC-8. The old behavior for same-zone clubs is unchanged, so your 9 clubs shouldn't notice anything. Want me to commit this on a branch so you can review it before merging?"
+      }
+    ]
+  },
+  {
+    "id": "w1-s03",
+    "tool": "codex",
+    "project": "quorum",
+    "day": 2,
+    "topic": "Sam sets up a new utility module for ranking candidate meeting slots and writes tests for it, installing dependencies and committing the work.",
+    "reveals": [
+      "pnpm",
+      "vitest",
+      "commits"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, I need a small utility for Quorum that ranks candidate meeting slots. input is a list of {start, end, attendeeIds} and it should prefer slots that fit the most people and avoid lunch hours. can you sketch the module?"
+      },
+      {
+        "role": "assistant",
+        "text": "Sure. I'd make it a pure function, `rankSlots(slots, opts)`, that scores each slot by attendee coverage first, then penalizes overlap with a configurable lunch window (default 12:00 to 13:30), and breaks ties by earlier start time. Keep the scoring in a separate `scoreSlot` helper so it's easy to test. Want me to write the file at `src/utils/rankSlots.ts` with that shape?"
+      },
+      {
+        "role": "user",
+        "text": "yeah go for it. also I want the tests next to it, like `rankSlots.test.ts` in the same folder, not in a __tests__ dir. we're on Vitest"
+      },
+      {
+        "role": "assistant",
+        "text": "Got it, tests will sit beside the source as `src/utils/rankSlots.test.ts` and run under Vitest. I've written `rankSlots.ts` with `scoreSlot` exported, plus a test file covering full coverage, partial coverage, lunch-hour penalty, the tie-break on start time, and an empty input. Run `pnpm vitest run src/utils` to check them."
+      },
+      {
+        "role": "user",
+        "text": "ok ran it, 2 failing. the lunch test expects a slot at 12:30 to lose to 11:00 but it's tied"
+      },
+      {
+        "role": "assistant",
+        "text": "That's the penalty being applied as a fixed flat value, so a 12:30 start and an 11:00 start with the same coverage come out equal when the slot is partly outside the lunch window. I'd change the penalty to scale with the overlap in minutes, so any slot touching lunch scores lower than one that doesn't. The second failure is probably the same root cause, so re-run after that change."
+      },
+      {
+        "role": "user",
+        "text": "fixed it, all green now. can you check the diff quickly before I commit? I don't want any stray debug logs"
+      },
+      {
+        "role": "assistant",
+        "text": "I looked through the diff. There are no `console.log` calls or leftover debug code. Two small things: the `opts` default object is recreated on every call, so you could hoist it to a constant, and the test for an empty array doesn't assert the return type. Otherwise it's clean and matches the rest of `src/utils`."
+      },
+      {
+        "role": "user",
+        "text": "hoisted the default, added the type assert. commit it with a message like the others in the log, short and imperative, no prefixes"
+      },
+      {
+        "role": "assistant",
+        "text": "Here's the commit with a short imperative message, matching your log style:\n\n`git add src/utils/rankSlots.ts src/utils/rankSlots.test.ts && git commit -m \"Add slot ranking utility with tests\"`\n\nThe lockfile didn't change since you added no packages, so it isn't included. Want me to push the branch too?"
+      },
+      {
+        "role": "user",
+        "text": "nah I'll push later. oh wait, I also need vitest installed as a dev dep on the Northwind repo for the same thing, can you add it with pnpm not npm"
+      },
+      {
+        "role": "assistant",
+        "text": "I'll use pnpm there. Run `pnpm add -D vitest` in the Northwind repo, then add a `\"test\": \"vitest run\"` script to `package.json` so it matches Quorum. Make sure the `pnpm-lock.yaml` change is included in the same commit as the dependency, so CI doesn't pick up a mismatch."
+      },
+      {
+        "role": "user",
+        "text": "perfect, thanks. ok I'm done for today"
+      },
+      {
+        "role": "assistant",
+        "text": "Nice work. The slot ranker is committed in Quorum with its tests beside it, and Vitest is set up in Northwind with pnpm. Good luck with the rest of your week."
+      }
+    ]
+  },
+  {
+    "id": "w1-s04",
+    "tool": "claude-code",
+    "project": "northwind-api",
+    "day": 2,
+    "topic": "Sam, on day-to-day intern work, asks Claude Code why a lint job is failing in a pipeline config and how to fix a type error in a payout service.",
+    "reveals": [
+      "nw-intern",
+      "nw-ci"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, CI is failing on my PR and the lint job is the only red one. typecheck and test are green. I'm interning on the payments team at Northwind so I'm not 100% sure how the pipeline is wired. can you check .github/workflows and tell me why lint is busted?"
+      },
+      {
+        "role": "assistant",
+        "text": "Sure, I'll look at the workflow files and the lint job's logs. Northwind CI runs lint, typecheck, and test as parallel jobs on the self-hosted runners, so a failure in one won't block the others from reporting. Give me a sec to find the lint job definition and the most recent failing run."
+      },
+      {
+        "role": "user",
+        "text": "ok go. also fyi the lint job started failing right after I merged a change to the payout service helpers, not sure if that matters"
+      },
+      {
+        "role": "assistant",
+        "text": "It probably matters a lot. I found the lint step in `.github/workflows/ci.yml`: it runs `eslint src/payouts --max-warnings=0`, and the most recent failure is `no-unused-vars` on `src/payouts/helpers/formatAmount.ts` line 14. Your merged change left an unused `currency` parameter, and with `--max-warnings=0` a single warning fails the job. Removing the param or prefixing it with an underscore should turn lint green again."
+      },
+      {
+        "role": "user",
+        "text": "oh that makes sense. I'll just delete the param. but now typecheck is complaining about the same file?? it was passing before I touched it"
+      },
+      {
+        "role": "assistant",
+        "text": "Typecheck is probably reacting to the callers, not the file itself. If `formatAmount` used to take `(amount, currency)` and you dropped `currency`, any call site still passing two args will throw `Expected 1 arguments, but got 2`. Run `npx tsc --noEmit` locally and it should list the exact lines. Paste the output here and I'll help you fix the signatures."
+      },
+      {
+        "role": "user",
+        "text": "ugh ok. running it now"
+      },
+      {
+        "role": "user",
+        "text": "ok so it's 3 errors, all in src/payouts/batch/settle.ts. it says Property 'currency' does not exist on type 'PayoutRequest'. what's going on"
+      },
+      {
+        "role": "assistant",
+        "text": "That error means `settle.ts` is reading `request.currency`, but `PayoutRequest` in `src/payouts/types.ts` doesn't declare that field anymore. Check whether the type was changed in the same merge, since that would explain why it passed before. If `currency` should still exist, restore it in the interface as `currency: string`. If it was intentionally removed, update `settle.ts` to get the currency from wherever it now lives, such as `request.account.currency`."
+      },
+      {
+        "role": "user",
+        "text": "hm, git blame says someone else removed it from the type two weeks ago, so it's not from my change. but my PR is the only thing that broke. weird"
+      },
+      {
+        "role": "assistant",
+        "text": "That's a useful clue. Two weeks ago the type change may have landed without `settle.ts` being updated, but it only surfaced now because your PR touched the same type-checked path, or because CI's typecheck cache was warm before. Don't spend long on the archaeology, though. Check whether `main` passes `tsc --noEmit` on a clean checkout. If it fails there too, the bug is already on main and you should flag it to your team rather than patch it in your PR."
+      },
+      {
+        "role": "user",
+        "text": "good call, I'll check main. thanks, this is really helpful for a first week on the payments team"
+      },
+      {
+        "role": "assistant",
+        "text": "Glad it helped. Once you've confirmed the main status, fix the lint warning first, then handle the `settle.ts` error separately, so the review stays clean. If `main` is also red on typecheck, mention it in your team's channel with the commit that removed `currency`."
+      }
+    ]
+  },
+  {
+    "id": "w1-s05",
+    "tool": "chatgpt",
+    "day": 3,
+    "topic": "Sam drafts a cover letter for a product manager internship application and asks for tightening of the opening paragraph, mentioning degree and loan pressure in passing.",
+    "reveals": [
+      "school",
+      "jobsearch",
+      "loan"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, can you help me tighten up the opening paragraph of my cover letter? it's way too long and I keep rambling. it's for a PM internship at a fintech, summer 2027"
+      },
+      {
+        "role": "assistant",
+        "text": "Sure, paste the paragraph and tell me a bit about the role if you have it. I'll cut the filler and lead with your strongest point."
+      },
+      {
+        "role": "user",
+        "text": "ok here it is: \"I am writing to express my strong interest in the Product Manager Internship position at your company. Throughout my academic and professional journey, I have developed a deep passion for building products that people actually want to use. As a second-year master's student in Human-Computer Interaction, I have spent the last two years studying how users think, and I am eager to apply this knowledge in a real-world product setting.\""
+      },
+      {
+        "role": "assistant",
+        "text": "Here's a tighter version:\n\n\"I'm excited to apply for the Product Manager Internship for summer 2027. As a second-year master's student in Human-Computer Interaction, I study how people actually use products and where they get stuck, and I want to bring that research lens to a fast-moving product team.\"\n\nI cut the \"throughout my journey\" phrasing and the generic passion line. Want me to make it sound more like you?"
+      },
+      {
+        "role": "user",
+        "text": "yeah that's better. honestly I'm kinda stressed about this, I've got like $42k in student loans and I really need a paid internship to make it work lol"
+      },
+      {
+        "role": "assistant",
+        "text": "That's a lot of pressure to carry while you're also applying, and it's completely understandable. For the letter, you can let your concrete work do the talking, so if you have a project or a metric from your research or Quorum, that's worth a line. If you want, we can also look at which internships list pay so you can filter early."
+      },
+      {
+        "role": "user",
+        "text": "oh good idea. ok so I did a usability study on a checkout flow last semester and we cut drop-off by like 18%. can that go in the opening?"
+      },
+      {
+        "role": "assistant",
+        "text": "Yes, that's a strong hook. Try something like:\n\n\"As a second-year master's student in Human-Computer Interaction, I recently ran a usability study that reduced checkout drop-off by 18%. I'm applying for the Product Manager Internship for summer 2027 because I want to keep turning user research into product decisions.\"\n\nIf the study was a class project, you can say so briefly, since recruiters care more about the outcome than the setting."
+      },
+      {
+        "role": "user",
+        "text": "perfect, thank you. last thing, does 'I'm applying for' sound weak? should I say 'I'd love to'?"
+      },
+      {
+        "role": "assistant",
+        "text": "\"I'm applying for\" is fine and direct. \"I'd love to\" can sound a little soft, so I'd keep your version. You could also write \"I'm eager to bring this work to your team,\" which shows intent without sounding passive."
+      }
+    ]
+  },
+  {
+    "id": "w1-s06",
+    "tool": "claude-code",
+    "project": "quorum",
+    "day": 3,
+    "topic": "Sam asks Claude Code to refactor the calendar-invite API route to handle errors cleanly and add loading states to the club dashboard.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey can you look at the calendar invite route in quorum? it's a mess. errors just throw and the client shows a blank screen"
+      },
+      {
+        "role": "assistant",
+        "text": "Sure, I'll read the route and its callers first. From what you describe, the main fix is probably to catch failures at the handler level and return a consistent error shape, so the client always gets something it can render. Can you tell me which file it lives in, or should I search for it?"
+      },
+      {
+        "role": "user",
+        "text": "its at app/api/invites/route.ts. i think it's the POST one that breaks most"
+      },
+      {
+        "role": "assistant",
+        "text": "Got it. I'll look at the POST handler. I'm planning to wrap the body parsing, the calendar provider call, and the DB write in separate try blocks so each failure returns a specific status: 400 for bad input, 502 if the calendar API fails, and 500 for anything else. Each response will use the same `{ error: { code, message } }` shape."
+      },
+      {
+        "role": "user",
+        "text": "yes do that. also make sure it doesnt leak the raw provider error to the client"
+      },
+      {
+        "role": "assistant",
+        "text": "Will do. I'll log the raw provider error server-side with the request ID and send the client only a generic message plus the code. I'll also check the existing tests so I don't break anything that expects the old response shape."
+      },
+      {
+        "role": "user",
+        "text": "ok. and the dashboard page, when its loading it just flashes empty then pops in. can we add a loading state"
+      },
+      {
+        "role": "assistant",
+        "text": "Yes. I'll add a `loading.tsx` for the route segment so Next shows a skeleton right away, and I'll use the same skeleton component for the club cards so the layout doesn't jump when data arrives. If the fetch fails, the dashboard will show a retry button instead of an empty panel."
+      },
+      {
+        "role": "user",
+        "text": "perfect. just keep the diff small pls, i don't want to touch the auth stuff"
+      },
+      {
+        "role": "assistant",
+        "text": "Understood. I'll keep changes to the invite route, its tests, and the dashboard components. I won't touch anything under the auth directory. I'll show you the diff when I'm done so you can review it before committing."
+      }
+    ]
+  },
+  {
+    "id": "w1-s07",
+    "tool": "codex",
+    "project": "quorum",
+    "day": 4,
+    "topic": "Sam asks Codex to rename a few React components and clean up unused imports and dead code in the poll page.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, can you help me clean up the poll page in quorum? it's a mess after the last refactor. a few components still have old names like PollCard2 and VoteBtnOld, and there's a bunch of unused imports"
+      },
+      {
+        "role": "assistant",
+        "text": "Sure. I'll start with the poll page and its direct children so I know what's referenced. Do you want me to rename everything to match the current naming pattern, or just the ones you listed? Also, should I touch the tests and stories too, or only the source files?"
+      },
+      {
+        "role": "user",
+        "text": "just the ones I listed plus whatever imports break. tests too, they import the old names"
+      },
+      {
+        "role": "assistant",
+        "text": "Got it. Here's the plan:\n\n- `PollCard2` → `PollCard`\n- `VoteBtnOld` → `VoteButton`\n- Update imports in `pages/poll/[id].tsx` and the two test files\n- Remove unused imports, then run the type check and the poll tests to confirm nothing broke\n\nI'll also flag any dead code I find but won't delete it without asking first."
+      },
+      {
+        "role": "user",
+        "text": "ok but don't remove the `useLegacyVotes` hook yet, we still have a flag that uses it"
+      },
+      {
+        "role": "assistant",
+        "text": "Understood, I'll leave `useLegacyVotes` alone and mention it in the summary as still in use behind the flag. Renaming now."
+      },
+      {
+        "role": "assistant",
+        "text": "Done. Changes:\n\n- Renamed `PollCard2` to `PollCard` in `components/poll/PollCard.tsx` and its import in `pages/poll/[id].tsx`\n- Renamed `VoteBtnOld` to `VoteButton` in `components/poll/VoteButton.tsx`, updated 2 imports in `PollOptions.tsx` and the poll test file\n- Removed 7 unused imports across 4 files\n- Left `useLegacyVotes` in place\n\nType check passes. Poll tests: 14 passed, 0 failed. I also found `formatPollDateV1` in `lib/format.ts` with no callers. Want me to delete it?"
+      },
+      {
+        "role": "user",
+        "text": "yeah delete formatPollDateV1. also did you check the storybook files?"
+      },
+      {
+        "role": "assistant",
+        "text": "I didn't check them the first time, good catch. I searched `stories/` and found one story, `PollCard.stories.tsx`, still importing `PollCard2`. I've updated it, deleted `formatPollDateV1`, and reran the type check. It passes. Want me to run the storybook build too?"
+      },
+      {
+        "role": "user",
+        "text": "nah I'll do that when I push. can you write a commit message?"
+      },
+      {
+        "role": "assistant",
+        "text": "Here's one:\n\n\nrename poll components and remove dead code\n\n- rename PollCard2 -> PollCard and VoteBtnOld -> VoteButton\n- update imports in poll page, PollOptions, tests, and stories\n- remove unused imports and formatPollDateV1\n- keep useLegacyVotes (still used behind legacy-votes flag)\n"
+      },
+      {
+        "role": "user",
+        "text": "perfect, thanks"
+      }
+    ]
+  },
+  {
+    "id": "w1-s08",
+    "tool": "claude-code",
+    "project": "northwind-api",
+    "day": 4,
+    "topic": "Sam debugs a failing webhook signature check and pastes the config including a live Stripe key into the chat.",
+    "reveals": [
+      "stripe-key"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "ok webhook signature check on northwind keeps failing, stripe says 'No signatures found matching the expected signature for payload'. here's my config lol: const stripe = require('stripe')('sk_live_51SamSimFakeKey9xQ2v'); const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET; and my handler is app.post('/webhooks/stripe', express.json(), handler)"
+      },
+      {
+        "role": "assistant",
+        "text": "Heads up first: you just pasted a live secret key into this chat, so treat it as exposed. Roll it in the Stripe dashboard under Developers > API keys, then load the new one from an env var instead of hardcoding it.\n\nThe signature failure is probably from `express.json()`. It parses the body before verification, so the raw bytes Stripe signed no longer match. Use the raw body on that route: `app.post('/webhooks/stripe', express.raw({type: 'application/json'}), handler)`, then call `stripe.webhooks.constructEvent(req.body, sig, endpointSecret)`."
+      },
+      {
+        "role": "user",
+        "text": "oh no. ok i'll rotate later, does that matter for the signature though? i just want this working"
+      },
+      {
+        "role": "assistant",
+        "text": "Rotating the key doesn't affect the signature check, which uses the webhook secret rather than the API key. But the exposed key is a real risk regardless of whether this bug is fixed, so do it soon. For the signature, the raw body change is the fix to try first. Restart the server after editing and send a test event to confirm."
+      },
+      {
+        "role": "user",
+        "text": "wait do i also need the whsec? where do i get that"
+      },
+      {
+        "role": "assistant",
+        "text": "Yes. `endpointSecret` should be the `whsec_...` signing secret for that specific endpoint. Find it in Dashboard > Developers > Webhooks, click your endpoint, and reveal the Signing secret. If you're testing locally with the Stripe CLI, run `stripe listen --forward-to localhost:3000/webhooks/stripe`. It prints a different `whsec_` each session, and that's the one to use locally. The `sk_` key is never used for signature verification."
+      },
+      {
+        "role": "user",
+        "text": "got it, works now. thanks. my .env also had the sk_live key and i committed it to git last week lol"
+      },
+      {
+        "role": "assistant",
+        "text": "Glad it's working. Since the key was committed, rotating it is the important step, because git history keeps the old value even after you delete the line. Add `.env` to `.gitignore` and remove it from tracking with `git rm --cached .env`. Check exposure with `git log -p -S \"sk_live_\"`. If the repo is public or shared, consider rewriting history with git-filter-repo, but rotation matters more than the rewrite."
+      },
+      {
+        "role": "user",
+        "text": "ugh ok. last q, is there a test mode so my tests dont hit live stuff"
+      },
+      {
+        "role": "assistant",
+        "text": "Yes. Stripe has a test mode with separate keys (`sk_test_...`) and separate webhook endpoints and signing secrets. There's a Test mode toggle in the dashboard. Point your test suite and local dev at test keys via env vars, like `STRIPE_SECRET_KEY` set differently per environment. Then a misconfigured test can't create real charges."
+      }
+    ]
+  },
+  {
+    "id": "w1-s09",
+    "tool": "chatgpt",
+    "day": 5,
+    "topic": "Sam asks for a simple weekly meal plan and grocery list for a busy week, mentioning a peanut allergy in passing.",
+    "reveals": [
+      "allergy"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey can u help me plan meals for the week? super busy with a project deadline + work at northwind so i need stuff that's quick, like 20 min max"
+      },
+      {
+        "role": "assistant",
+        "text": "Happy to help. How many dinners do you need covered, and do you usually pack lunch or grab it? Also, any foods you really don't want to eat?"
+      },
+      {
+        "role": "user",
+        "text": "dinners mostly, maybe 5 nights. not really into fish. oh and im allergic to peanuts so no pad thai type stuff lol"
+      },
+      {
+        "role": "assistant",
+        "text": "Got it, no fish and no peanuts. Here's a 5-night plan:\n\n- **Mon:** Chicken fajita bowls with rice and peppers\n- **Tue:** Turkey taco skillet with black beans\n- **Wed:** Pasta with garlic, spinach, and sun-dried tomatoes\n- **Thu:** Egg fried rice with frozen peas and carrots\n- **Fri:** Sheet pan sausage and broccoli\n\nFor takeout-style sauces like hoisin, satay, or some chili crisps, check the label for peanuts, since they show up in a lot of those."
+      },
+      {
+        "role": "user",
+        "text": "ok can you turn that into a grocery list"
+      },
+      {
+        "role": "assistant",
+        "text": "**Proteins:** chicken breast (2 lb), ground turkey (1 lb), smoked sausage (1 lb), 8 eggs\n**Produce:** bell peppers (3), onion (2), broccoli (1 head), spinach (1 bag), garlic, lime, frozen peas and carrots\n**Pantry:** rice, pasta, black beans (1 can), sun-dried tomatoes, soy sauce, taco seasoning, tortillas\n**Dairy:** shredded cheese, sour cream\n\nIf you already have spices and oil, you can skip those."
+      },
+      {
+        "role": "user",
+        "text": "wait can we swap tuesday, i already have chicken thighs"
+      },
+      {
+        "role": "assistant",
+        "text": "Sure. Swap Tuesday to **chicken thigh stir-fry** with broccoli, onion, and soy-ginger sauce over rice. Since you already have the thighs, you can drop the chicken breast from the list and save about $5."
+      },
+      {
+        "role": "user",
+        "text": "perfect. also do you know if the sesame noodles thing is safe? like the jar sauce"
+      },
+      {
+        "role": "assistant",
+        "text": "Be careful with that one. Many bottled sesame noodle sauces contain peanut butter or are made in facilities that handle peanuts, so check the \"may contain\" line before you buy. If you want to be safe, you can make your own with tahini, soy sauce, rice vinegar, honey, and a little garlic. It takes about five minutes."
+      },
+      {
+        "role": "user",
+        "text": "ok making my own then. thanks"
+      },
+      {
+        "role": "assistant",
+        "text": "Sounds good. Good luck with the deadline, and enjoy the meals!"
+      }
+    ]
+  },
+  {
+    "id": "w1-s10",
+    "tool": "claude-code",
+    "project": "northwind-api",
+    "day": 5,
+    "topic": "Sam writes a summary of recent work for a team review, and asks for help with a migration script while mentioning the retry feature and the upcoming roadmap.",
+    "reveals": [
+      "nw-payouts",
+      "nw-roadmap"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, can you help me write a summary of what I shipped this sprint for the team review thursday? i did a bunch of stuff on the headsup repo and also the payout stuff at work"
+      },
+      {
+        "role": "assistant",
+        "text": "Sure. Can you paste the commit list or tell me the main items? I can pull the recent git history from headsup if that's easier. For the Northwind work, just give me the rough outcomes and I'll help you phrase them."
+      },
+      {
+        "role": "user",
+        "text": "ok check git log for the last 2 weeks in headsup. for work I shipped payout retries at Northwind that cut failed payouts by 30%, which was kinda the big one. also we're doing a ledger migration before the Series C, that's Q4 roadmap, so I want to mention that too"
+      },
+      {
+        "role": "assistant",
+        "text": "Got it. I'll pull the last two weeks of git log from headsup.\n\nWhile I'm at it, I'll keep the Northwind section framed around the outcome: payout retries shipped, failed payouts down about 30%. The ledger migration goes in as the Q4 roadmap item leading up to the Series C, so it reads as forward-looking rather than done."
+      },
+      {
+        "role": "user",
+        "text": "perfect. also the migration script for headsup's old sqlite events table is breaking on rows where the timestamp is null. can you look at it? the script is scripts/migrate_events.py"
+      },
+      {
+        "role": "assistant",
+        "text": "I'll read the script and check how it handles null timestamps. Then I'll suggest a fix and run it against a copy of the table so we can confirm it works."
+      },
+      {
+        "role": "user",
+        "text": "yeah go for it. also for the review, keep it under 200 words, Thursday's audience is mostly the Quorum folks and my advisor"
+      },
+      {
+        "role": "assistant",
+        "text": "Will do: under 200 words, written for Quorum teammates and your advisor. I'll get the git log and the migration script, then draft the summary and fix the null-timestamp bug."
+      }
+    ]
+  },
+  {
+    "id": "w1-s11",
+    "tool": "chatgpt",
+    "day": 6,
+    "topic": "Sam plans a study and deadlines schedule for the next two weeks, noting an every-other-week therapy appointment that needs to fit around it.",
+    "reveals": [
+      "therapy"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "ok so I need to plan the next two weeks. starting tomorrow (oct 26) through nov 8. I have an HCI paper draft due nov 4, a usability study writeup due nov 7, and I'm trying to get a Quorum demo ready by nov 6. also working my internship at Northwind, like 3 days a week"
+      },
+      {
+        "role": "assistant",
+        "text": "That's a lot stacked into the back half, so let's front-load the hardest work. Start with the paper draft since it's due earliest and needs the most uninterrupted thinking. Would you like me to sketch a day-by-day schedule? If you tell me your internship days and any fixed commitments, I can slot everything around them."
+      },
+      {
+        "role": "user",
+        "text": "yeah. northwind is mon wed fri, 10-6ish. tuesdays and thursdays are mostly free. oh and I see my therapist every other week for anxiety, usually thursday afternoons, so i need to work that in too"
+      },
+      {
+        "role": "assistant",
+        "text": "Thanks, that helps. Since Thursdays have the therapy session, I'd keep Tuesday and Thursday mornings for deep work and treat Thursday afternoon as a light day for reviewing or small tasks. Your Northwind days are full, so I'd keep Mon/Wed/Fri evenings for the Quorum demo polish, maybe 2 hours each. Do you know which Thursdays fall on your therapy weeks, or should I build the plan so it works either way?"
+      },
+      {
+        "role": "user",
+        "text": "good question lol. i think oct 30 and nov 13 are the therapy weeks? can we just assume it's every other thursday starting oct 30"
+      },
+      {
+        "role": "assistant",
+        "text": "Sure, I'll assume therapy on Thursday Oct 30 and Thursday Nov 13, with the in-between Thursdays Nov 6 open. Here's the plan:\n\n**Week 1 (Oct 26 to Nov 1)**\n- Sun Oct 26: outline paper, lit review notes\n- Tue Oct 28: write paper Sections 1-2 (morning)\n- Thu Oct 30: light day, therapy in afternoon, review paper draft\n- Sat Nov 1: paper Sections 3-4\n\n**Week 2 (Nov 2 to Nov 8)**\n- Tue Nov 4: paper final pass and submit (due date)\n- Thu Nov 6: usability study writeup (morning), Quorum demo prep\n- Fri Nov 7: writeup submit\n- Sat Nov 8: Quorum demo rehearsal\n\nWant me to adjust if the Quorum demo needs more time?"
+      },
+      {
+        "role": "user",
+        "text": "wait the paper is due nov 4 so tuesday is the day it's due? I thought I had a bit more slack. also i'm not sure i can finish the writeup by the 7th if i'm doing the demo on the 6th"
+      },
+      {
+        "role": "assistant",
+        "text": "Good catch. Tuesday Nov 4 is the due date, so you'd want the paper submitted by then, not started. I'd move the final pass to Sunday Nov 2 and keep Monday Nov 3 as a buffer. For the writeup, you're right that Nov 6 and 7 overlap with the demo. One option: move the Quorum demo prep to Mon/Wed evenings in week 2 and give the writeup Thu Nov 6 and Fri Nov 7 mornings. That way the demo gets rehearsal on Sat Nov 8 only."
+      },
+      {
+        "role": "user",
+        "text": "ok that works better. can you put it all in a quick table i can paste into my notes app"
+      },
+      {
+        "role": "assistant",
+        "text": "| Date | Day | Plan |\n|---|---|---|\n| Oct 26 | Sun | Outline paper, lit review notes |\n| Oct 28 | Tue | Paper Sections 1-2 (morning) |\n| Oct 30 | Thu | Therapy (afternoon), light paper review |\n| Nov 1 | Sat | Paper Sections 3-4 |\n| Nov 2 | Sun | Paper final pass |\n| Nov 3 | Mon | Buffer, Quorum demo (evening) |\n| Nov 4 | Tue | Paper submitted (due) |\n| Nov 6 | Thu | Writeup (morning), Quorum demo (evening) |\n| Nov 7 | Fri | Writeup submitted (due) |\n| Nov 8 | Sat | Quorum demo rehearsal |\n\nNorthwind is Mon/Wed/Fri, so keep those days' evenings for the demo work unless you're wiped out."
+      }
+    ]
+  },
+  {
+    "id": "w1-s12",
+    "tool": "claude-code",
+    "project": "quorum",
+    "day": 7,
+    "topic": "Sam needs to pick a date-handling library for Quorum and asks Claude Code to compare options with a short trade-off table before deciding.",
+    "reveals": [
+      "tradeoffs"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, I need to pick a date library for Quorum. right now we're doing everything with raw Date objects and it's getting gross. can you look at what we have and compare the main options?"
+      },
+      {
+        "role": "assistant",
+        "text": "Sure. I'll check how dates are used across the codebase first so the comparison is grounded in what Quorum actually needs. Are you mostly parsing and formatting, or doing timezone math and recurring schedules too?"
+      },
+      {
+        "role": "user",
+        "text": "mostly formatting for the UI and some diffing between timestamps for the activity feed. occasionally timezone stuff when people in different countries join the same session. nothing fancy"
+      },
+      {
+        "role": "assistant",
+        "text": "That's useful. Timezone handling is the part where raw Date breaks down, so it matters most. I'll compare date-fns, Luxon, Day.js, and the native Temporal API, which is shipping in more runtimes now."
+      },
+      {
+        "role": "user",
+        "text": "ok but before you pick anything, I want a short trade-off table I can look at. bundle size, timezone support, API feel, and maintenance status. I don't want to just get a recommendation with no comparison"
+      },
+      {
+        "role": "assistant",
+        "text": "Here's a quick table:\n\n| Library | Bundle (min+gz, approx) | Timezone support | API feel | Maintenance |\n|---|---|---|---|---|\n| date-fns | ~13 KB for common imports, tree-shakable | Via date-fns-tz add-on | Functional, immutable, verbose | Active |\n| Luxon | ~70 KB full | Built-in via IANA zones | Chainable, clear | Active, slower cadence |\n| Day.js | ~2 KB core | Needs timezone plugin | Moment-like, familiar | Active, small team |\n| Temporal | Polyfill ~40 KB+ (native in newer runtimes) | Built-in, best model | Clean, explicit types | Standardized, polyfill still maturing |\n\nBundle numbers are rough, so check them with bundlephobia before you commit. For Quorum's needs, Luxon or Temporal (via polyfill) look strongest on timezones, and date-fns is the safest bet if you want small and boring."
+      },
+      {
+        "role": "user",
+        "text": "this is helpful. Luxon's timezone handling sounds like what we need for the cross-country sessions. but I'm worried about bundle size since the app loads on mobile. can you check how much we'd actually add if we pulled in just the parts we use?"
+      },
+      {
+        "role": "assistant",
+        "text": "Good instinct on mobile. Luxon doesn't tree-shake well, so the full ~70 KB is roughly what you pay. date-fns is the better fit if size is the constraint, and you'd add date-fns-tz only for the session-timezone code paths. I can measure the actual delta with a quick build of the current bundle plus each candidate if you want."
+      },
+      {
+        "role": "user",
+        "text": "yeah do that. and keep the table in the summary so I can compare again after"
+      },
+      {
+        "role": "assistant",
+        "text": "Will do. I'll measure the production bundle before and after adding each candidate, then put the final trade-off table at the end so you can compare the numbers directly."
+      },
+      {
+        "role": "user",
+        "text": "cool, also don't add anything to package.json yet. I just want numbers"
+      },
+      {
+        "role": "assistant",
+        "text": "Understood. I'll measure in a scratch directory outside the repo so package.json and the lockfile stay untouched. I'll report the deltas and the table when it's done."
+      }
+    ]
+  }
+]
