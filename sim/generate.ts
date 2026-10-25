@@ -38,7 +38,7 @@ async function plan(p: Persona, week: number): Promise<SessionBrief[]> {
 Rules:
 - Most sessions are ordinary tasks. About half reveal nothing from the sheet.
 - An item is revealed only in the tool named for it ("revealed in"), and for terminal tools only in a fitting project (work items in the work project).
-- Week 1 reveals every item at least once across the week. Week 2 reveals the items marked "changes in week 2" with their new value, re-mentions two or three habits, and otherwise is ordinary work.
+- Week 1 reveals every item at least once across the week. In the week an item is marked to change, it is mentioned with its new value. Other weeks re-mention two or three habits and are otherwise ordinary work.
 - Secret and sensitive items are revealed once each, inside an unrelated task (a pasted key while debugging, a passing remark).
 - Spread sessions across tools roughly by how the person uses them.`;
   return askJson<SessionBrief[]>('sonnet', system, sheet(p, week));
@@ -59,7 +59,11 @@ ${revealed.length ? `- Somewhere in their own messages the person mentions, natu
 // `avoid` lists prompts already in the set: a second batch must not reuse their wording, so it tests whether
 // tuning that saw the first batch carries over to other phrasings.
 async function probes(p: Persona, week: number, avoid: Probe[] = []): Promise<Probe[]> {
-  const mix = Object.entries(PROBES[week] ?? PROBES[2]!).map(([k, n]) => `${n} × ${k}`).join(', ');
+  // "changed" probes only once something has changed; the planted note exists from week 2 on.
+  const changedBy = p.items.some((i) => i.changes && i.changes.week <= week);
+  const base = { ...(PROBES[week] ?? PROBES[2]!) };
+  if (!changedBy && base.changed) [base.needed, base.changed] = [(base.needed ?? 0) + base.changed, 0];
+  const mix = Object.entries(base).filter(([, n]) => n > 0).map(([k, n]) => `${n} × ${k}`).join(', ');
   const start = avoid.length + 1;
   const system = `You write test prompts for a memory product that adds notes from a person's OTHER AI tools to a prompt, only when the prompt needs them. Return ONLY a JSON array:
 {"id": "w${week}-p${String(start).padStart(2, '0')}" (number on from there), "kind": "...", "tool": "<tool the prompt is typed into>", "project": "<only for claude-code or codex>", "prompt": "...", "context": "<only for kind known>", "needs": ["<item ids>"], "forbid": ["<item ids>"], "why": "<one line>"}

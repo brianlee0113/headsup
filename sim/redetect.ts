@@ -1,7 +1,7 @@
 // Re-runs only the probes of an earlier run against its saved memory snapshots, into a new run id.
 // For tuning detect without paying to rebuild memory: same notes, new decisions.
 //   pnpm tsx sim/redetect.ts <from-run> <to-run> <persona>
-import { cpSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { loadConfig } from '../src/config.js';
@@ -23,7 +23,7 @@ for (const f of readdirSync(out)) if (/^audit-w\d\.json$|^useful-/.test(f)) rmSy
 rmSync(join(out, 'cache'), { recursive: true, force: true });
 const config = loadConfig(join(out, 'home'));
 const TERMINAL = new Set(['claude-code', 'codex']);
-for (const week of [1, 2]) {
+for (const week of [1, 2, 3, 4, 5, 6, 7, 8].filter((w) => existsSync(join(out, `notes-w${w}.json`)))) {
   const notes = JSON.parse(readFileSync(join(out, `notes-w${week}.json`), 'utf8')) as Note[];
   // The probe list comes from sim/data, so probes added since the original run are included.
   const probes = JSON.parse(readFileSync(join(dataDir(id!, week), 'probes.json'), 'utf8')) as Probe[];
