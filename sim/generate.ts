@@ -49,8 +49,9 @@ async function session(p: Persona, week: number, b: SessionBrief): Promise<Sessi
 - 6 to 12 turns, starting with the user. The person writes in ${p.language === 'ko' ? 'Korean' : 'English'}, casually, the way people really type to an AI.
 - The conversation is about: ${b.topic}
 - The assistant replies helpfully and briefly (2-6 sentences, or short code where the task needs it).
+- Task content can be made up, but anything the person says about THEMSELVES (jobs, projects, studies, numbers, results, habits) must come from the list below or be absent. Never invent other roles, projects, past results or figures about the person.
 ${revealed.length ? `- Somewhere in their own messages the person mentions, naturally and without listing them:\n${revealed.map((i) => `  - ${itemText(i, week)}${i.secret ? ` (they paste the literal value ${i.secret})` : ''}`).join('\n')}` : '- The person does not mention anything personal beyond the task.'}`;
-  const turns = await askJson<Session['turns']>('haiku', system, `Person: ${p.who}`);
+  const turns = await askJson<Session['turns']>('sonnet', system, `Person: ${p.who}`);
   return { ...b, turns: turns.filter((t) => (t.role === 'user' || t.role === 'assistant') && typeof t.text === 'string') };
 }
 

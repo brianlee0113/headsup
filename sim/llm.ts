@@ -49,11 +49,15 @@ export function extractJson(text: string): unknown {
   throw new Error(`unparseable JSON in reply: ${text.slice(0, 120)}`);
 }
 
-export async function askJson<T>(model: Model, system: string, user: string, tries = 3): Promise<T> {
+// Writing a coding session sometimes makes the model act out tool calls; saying it has none, and
+// retrying, keeps the reply to the JSON asked for.
+const JSON_ONLY = '\n\nYou have no tools. Reply with the JSON only, nothing before or after it.';
+
+export async function askJson<T>(model: Model, system: string, user: string, tries = 5): Promise<T> {
   let last: unknown;
   for (let i = 0; i < tries; i++) {
     try {
-      return extractJson(await once(model, system, user)) as T;
+      return extractJson(await once(model, system + JSON_ONLY, user)) as T;
     } catch (e) {
       last = e;
     }

@@ -75,7 +75,7 @@ const pct = (x: number) => (Number.isNaN(x) ? '—' : `${Math.round(x * 100)}%`)
 const median = (xs: number[]) => (xs.length ? [...xs].sort((x, y) => x - y)[Math.floor(xs.length / 2)]! : 0);
 const p95 = (xs: number[]) => (xs.length ? [...xs].sort((x, y) => x - y)[Math.min(xs.length - 1, Math.floor(xs.length * 0.95))]! : 0);
 
-async function scorePersona(run: string, id: string) {
+async function scorePersona(run: string, id: string, fast = false) {
   const p = loadPersona(id);
   const out = (f: string) => join(outDir(run, id), f);
   const planted = new Set(JSON.parse(readFileSync(out('planted.json'), 'utf8')) as string[]);
@@ -84,11 +84,14 @@ async function scorePersona(run: string, id: string) {
   for (const week of weeks) {
     const notes = (JSON.parse(readFileSync(out(`notes-w${week}.json`), 'utf8')) as Note[]).filter((n) => !planted.has(n.id));
     const results = JSON.parse(readFileSync(out(`probes-w${week}.json`), 'utf8')) as ProbeResult[];
-    const a = await audit(p, week, notes);
+    // Fast mode reuses the audit saved with the memory (same notes) and skips the judge calls, so tuning
+    // detect costs nothing; usefulness then counts only notes that carry a needed item.
+    const a = fast && existsSync(out(`audit-w${week}.json`)) ? (JSON.parse(readFileSync(out(`audit-w${week}.json`), 'utf8')) as Audit) : await audit(p, week, notes);
+    writeFileSync(out(`audit-w${week}.json`), JSON.stringify(a, null, 2));
     const stepped = results.filter((r) => r.inject.length || r.ask.length || ['needed', 'changed'].includes(r.probe.kind));
-    const u = stepped.length ? await usefulness(p, week, stepped) : { probes: [] };
+    const u = stepped.length && !fast ? await usefulness(p, week, stepped) : { probes: [] };
     const liftable = results.filter((r) => r.inject.length || ['needed', 'changed'].includes(r.probe.kind));
-    const lifts = await pool(liftable, 3, (r) => lift(p, week, r));
+    const lifts = fast ? [] : await pool(liftable, 3, (r) => lift(p, week, r));
     perWeek.push({ week, notes, a, results, u, lifts });
   }
 
@@ -113,7 +116,16 @@ async function scorePersona(run: string, id: string) {
   });
 
   const all = perWeek.flatMap((w) => w.results);
-  const useful = new Map(perWeek.flatMap((w) => w.u.probes.map((x) => [x.id, x] as const)));
+  const judged = new Map(perWeek.flatMap((w) => w.u.probes.map((x) => [x.id, x] as const)));
+  // Whether the needed facts arrived is read from the audit's note → item mapping (accurate notes only),
+  // not from a second judge call: same decisions must score the same.
+  const mapping = new Map(perWeek.flatMap((w) => w.a.notes.filter((n) => n.verdict === 'accurate').map((n) => [`${w.week}:${n.id}`, n.items] as const)));
+  const itemsAdded = (r: ProbeResult) => new Set([...r.inject, ...r.ask].flatMap((n) => mapping.get(`${r.week}:${n.id}`) ?? []));
+  const useful = new Map(all.map((r) => {
+    const added = [...r.inject, ...r.ask];
+    const needed = added.filter((n) => (mapping.get(`${r.week}:${n.id}`) ?? []).some((iid) => r.probe.needs.includes(iid))).map((n) => n.id);
+    return [r.probe.id, { useful: [...new Set([...needed, ...(judged.get(r.probe.id)?.useful ?? [])])], coversNeeds: r.probe.needs.length > 0 && r.probe.needs.every((iid) => itemsAdded(r).has(iid)) }] as const;
+  }));
   const steppedIn = (r: ProbeResult) => r.inject.length > 0 || r.ask.length > 0;
   const quiet = all.filter((r) => ['general', 'known'].includes(r.probe.kind));
   const needed = all.filter((r) => ['needed', 'changed'].includes(r.probe.kind));
@@ -192,9 +204,10 @@ function report(run: string, scores: Awaited<ReturnType<typeof scorePersona>>[])
 }
 
 async function main(): Promise<void> {
-  const [run, ...ids] = process.argv.slice(2);
-  if (!run || !ids.length) throw new Error('usage: score.ts <run-id> <persona> [<persona> …]');
-  const scores = await pool(ids, 2, (id) => scorePersona(run, id));
+  const fast = process.argv.includes('--fast');
+  const [run, ...ids] = process.argv.slice(2).filter((a) => a !== '--fast');
+  if (!run || !ids.length) throw new Error('usage: score.ts <run-id> <persona> [<persona> …] [--fast]');
+  const scores = await pool(ids, 2, (id) => scorePersona(run, id, fast));
   const dir = join(HERE, 'out', run);
   writeFileSync(join(dir, 'scores.json'), JSON.stringify(scores, null, 2));
   writeFileSync(join(dir, 'report.md'), report(run, scores));
