@@ -14,6 +14,14 @@
     "local-first"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianlee0113/headsup.git"
+  },
+  "homepage": "https://github.com/brianlee0113/headsup#readme",
+  "bugs": {
+    "url": "https://github.com/brianlee0113/headsup/issues"
+  },
   "type": "module",
   "bin": {
     "headsup": "dist/cli.js"

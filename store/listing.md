@@ -40,7 +40,7 @@ Copy for the developer dashboard. Field names follow the dashboard's tabs.
 - Screenshots 1280×800: `screenshot-1-composer.png`, `screenshot-2-popup.png`, `screenshot-3-before-after.png`
 - Small promo tile 440×280: `promo-small.png`
 
-**Official URL / homepage:** https://github.com/brianlee0113/headsup (once the repo is public)
+**Official URL / homepage:** https://github.com/brianlee0113/headsup
 
 ## Privacy practices
 
@@ -67,7 +67,7 @@ Copy for the developer dashboard. Field names follow the dashboard's tabs.
 
 Certify all three: not sold to third parties; not used or transferred for purposes unrelated to the single purpose; not used to determine creditworthiness or for lending.
 
-**Privacy policy URL:** the published copy of `store/privacy.md` (see `store/README.md`).
+**Privacy policy URL:** https://github.com/brianlee0113/headsup/blob/main/store/privacy.md
 
 ## Test instructions for the reviewer
 

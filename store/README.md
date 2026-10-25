@@ -4,8 +4,8 @@ Everything the store asks for is in this folder: listing copy and privacy answer
 
 ## Before the first submission
 
-1. **The headsup app must be installable by someone else.** The extension only shows "not connected" without it, and a reviewer can't use a private repo. Publish `headsup-ai` 0.x to npm (or make the repo public) first.
-2. **Host the privacy policy at a public URL.** Any static page with the contents of `privacy.md` works.
+1. **The headsup app must be installable by someone else.** Done: `headsup-ai` is on npm (0.1.0, 2026-10-24).
+2. **Privacy policy at a public URL.** Done: https://github.com/brianlee0113/headsup/blob/main/store/privacy.md
 3. **Developer account.** Register at https://chrome.google.com/webstore/devconsole. There's a one-time registration fee, and the account needs 2-step verification.
 
 ## Uploading
