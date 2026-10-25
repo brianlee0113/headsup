@@ -6,7 +6,23 @@ import { CAPTURING_ENV } from '../src/capture.js';
 export type Model = 'haiku' | 'sonnet';
 export const usage = { calls: 0, usd: 0 };
 
+// Every call runs on the user's own Claude subscription, so each process stops at a ceiling rather than
+// quietly using up the plan: SIM_MAX_CALLS calls or SIM_MAX_USD at API-equivalent prices, whichever first.
+const MAX_CALLS = Number(process.env.SIM_MAX_CALLS ?? 600);
+const MAX_USD = Number(process.env.SIM_MAX_USD ?? 10);
+export class BudgetError extends Error {}
+export function record(usd: number): void {
+  usage.calls++;
+  usage.usd += usd;
+}
+export function checkBudget(): void {
+  if (usage.calls >= MAX_CALLS || usage.usd >= MAX_USD) {
+    throw new BudgetError(`budget reached: ${usage.calls} calls, $${usage.usd.toFixed(2)} (limits ${MAX_CALLS} calls, $${MAX_USD}); raise SIM_MAX_CALLS / SIM_MAX_USD to go on`);
+  }
+}
+
 function once(model: Model, system: string, user: string): Promise<string> {
+  checkBudget();
   return new Promise((resolve, reject) => {
     const child = spawn('claude', ['-p', '--model', model, '--output-format', 'json', '--no-session-persistence', '--tools', '', '--setting-sources', '', '--system-prompt', system], {
       env: { ...process.env, [CAPTURING_ENV]: '1' },
@@ -21,8 +37,7 @@ function once(model: Model, system: string, user: string): Promise<string> {
       if (code !== 0) return reject(new Error(`claude exited ${code}: ${err.trim().slice(0, 200)}`));
       try {
         const parsed = JSON.parse(out) as { result?: string; total_cost_usd?: number };
-        usage.calls++;
-        usage.usd += parsed.total_cost_usd ?? 0;
+        record(parsed.total_cost_usd ?? 0);
         resolve(parsed.result ?? '');
       } catch {
         resolve(out);
@@ -59,6 +74,7 @@ export async function askJson<T>(model: Model, system: string, user: string, tri
     try {
       return extractJson(await once(model, system + JSON_ONLY, user)) as T;
     } catch (e) {
+      if (e instanceof BudgetError) throw e;
       last = e;
     }
   }

@@ -15,6 +15,7 @@ import { Store } from '../src/store.js';
 import { handleSync, runSync } from '../src/sync.js';
 import { tidy, tidyDue } from '../src/tidy.js';
 import { dataDir, loadPersona } from './generate.js';
+import { checkBudget, record, usage } from './llm.js';
 import type { Persona, Probe, Session } from './types.js';
 
 const HERE = new URL('.', import.meta.url).pathname;
@@ -71,7 +72,11 @@ async function main(): Promise<void> {
   const config: Config = { ...DEFAULT_CONFIG, spaces: p.config.spaces, usage: p.config.usage };
   saveConfig(config, home);
   const store = new Store(home);
-  const summarize = claudeSummarizer();
+  const summarizeOnce = claudeSummarizer('haiku', record);
+  const summarize: typeof summarizeOnce = (prompt) => {
+    checkBudget();
+    return summarizeOnce(prompt);
+  };
   const log = (s: string) => console.log(`[${id}] ${s}`);
   const planted: string[] = [];
 
@@ -120,6 +125,7 @@ async function main(): Promise<void> {
     log(`w${week}: ${store.list().length} notes, stepped in on ${results.filter((r) => r.inject.length || r.ask.length).length}/${results.length} probes`);
   }
   writeFileSync(join(out, 'planted.json'), JSON.stringify(planted));
+  log(`${usage.calls} calls, $${usage.usd.toFixed(2)} at API prices`);
 }
 
 if (process.argv[1]?.endsWith("run.ts")) await main();
