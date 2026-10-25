@@ -54,6 +54,8 @@ export function browserHostDirs(home = homedir(), os = platform()): string[] {
 function launcher(): string {
   if (spawnSync('sh', ['-c', 'command -v headsup'], { encoding: 'utf8' }).stdout.trim()) return 'exec headsup native-host "$@"';
   const self = process.argv[1] ? realpathSync(process.argv[1]) : '';
+  // npx's cache can be cleared at any time, so a run from npx goes through npx again.
+  if (!self || self.includes('/_npx/')) return 'exec npx -y headsup-ai native-host "$@"';
   return `exec "${process.execPath}" "${self}" native-host "$@"`;
 }
 

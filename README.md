@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/brand/icon.svg" width="72" height="72" alt="headsup">
+  <img src="https://unpkg.com/headsup-ai/assets/brand/icon.svg" width="72" height="72" alt="headsup">
 </p>
 
 <h1 align="center">headsup</h1>
@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/status-pre--release-FF3D8B" alt="status: pre-release">
+  <a href="https://www.npmjs.com/package/headsup-ai"><img src="https://img.shields.io/npm/v/headsup-ai?color=FF3D8B" alt="npm"></a>
   <img src="https://img.shields.io/badge/license-MIT-0A0A0A" alt="license: MIT">
   <img src="https://img.shields.io/badge/runtime%20deps-0-0A0A0A" alt="zero runtime dependencies">
 </p>
@@ -79,16 +79,14 @@ You write in ChatGPT and build in Claude Code. Ask Claude Code for release notes
 
 ## Quick start
 
-> **Pre-release.** headsup isn't on npm or the Chrome Web Store yet. Once it is, setup is one line: `npx headsup-ai setup`. Until then, run it from source.
-
-You need Node 22+, pnpm and [Claude Code](https://claude.com/claude-code). headsup summarizes chats through your own `claude` login, so there's no API key to paste.
+You need Node 22+ on macOS or Linux, and [Claude Code](https://claude.com/claude-code). headsup summarizes chats through your own `claude` login, so there's no API key to paste.
 
 ```sh
-git clone https://github.com/brianlee0113/headsup.git
-cd headsup
-pnpm install && pnpm build && npm link   # puts `headsup` on your PATH
+npm install -g headsup-ai
 headsup setup
 ```
+
+Just trying it? `npx headsup-ai setup` works too, but then every prompt starts headsup through npx, which is slower. Install it once you decide to keep it.
 
 `headsup setup` asks five things:
 
@@ -98,10 +96,10 @@ headsup setup
 4. **Sharing preset.** Balanced unless you change it.
 5. **Bring existing memory** (optional). Import your ChatGPT data export once. After that, the extension keeps up on its own.
 
-**Chrome extension (chatgpt.com, claude.ai):**
+**Chrome extension (chatgpt.com, claude.ai):** on its way to the Chrome Web Store. Until then, build it from a checkout of this repo:
 
 ```sh
-pnpm build:ext
+pnpm install && pnpm build:ext
 headsup connect-browser
 ```
 
@@ -211,7 +209,8 @@ The code is TypeScript with no runtime dependencies. Search is BM25 plus a small
 - [x] Account sync for app chats, "About me" block
 - [x] Review TUI, ChatGPT import, background tidy, share card
 - [ ] Tune when to step in, using simulated conversations
-- [ ] npm and Chrome Web Store release
+- [x] npm release
+- [ ] Chrome Web Store release
 - [ ] Codex CLI and Gemini CLI hooks
 - [ ] gemini.google.com
 - [ ] Thin MCP server for Cursor, Claude Desktop and Windsurf
