@@ -5,7 +5,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { clip, parseNotes, saveNotes, type Prompt, type Summarize } from '../capture.js';
+import { clip, parseNotes, reviewNotes, saveNotes, type Prompt, type Summarize } from '../capture.js';
 import type { Note } from '../note.js';
 import type { Store } from '../store.js';
 
@@ -179,7 +179,7 @@ export async function runImport(
         const existing = [...store.list().filter((n) => n.space === opts.space), ...saved];
         const reply = await opts.summarize(buildImportPrompt(batch, existing));
         if (!reply.includes('[')) throw new Error('no JSON in reply');
-        const r = saveNotes(parseNotes(reply, NOTES_PER_BATCH), existing, store, { space: opts.space, source: 'chatgpt' });
+        const r = saveNotes(await reviewNotes(parseNotes(reply, NOTES_PER_BATCH), existing, opts.summarize), existing, store, { space: opts.space, source: 'chatgpt' });
         saved.push(...r.saved);
         skipped += r.skipped;
         for (const c of batch) done.add(c.id);

@@ -6,7 +6,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseNotes, saveNotes, type Summarize } from './capture.js';
+import { parseNotes, reviewNotes, saveNotes, type Summarize } from './capture.js';
 import type { Config } from './config.js';
 import { buildImportPrompt, parseChatGPTChat, planImport, type Chat, type ExportChat } from './import/chatgpt.js';
 import type { Store } from './store.js';
@@ -229,7 +229,7 @@ async function runPass(store: Store, config: Config, summarize: Summarize, concu
           const existing = store.list().filter((n) => n.space === config.defaultSpace);
           const reply = await summarize(buildImportPrompt(batch, existing, label));
           if (!reply.includes('[')) throw new Error('no JSON in reply');
-          const r = saveNotes(parseNotes(reply, NOTES_PER_BATCH), existing, store, { space: config.defaultSpace, source: agent });
+          const r = saveNotes(await reviewNotes(parseNotes(reply, NOTES_PER_BATCH), existing, summarize), existing, store, { space: config.defaultSpace, source: agent });
           result.saved += r.saved.length;
           for (const c of batch) finish(worth.find((w) => w.chat.id === c.id)!);
           store.log({ event: 'synced', agent, chats: batch.map((c) => c.id), saved: r.saved.map((n) => n.id), skipped: r.skipped });

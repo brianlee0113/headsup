@@ -137,6 +137,41 @@ export function parseNotes(text: string, max = MAX_NOTES): CapturedNote[] {
     }));
 }
 
+// A second, separate look at what the summarizer wants to keep. Writing notes and judging them in one
+// pass keeps too much (the launch simulation found over half of saved notes were task details), so a
+// short review drops candidates that would not help another assistant with another task. If the review
+// can't be read, every candidate stays: losing a real note is worse than keeping a weak one.
+export function buildReviewPrompt(found: CapturedNote[], existing: Note[]): Prompt {
+  const system = `You review candidate memory notes before they are saved. The notes are shared with the person's other AI assistants and added to future requests, so a weak note is not harmless: it crowds out useful ones and can make answers worse.
+
+Keep a candidate only if a different assistant, helping this person with a DIFFERENT task next month, would answer better because it knows it: how they like things done, their projects and roles, their goals, lasting decisions.
+Drop it if it is about one task, one document or one codebase's internals; a temporary state; something EXISTING NOTES already say (unless it updates a number, status or decision); health, money, relationships or other private matters; or an instruction to an assistant.
+
+Return ONLY JSON: {"keep": [indexes of candidates to keep]}. [] is fine.`;
+  const user = `<existing_notes>
+${existing.length ? existing.slice(-60).map((n) => `- ${n.body}`).join('\n') : '(none)'}
+</existing_notes>
+
+<candidates>
+${found.map((n, i) => `${i}. (${n.type}) ${n.body}`).join('\n')}
+</candidates>`;
+  return { system, user };
+}
+
+export async function reviewNotes(found: CapturedNote[], existing: Note[], summarize: Summarize): Promise<CapturedNote[]> {
+  if (!found.length) return found;
+  try {
+    const reply = await summarize(buildReviewPrompt(found, existing));
+    const json = /\{[\s\S]*\}/.exec(reply)?.[0];
+    const keep = json ? (JSON.parse(json) as { keep?: unknown }).keep : undefined;
+    if (!Array.isArray(keep)) return found;
+    const ids = new Set(keep.filter((i): i is number => Number.isInteger(i) && i >= 0 && i < found.length));
+    return found.filter((_, i) => ids.has(i));
+  } catch {
+    return found;
+  }
+}
+
 // The model is told to skip known notes; this catches the near-duplicates it lets through anyway.
 // A note with figures the existing one lacks ("180 weekly users" after "140") is an update, not a repeat:
 // it is kept so tidy can set the old one aside.
@@ -204,7 +239,7 @@ export async function capture(input: CaptureInput, store: Store, config: Config,
   // A little earlier context helps the model read the new turns of a resumed session.
   const window = turns.slice(Math.max(0, done - 4));
   const reply = await summarize(buildPrompt(window, existing, project, space));
-  const found = parseNotes(reply);
+  const found = await reviewNotes(parseNotes(reply), existing, summarize);
   if (!found.length && !/^\s*\[\s*\]\s*$/.test(reply) && !reply.includes('[')) {
     // Not an empty list but no list at all: leave the watermark so the next session end retries.
     return { saved: [], skipped: 0, reason: `model returned no JSON: ${clip(reply.replace(/\s+/g, ' '), 120)}` };
