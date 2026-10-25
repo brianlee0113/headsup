@@ -64,9 +64,13 @@ export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Stor
   return message || context ? output(message, context) : null;
 }
 
+// Claude Code shows a hook's message dimmed; the mark in color keeps it from blending in. 256-color
+// pink for terminals without true color; NO_COLOR turns it off.
+const MARK = process.env.NO_COLOR ? '⌃ heads-up' : '\x1b[1;38;5;205m⌃ heads-up\x1b[0m';
+
 function output(message: string, context: string): HookOutput {
   return {
-    ...(message ? { systemMessage: `⌃ heads-up · ${message}` } : {}),
+    ...(message ? { systemMessage: `${MARK} · ${message}` } : {}),
     ...(context ? { hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: context } } : {}),
   };
 }

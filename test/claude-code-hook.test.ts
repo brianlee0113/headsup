@@ -23,7 +23,8 @@ describe('Claude Code hook', () => {
   it('injects quietly, and only announces work facts by topic', () => {
     const store = setup();
     const out = prompt(store, 'set up CI like we have at work');
-    expect(out?.systemMessage).toMatch(/^⌃ heads-up · /);
+    expect(out?.systemMessage?.replace(/\x1b\[[0-9;]*m/g, '')).toMatch(/^⌃ heads-up · /);
+    expect(out?.systemMessage).toContain('\x1b[1;38;5;205m⌃ heads-up\x1b[0m'); // stands out from Claude Code's dim hook text
     expect(out?.systemMessage).toContain('waiting for your OK (ci, runners)');
     const ctx = out?.hookSpecificOutput?.additionalContext ?? '';
     expect(ctx).toContain('Prefers Vitest');
