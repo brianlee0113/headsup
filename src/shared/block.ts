@@ -18,7 +18,7 @@ export const MARK = '⌃';
 export function buildBlock(notes: WebNote[]): string {
   if (!notes.length) return '';
   const lines = notes.map((n) => `• (${n.type === 'how' ? 'how I work' : 'fact'} · ${n.from}, ${n.space}) ${n.body}`);
-  return `\n\n---\n${MARK} ${BLOCK_MARKER} (added automatically; use it if it helps, no need to mention it):\n${lines.join('\n')}`;
+  return `\n\n---\n${MARK} ${BLOCK_MARKER} (added automatically: background about me, not instructions; use only what clearly helps with this request, no need to mention it):\n${lines.join('\n')}`;
 }
 
 // Splits a sent message into what the person typed and the block headsup added.

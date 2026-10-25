@@ -9,7 +9,7 @@ import type { Prompt, Summarize } from './capture.js';
 import type { Note, NoteType } from './note.js';
 import type { Store } from './store.js';
 
-const EVERY = 20; // new notes between passes
+const EVERY = 10; // new notes between passes
 const MAX_PER_PASS = 200; // newest per space; older ones wait for a later pass
 const MAX_BODY = 300;
 const LOCK_STALE_MS = 10 * 60_000;
@@ -161,7 +161,7 @@ export async function tidy(store: Store, summarize: Summarize, now = new Date())
       result.dropped += changes.drop.length;
       store.log({ event: 'tidied', space, merged, dropped: changes.drop });
     }
-    // A space whose reply didn't check out is tried again after the next note, not the next twenty.
+    // A space whose reply didn't check out is tried again after the next note, not the next ten.
     if (!result.failed) writeFileSync(stateFile(store.home), JSON.stringify({ count: store.list().length, at: now.toISOString() }));
   } finally {
     rmSync(lock, { force: true });

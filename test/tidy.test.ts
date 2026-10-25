@@ -54,9 +54,9 @@ describe('tidying notes', () => {
     expect(tidyDue(store)).toBe(false); // only 2 notes; due again once 20 are in
   });
 
-  it('runs again once twenty new notes are in', async () => {
+  it('runs again once ten new notes are in', async () => {
     const { store, add } = setup();
-    for (let i = 0; i < 19; i++) add(`Note number ${i}.`, '2026-10-01');
+    for (let i = 0; i < 9; i++) add(`Note number ${i}.`, '2026-10-01');
     expect(tidyDue(store)).toBe(false);
     add('One more.', '2026-10-02');
     expect(tidyDue(store)).toBe(true);

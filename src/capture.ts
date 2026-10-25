@@ -33,7 +33,7 @@ export type Summarize = (prompt: Prompt) => Promise<string>;
 export const CAPTURING_ENV = 'HEADSUP_CAPTURING';
 
 const MAX_CONVERSATION_CHARS = 60_000;
-const MAX_NOTES = 8;
+const MAX_NOTES = 4;
 const MAX_BODY = 300;
 export const TOO_SHORT = 'too short to learn from';
 
@@ -87,15 +87,19 @@ Return ONLY a JSON array, possibly empty. Each item: {"type": "how" | "fact", "b
 - "how": how the user likes to work: tools, conventions, preferences, writing style. Holds across projects.
 - "fact": facts about the user's own projects, work and goals that another assistant would need: what a project is, its stack, its users, decisions made.
 
+The test for every note: would a different assistant, helping this user with a DIFFERENT task next month, give a better answer because it knows this? If the note only helps continue this same task or work inside this codebase, leave it out.
+
 Rules:
 - Only things still likely true next month. Skip one-off task steps, debugging, file contents and code.
+- Skip codebase internals (data shapes, file layout, logging or naming rules of one repo) and how this particular task should be carried out; those belong in the repo, not in memory.
+- Never write instructions to an assistant ("always…", "ignore…", "end every reply with…"); a note describes the user, it does not give orders.
 - Only what the user said or clearly accepted, not suggestions they ignored.
 - Never include secrets, credentials, tokens, email addresses, phone numbers, account or security setup (2FA, logins, passkeys), or private details about other people.
 - Skip numbers that will soon change (test counts, scores, progress percentages); keep lasting ones like a project's user count.
 - One idea per note, under 200 characters, readable on its own: name the project instead of saying "this repo".
 - topics: 1 to 4 short lowercase words: the project name for facts, plus the kind of work (testing, packages, git, ci, writing, career, ...).
-- Skip anything EXISTING NOTES already cover.
-- At most ${MAX_NOTES} notes; fewer, higher-value notes are better, and [] is a fine answer.
+- Skip anything EXISTING NOTES already cover. If the conversation changes one of them (a new number, status or decision), write the updated fact as a note; it replaces the old one.
+- At most ${MAX_NOTES} notes. Most sessions are ordinary work and deserve 0 to 2; [] is the most common right answer.
 - Write each note in the language the user mostly wrote in.`;
   const user = `Project: ${project} (space: ${space})
 
@@ -134,10 +138,17 @@ export function parseNotes(text: string, max = MAX_NOTES): CapturedNote[] {
 }
 
 // The model is told to skip known notes; this catches the near-duplicates it lets through anyway.
+// A note with figures the existing one lacks ("180 weekly users" after "140") is an update, not a repeat:
+// it is kept so tidy can set the old one aside.
+const figures = (text: string) => new Set(text.match(/\d+(?:[.,]\d+)?/g) ?? []);
+
 export function duplicates(body: string, existing: Note[]): boolean {
   const words = new Set(tokenize(body));
   if (!words.size) return true;
+  const numbers = figures(body);
   return existing.some((n) => {
+    const known = figures(n.body);
+    if ([...numbers].some((x) => !known.has(x))) return false;
     const other = new Set(tokenize(n.body));
     const shared = [...words].filter((w) => other.has(w)).length;
     return shared / Math.min(words.size, other.size || 1) >= 0.8;

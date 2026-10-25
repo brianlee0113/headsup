@@ -115,3 +115,12 @@ describe('notes from the same tool', () => {
     expect(d.inject.map((n) => n.id)).toEqual(['quorum']);
   });
 });
+
+describe('updates', () => {
+  it('keeps a note whose figures changed, so the old one can be replaced', async () => {
+    const { duplicates } = await import('../src/capture.js');
+    const old = [{ id: 'a', type: 'fact', space: 'personal', source: 'claude-code', topics: [], created: '', body: 'Quorum has 140 weekly users across 9 clubs' }] as never;
+    expect(duplicates('Quorum has 180 weekly users across 12 clubs', old)).toBe(false);
+    expect(duplicates('Quorum has 140 weekly users across 9 clubs now', old)).toBe(true);
+  });
+});
