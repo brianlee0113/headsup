@@ -29,7 +29,7 @@ describe('retrieval quality', () => {
   });
 
   // Known noise for the pre-launch simulation; this starts failing once the gates are tuned — move the cases into samKorean then.
-  it.fails('stays silent on prompts that only share a testing sense (pending)', () => {
+  it('keeps another project\'s notes out of prompts that only share a testing sense', () => {
     expect(runEval(samPending, samPendingNotes).noise).toBe(0);
   });
 });

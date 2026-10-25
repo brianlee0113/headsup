@@ -95,7 +95,28 @@ function isKnown(note: Note, known: Set<string>): boolean {
 const MAX_NOTES = 5;
 const RELATIVE_CUTOFF = 0.25; // of the best eligible score
 
-function relevantEnough(h: Hit, hasSignal: boolean): boolean {
+// A note that belongs to another project stays there unless the request is about that project or about
+// the person (in a chat outside any project; inside a project, the work is the project). Sharing a stack is not enough: in real use, one project's deployment facts kept riding
+// into every other project that also mentions Vercel or Supabase. A note belongs to a project when it was
+// a fact learned there, or when its text names the project.
+function inScope(note: Note, at: { prompt: string; project?: string; notes: Note[]; aboutSelf: boolean }): boolean {
+  const projects = new Set(at.notes.map((n) => n.project).filter((p): p is string => !!p && !GENERIC_FOLDERS.has(p.toLowerCase())));
+  const body = note.body.toLowerCase();
+  const owners = new Set([
+    ...(note.type === 'fact' && note.project && !GENERIC_FOLDERS.has(note.project.toLowerCase()) ? [note.project] : []),
+    ...[...projects].filter((p) => body.includes(p.toLowerCase()) || body.includes(p.toLowerCase().replace(/[-_]/g, ' '))),
+  ]);
+  if (at.project) owners.delete(at.project);
+  if (!owners.size || at.aboutSelf) return true;
+  const prompt = at.prompt.toLowerCase();
+  return [...owners].some((p) => prompt.includes(p.toLowerCase()) || prompt.includes(p.toLowerCase().replace(/[-_]/g, ' ')));
+}
+
+const GENERIC_FOLDERS = new Set(['developer', 'projects', 'code', 'src', 'work', 'home']);
+
+function relevantEnough(h: Hit, hasSignal: boolean, foreign = false): boolean {
+  const words = h.matched - h.concepts;
+  if (h.note.type === 'how' && foreign && !hasSignal) return (h.concepts >= 1 && words >= 1) || words >= 2;
   if (hasSignal || h.note.type === 'how') return h.concepts >= 1 || h.matched >= 2;
   return h.matched - h.concepts >= 3;
 }
@@ -119,7 +140,10 @@ export function detect(input: DetectInput): Decision {
     .sort((a, b) => b.score - a.score);
 
   const hasSignal = signals.references.length > 0 || !!signals.usageMismatch;
-  const eligible = hits.filter((h) => relevantEnough(h, hasSignal));
+  // Inside a project, another project's how-you-work notes need a shared word, not just a shared sense.
+  // Notes captured at the top of the projects folder belong to no project.
+  const foreign = (n: Note) => !!project && !!n.project && n.project !== project && !GENERIC_FOLDERS.has(n.project.toLowerCase());
+  const eligible = hits.filter((h) => relevantEnough(h, hasSignal, foreign(h.note)) && inScope(h.note, { prompt, project, notes: input.notes, aboutSelf: !project && hasSignal && (signals.references.length > 0 || conceptsOf(prompt).includes('profile')) }));
   const top = eligible[0]?.score ?? 0;
   const relevant = eligible.filter((h) => h.score >= top * RELATIVE_CUTOFF).slice(0, MAX_NOTES);
 
