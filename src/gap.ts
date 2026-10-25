@@ -2,7 +2,7 @@
 //   1. Does this prompt need outside context?  (unresolved references, or the "wrong" tool for the topic)
 //   2. Does the agent already have it?          (its own context files, or this session's transcript)
 
-import { conceptsOf, TOPIC_CONCEPTS } from './concepts.js';
+import { conceptsOf, genresOf, TOPIC_CONCEPTS } from './concepts.js';
 import { resolveSpace, type Config } from './config.js';
 import { projectOf } from './context.js';
 import type { Note } from './note.js';
@@ -119,7 +119,14 @@ export function detect(input: DetectInput): Decision {
     .sort((a, b) => b.score - a.score);
 
   const hasSignal = signals.references.length > 0 || !!signals.usageMismatch;
-  const eligible = hits.filter((h) => relevantEnough(h, hasSignal));
+  // A style note written for one kind of writing (emails, commit messages, Slack) stays out of requests
+  // for another kind; it pulled answers the wrong way in the launch simulation.
+  const promptGenres = new Set(genresOf(prompt));
+  const fitsGenre = (n: Note) => {
+    const kinds = n.type === 'how' ? genresOf(n.body) : [];
+    return !kinds.length || kinds.some((g) => promptGenres.has(g));
+  };
+  const eligible = hits.filter((h) => relevantEnough(h, hasSignal) && fitsGenre(h.note));
   const top = eligible[0]?.score ?? 0;
   const relevant = eligible.filter((h) => h.score >= top * RELATIVE_CUTOFF).slice(0, MAX_NOTES);
 

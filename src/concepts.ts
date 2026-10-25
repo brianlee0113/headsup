@@ -64,3 +64,23 @@ export function conceptsOf(text: string): string[] {
 
 export const CONCEPT_PREFIX = '#';
 export const conceptTokens = (text: string) => conceptsOf(text).map((c) => CONCEPT_PREFIX + c);
+
+// Kinds of writing. A style preference usually holds for one kind ("emails short and polite", "commit
+// messages imperative"): stated for one, it misleads another, so gap.ts adds a how-you-work note that
+// names a kind only when the request is the same kind.
+const GENRES: Record<string, string[]> = {
+  email: ['email', 'e-mail', 'mail', '메일', '이메일'],
+  chat: ['slack', 'teams message', 'dm', 'text message', '슬랙', '메신저', '카톡'],
+  ticket: ['jira', 'ticket', 'issue', 'user story', '티켓', '이슈'],
+  report: ['report', 'status update', 'weekly update', 'memo', '보고서', '보고', '리포트'],
+  social: ['linkedin', 'instagram', 'tweet', 'twitter', 'x post', 'social post', '인스타', '링크드인', 'sns'],
+  commit: ['commit message', 'commit messages', 'commit', '커밋'],
+  docs: ['readme', 'documentation', 'docs', '문서'],
+};
+const GENRE_MATCHERS: Array<[string, RegExp]> = Object.entries(GENRES).map(([g, words]) => {
+  const latin = words.filter((w) => !HANGUL.test(w)).map((w) => escape(w).replace(/ /g, '\\s+'));
+  const hangul = words.filter((w) => HANGUL.test(w)).map(escape);
+  const parts = [latin.length ? `(?<![\\p{L}\\p{N}])(?:${latin.join('|')})(?![\\p{L}\\p{N}])` : '', ...hangul].filter(Boolean);
+  return [g, new RegExp(parts.join('|'), 'iu')];
+});
+export const genresOf = (text: string): string[] => GENRE_MATCHERS.filter(([, re]) => re.test(text)).map(([g]) => g);
