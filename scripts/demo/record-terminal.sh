@@ -40,7 +40,7 @@ Sleep 1s
 Type "write the v2.3 release notes in my voice: faster webhooks, no more double charges on retry, clearer checkout errors"
 Sleep 600ms
 Enter
-Sleep 16s
+Sleep 11s
 Hide
 Ctrl+C
 Ctrl+C
