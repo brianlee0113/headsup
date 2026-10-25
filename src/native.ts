@@ -12,6 +12,9 @@ import { shellQuote } from './config.js';
 export const HOST_NAME = 'ai.headsup.host';
 // Fixed by the public key in extension/manifest.json, so the host can trust exactly this extension.
 export const EXTENSION_ID = 'heomldlmknjaidfkfkdhjibppainocea';
+// IDs the extension had before, still trusted so an existing install keeps working after a key change
+// (the Chrome Web Store assigns its own key; see store/README.md).
+export const EARLIER_EXTENSION_IDS: string[] = [];
 
 export function encode(message: unknown): Buffer {
   const body = Buffer.from(JSON.stringify(message), 'utf8');
@@ -67,7 +70,7 @@ export function installNativeHost(headsupHome: string, dirs = browserHostDirs())
     description: 'headsup — shared memory across your AI tools',
     path: script,
     type: 'stdio',
-    allowed_origins: [`chrome-extension://${EXTENSION_ID}/`],
+    allowed_origins: [EXTENSION_ID, ...EARLIER_EXTENSION_IDS].map((id) => `chrome-extension://${id}/`),
   };
   const manifests: string[] = [];
   for (const dir of dirs) {
