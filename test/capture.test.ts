@@ -124,3 +124,27 @@ describe('updates', () => {
     expect(duplicates('Quorum has 140 weekly users across 9 clubs now', old)).toBe(true);
   });
 });
+
+describe('reviewing candidates before they are saved', () => {
+  const found = [
+    { type: 'how' as const, body: 'Prefers Vitest with tests next to the source', topics: ['testing'] },
+    { type: 'fact' as const, body: 'The refund object in northwind-api holds card last4', topics: ['northwind'] },
+  ];
+  it('keeps only what the review keeps', async () => {
+    const { reviewNotes } = await import('../src/capture.js');
+    expect(await reviewNotes(found, [], async () => '{"keep": [0]}')).toEqual([found[0]]);
+    expect(await reviewNotes(found, [], async () => 'Sure: {"keep": []}')).toEqual([]);
+  });
+  it('keeps every candidate when the review cannot be read', async () => {
+    const { reviewNotes } = await import('../src/capture.js');
+    expect(await reviewNotes(found, [], async () => 'no idea')).toEqual(found);
+    expect(await reviewNotes(found, [], async () => { throw new Error('offline'); })).toEqual(found);
+    expect(await reviewNotes(found, [], async () => '{"keep": [7, "x"]}')).toEqual([]);
+  });
+  it('makes no call when there is nothing to review', async () => {
+    const { reviewNotes } = await import('../src/capture.js');
+    let calls = 0;
+    expect(await reviewNotes([], [], async () => { calls++; return '{}'; })).toEqual([]);
+    expect(calls).toBe(0);
+  });
+});
