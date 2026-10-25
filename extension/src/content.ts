@@ -136,6 +136,9 @@ function start(site: Site): void {
   root.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     const action = target.closest<HTMLElement>('[data-action]')?.dataset.action;
+    // Redrawing on any other click would replace a checkbox before its change event lands, so an
+    // untick would be lost.
+    if (!action) return;
     if (action === 'toggle') state.open = !state.open;
     if (action === 'accept') state.askAccepted = true;
     if (action === 'unaccept') state.askAccepted = false;

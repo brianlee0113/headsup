@@ -20,6 +20,7 @@ const add = (args) => execFileSync('node', [REPO + '/dist/cli.js', 'add', ...arg
 add(['--type', 'fact', '--space', 'personal', '--source', 'claude-code', '--topics', 'quorum,release', 'Quorum v0.3 adds recurring meetings and Google Calendar sync']);
 add(['--type', 'fact', '--space', 'personal', '--source', 'claude-code', '--topics', 'quorum,users', 'Quorum finds a meeting time for student clubs; 140 weekly users']);
 add(['--type', 'fact', '--space', 'work', '--source', 'claude-code', '--topics', 'northwind,internship', 'Northwind internship on the payments team, summer 2026']);
+add(['--type', 'fact', '--space', 'work', '--source', 'claude-code', '--topics', 'internship,payouts', 'Shipped payout retries at the internship that cut failed payouts by 30%']);
 // Native host registered inside the throwaway profile only.
 const script = HOME + '/native-host';
 writeFileSync(script, `#!/bin/sh\nexport HEADSUP_HOME="${HOME}"\nexec "${process.execPath}" "${REPO}/dist/cli.js" native-host "$@"\n`); chmodSync(script, 0o755);
@@ -79,18 +80,23 @@ try {
   await type('Help me write a cover letter for a product internship');
   await sleep(1800);
   await js(`document.querySelector('headsup-root').shadowRoot.querySelector('.chip').click()`); await sleep(150);
+  // Untick one work note with a real click (a JS click() skips the change event ordering that broke this).
+  const box = await js(`(() => { const b = [...document.querySelector('headsup-root').shadowRoot.querySelectorAll('label.note')].find((l) => l.innerText.includes('Northwind')).querySelector('input').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; })()`);
+  for (const type of ['mousePressed', 'mouseReleased']) await cdp('Input.dispatchMouseEvent', { type, x: box.x, y: box.y, button: 'left', clickCount: 1 });
+  await sleep(200);
   await js(`document.querySelector('headsup-root').shadowRoot.querySelector('[data-action=accept]').click()`); await sleep(150);
   console.log('after include chip:', JSON.stringify(await chip()));
   await cdp('Runtime.evaluate', { expression: `document.querySelector('button[aria-label="Send"]').click()` });
   await sleep(1500);
-  console.log('third sent has block:', JSON.parse(await js('JSON.stringify(window.__sentTexts)'))[2]?.includes('Northwind'));
+  console.log('third sent has block:', JSON.parse(await js('JSON.stringify(window.__sentTexts)'))[2]?.includes('payout retries'));
 
   const sentTexts = JSON.parse(await js('JSON.stringify(window.__sentTexts)'));
   const checks = {
     'same-space note added at send': sentTexts[0]?.includes('Quorum v0.3 adds recurring meetings'),
     'block folded into a pill': (await js(`document.querySelector('.headsup-pill')?.textContent`)) === '1 note',
     'work note left out without an OK': !sentTexts[1]?.includes('Northwind'),
-    'work note added after including it': !!sentTexts[2]?.includes('Northwind'),
+    'work note added after including it': !!sentTexts[2]?.includes('payout retries'),
+    'unticked work note left out': !sentTexts[2]?.includes('Northwind internship'),
   };
   for (const [name, ok] of Object.entries(checks)) console.log(`${ok ? '✓' : '✗'} ${name}`);
   if (Object.values(checks).some((ok) => !ok)) done(1);
