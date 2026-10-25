@@ -20,9 +20,14 @@ const LEXICON: Record<string, string[]> = {
   ci: ['ci', 'github actions', 'workflow', 'workflows', 'pipeline', 'runner', 'runners', 'lint', 'typecheck'],
   writing: [
     'post', 'draft', 'release notes', 'announcement', 'blog', 'newsletter', 'email', 'essay', 'tone', 'voice',
-    'copy', 'writes', 'writing', 'sentences', 'tweet', '글', '공지', '이메일',
+    'copy', 'writes', 'writing', 'sentences', 'tweet', 'report', 'memo', '글', '공지', '메일', '보고서', '보고 초안', '주간 보고', '초안', '문구',
   ],
-  format: ['summary', 'summarize', 'bullet', 'bullets', 'bullet-point', 'tldr', 'paragraph', 'paragraphs', '요약'],
+  format: [
+    'summary', 'summarize', 'bullet', 'bullets', 'bullet-point', 'tldr', 'paragraph', 'paragraphs', 'table', 'tables', 'compare',
+    'comparison', '요약', '표로', '표 형식', '테이블', '비교', '형식',
+  ],
+  data: ['sql', 'query', 'queries', 'database', 'window function', '쿼리', '데이터 분석', '윈도우 함수', '윈도 함수'],
+  fitness: ['running', 'run', 'marathon', 'half marathon', 'workout', 'training plan', '러닝', '달리기', '마라톤', '훈련', '운동'],
   food: [
     'restaurant', 'dinner', 'lunch', 'breakfast', 'food', 'recipe', 'eat', 'meal', 'cook', 'vegetarian', 'vegan',
     'allergic', 'allergy', 'menu', '식당', '음식', '저녁', '점심', '레시피',
@@ -39,6 +44,8 @@ export const TOPIC_CONCEPTS: Record<string, string[]> = {
   writing: ['writing', 'format'],
   everyday: ['food', 'travel'],
   career: ['profile'],
+  learning: ['data', 'education'],
+  work: ['writing', 'format'],
 };
 
 const HANGUL = /[가-힣]/;

@@ -21,6 +21,12 @@ const REFERENCE_PATTERNS: RegExp[] = [
   /(?:평소|늘|항상)\s*(?:처럼|대로|하던)/,
   /지난\s*(?:번|주|시간)/,
   /(?:내|우리|제)\s*(?:프로젝트|말투|스타일|팀|회사|앱|서비스)/,
+  // "the way I like", "my level": the answer depends on the person, so their notes may hold it.
+  /(?:내가|제가)\s*(?:좋아하는|선호하는|원하는|자주\s*쓰는|평소\s*쓰는|쓰는)\s*(?:형식|방식|스타일|말투|톤|포맷)/,
+  /평소\s*(?:내|제)?\s*(?:스타일|말투|방식|형식|쓰는|쓰던|하던)/,
+  /(?:내|제)\s*(?:수준|직무|담당|업무|상황|경력|커리어|레벨)/,
+  /\b(?:the\s+)?(?:way|format|style|tone)\s+(?:i|we)\s+(?:like|prefer|usually\s+use)\b/i,
+  /\bmy\s+(?:level|role|skill\s+level|preferred\s+\w+)\b/i,
   // Writing about yourself always needs facts about you, even without "my".
   /\b(?:cover\s+letter|resume|résumé|cv|bio|about\s+me|introduce\s+myself|linkedin\s+(?:post|headline|summary|profile))\b/i,
   /\b(?:tell\s+me\s+about\s+(?:yourself|a\s+(?:project|time))|proud\s+of|interview\s+(?:question|prep))\b/i,
