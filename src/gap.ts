@@ -2,7 +2,7 @@
 //   1. Does this prompt need outside context?  (unresolved references, or the "wrong" tool for the topic)
 //   2. Does the agent already have it?          (its own context files, or this session's transcript)
 
-import { conceptsOf, TOPIC_CONCEPTS } from './concepts.js';
+import { conceptsOf, genresOf, TOPIC_CONCEPTS } from './concepts.js';
 import { resolveSpace, type Config } from './config.js';
 import { projectOf } from './context.js';
 import type { Note } from './note.js';
@@ -143,7 +143,15 @@ export function detect(input: DetectInput): Decision {
   // Inside a project, another project's how-you-work notes need a shared word, not just a shared sense.
   // Notes captured at the top of the projects folder belong to no project.
   const foreign = (n: Note) => !!project && !!n.project && n.project !== project && !GENERIC_FOLDERS.has(n.project.toLowerCase());
-  const eligible = hits.filter((h) => relevantEnough(h, hasSignal, foreign(h.note)) && inScope(h.note, { prompt, project, notes: input.notes, aboutSelf: !project && hasSignal && (signals.references.length > 0 || conceptsOf(prompt).includes('profile')) }));
+  // A style note written for one kind of writing (emails, commit messages, Slack) stays out of requests
+  // for another kind; it pulled answers the wrong way in the launch simulation.
+  const promptGenres = new Set(genresOf(prompt));
+  const fitsGenre = (n: Note) => {
+    const kinds = n.type === 'how' ? genresOf(n.body) : [];
+    return !kinds.length || kinds.some((g) => promptGenres.has(g));
+  };
+  const aboutSelf = !project && hasSignal && (signals.references.length > 0 || conceptsOf(prompt).includes('profile'));
+  const eligible = hits.filter((h) => relevantEnough(h, hasSignal, foreign(h.note)) && fitsGenre(h.note) && inScope(h.note, { prompt, project, notes: input.notes, aboutSelf }));
   const top = eligible[0]?.score ?? 0;
   const relevant = eligible.filter((h) => h.score >= top * RELATIVE_CUTOFF).slice(0, MAX_NOTES);
 
