@@ -1,0 +1,50 @@
+<!doctype html>
+<html class="light"><head><meta charset="utf-8"><title>Chat</title>
+<!-- A neutral stand-in chat page for recording the README demo. It keeps the structure the extension
+     looks for on chatgpt.com (ProseMirror composer in a form, Send button, user bubbles). -->
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; height: 100vh; background: #fff; color: #0a0a0a; font: 15px/1.55 -apple-system, system-ui, sans-serif; display: flex; }
+  aside { width: 210px; background: #f7f7f7; border-right: 1px solid #ececec; padding: 18px 14px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #555; }
+  aside b { color: #0a0a0a; font-size: 13px; margin-bottom: 10px; }
+  aside span { padding: 6px 8px; border-radius: 8px; } aside span.on { background: #ececec; color: #0a0a0a; }
+  main { flex: 1; display: flex; flex-direction: column; }
+  #thread { flex: 1; overflow: auto; padding: 36px 0 24px; display: flex; flex-direction: column; gap: 18px; }
+  .turn { width: min(680px, 90%); margin: 0 auto; display: flex; justify-content: flex-end; }
+  [data-user-message-bubble] { background: #f2f2f2; border-radius: 20px; padding: 11px 18px; max-width: 80%; }
+  .whitespace-pre-wrap { white-space: pre-wrap; }
+  #composer { width: min(680px, 90%); margin: 0 auto 28px; border: 1px solid #e3e3e3; border-radius: 26px; padding: 14px 14px 14px 22px; display: flex; gap: 10px; align-items: flex-end; box-shadow: 0 4px 18px rgba(0,0,0,.06); }
+  #editor { flex: 1; } .ProseMirror { outline: none; min-height: 24px; white-space: pre-wrap; }
+  .ProseMirror p { margin: 0; }
+  .ProseMirror:has(> p:only-child > br:only-child)::before, .empty::before { content: 'Ask anything'; color: #9a9a9a; position: absolute; pointer-events: none; }
+  button[aria-label="Send"] { width: 34px; height: 34px; border-radius: 17px; border: 0; background: #0a0a0a; color: #fff; font-size: 17px; cursor: pointer; flex: none; }
+  #cursor { position: fixed; left: 0; top: 0; width: 22px; height: 22px; pointer-events: none; z-index: 2147483647; transition: transform .45s cubic-bezier(.3,.7,.3,1); transform: translate(760px, 560px); }
+</style></head>
+<body>
+<aside><b>Chats</b><span class="on">New chat</span><span>Weekend trip ideas</span><span>Resume bullet points</span><span>Quorum launch post</span></aside>
+<main>
+  <div id="thread"></div>
+  <form id="composer" onsubmit="return false"><div id="editor"></div><button type="submit" aria-label="Send">↑</button></form>
+</main>
+<svg id="cursor" viewBox="0 0 24 24"><path d="M4 2l15 11.5-6.6.9 3.9 7.4-3 1.5-3.8-7.4L4 20.3z" fill="#0a0a0a" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>
+<script type="module">
+import { EditorState } from 'https://esm.sh/prosemirror-state@1.4.3';
+import { EditorView } from 'https://esm.sh/prosemirror-view@1.38.1';
+import { schema } from 'https://esm.sh/prosemirror-schema-basic@1.2.3';
+import { keymap } from 'https://esm.sh/prosemirror-keymap@1.2.2';
+const send = () => {
+  const text = view.state.doc.textBetween(0, view.state.doc.content.size, '\n');
+  if (!text.trim()) return true;
+  const n = document.querySelectorAll('[data-chatgpt-search-unit-key]').length;
+  const turn = document.createElement('div'); turn.className = 'turn'; turn.dataset.chatgptSearchUnitKey = `turn-${n}:user`;
+  const m = document.createElement('div'); m.dataset.userMessageBubble = 'true';
+  const inner = document.createElement('div'); inner.className = 'whitespace-pre-wrap'; inner.textContent = text; m.appendChild(inner);
+  turn.appendChild(m); document.getElementById('thread').appendChild(turn);
+  window.__sentTexts = [...(window.__sentTexts || []), text];
+  view.dispatch(view.state.tr.delete(0, view.state.doc.content.size));
+  return true;
+};
+const view = new EditorView(document.getElementById('editor'), { state: EditorState.create({ schema, plugins: [keymap({ Enter: send })] }) });
+document.querySelector('button[aria-label="Send"]').addEventListener('click', send);
+window.__ready = true;
+</script></body></html>

@@ -22,7 +22,10 @@
   <img src="https://img.shields.io/badge/runtime%20deps-0-0A0A0A" alt="zero runtime dependencies">
 </p>
 
-<!-- TODO before launch: a demo GIF goes here (ChatGPT cover letter, work notes ticked before sending). -->
+<p align="center">
+  <img src="docs/demo-browser.gif" width="900" alt="Typing a cover-letter request: headsup offers a side-project note and three work notes; the internal roadmap note is unticked before sending, and the sent message folds the added notes into a pill.">
+  <br><sub>A cover letter that knows your internship, minus the internal roadmap you unticked. Real extension and app, on a stand-in chat page, with notes of a fictional user.</sub>
+</p>
 
 ---
 
@@ -67,6 +70,12 @@ You write in ChatGPT and build in Claude Code. Ask Claude Code for release notes
 </table>
 
 <sub>Trimmed example output. Most of the time headsup does nothing at all — that's the point.</sub>
+
+<details>
+<summary><b>See it in Claude Code</b> (real session, recorded)</summary>
+<br>
+<img src="docs/demo-terminal.gif" width="900" alt="In Claude Code, the prompt 'write the v2.3 release notes in my voice' gets a heads-up line saying one note was added from ChatGPT, and the answer comes back plain and short.">
+</details>
 
 ## Highlights
 
