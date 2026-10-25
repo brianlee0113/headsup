@@ -1,7 +1,7 @@
 #!/bin/sh
 # Joins the two recorded demos into the README's hero GIF: the browser first, then Claude Code, each
 # under a one-line label (rendered with headless Chrome, since ffmpeg here has no text filter).
-#   sh scripts/demo/combine.sh docs/demo-terminal.gif docs/demo-browser.gif docs/demo.gif
+#   sh scripts/demo/combine.sh docs/demo-terminal.gif docs/demo-browser.gif docs/headsup-demo.gif
 set -e
 TERM_GIF=$1 BROWSER_GIF=$2 OUT=$3
 CHROME="${HEADSUP_E2E_CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
