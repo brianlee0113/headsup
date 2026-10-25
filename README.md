@@ -23,8 +23,8 @@
 </p>
 
 <p align="center">
-  <img src="docs/demo.gif" width="900" alt="Two scenes. In Claude Code, 'write the v2.3 release notes in my voice' gets a heads-up line saying one note was added from ChatGPT, and the answer comes back plain and short. In the browser, a cover-letter request gets a side-project note and three work notes; the internal roadmap note is unticked before sending, and the sent message folds the added notes into a pill.">
-  <br><sub>Context goes both ways: your ChatGPT writing voice in Claude Code, your Claude Code projects in a browser chat. Both recorded with the real app and extension and a fictional user's notes; the browser scene runs on a stand-in chat page.</sub>
+  <img src="docs/demo.gif" width="900" alt="Two scenes. In the browser, a cover-letter request gets a side-project note and three work notes; the internal roadmap note is unticked before sending, and the sent message folds the added notes into a pill. In Claude Code, 'write the v2.3 release notes in my voice' gets a heads-up line saying one note was added from ChatGPT, and the answer comes back plain and short.">
+  <br><sub>Context goes both ways: your Claude Code projects in a browser chat, your ChatGPT writing voice in Claude Code. Both recorded with the real app and extension and a fictional user's notes; the browser scene runs on a stand-in chat page.</sub>
 </p>
 
 ---

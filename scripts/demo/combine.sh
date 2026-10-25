@@ -1,5 +1,5 @@
 #!/bin/sh
-# Joins the two recorded demos into the README's hero GIF: Claude Code first, then the browser, each
+# Joins the two recorded demos into the README's hero GIF: the browser first, then Claude Code, each
 # under a one-line label (rendered with headless Chrome, since ffmpeg here has no text filter).
 #   sh scripts/demo/combine.sh docs/demo-terminal.gif docs/demo-browser.gif docs/demo.gif
 set -e
@@ -26,6 +26,6 @@ ffmpeg -y -loglevel error -i "$TERM_GIF" -i "$BROWSER_GIF" -loop 1 -t "$D1" -i "
 [1:v]fps=15,scale=900:-2:flags=lanczos,pad=900:704:0:(oh-ih)/2:color=0x0a0a0a,setsar=1[b];
 [2:v]fps=15,setsar=1[la];[3:v]fps=15,setsar=1[lb];
 [la][a]vstack[s1];[lb][b]vstack[s2];
-[s1][s2]concat=n=2:v=1,split[x][y];[x]palettegen=max_colors=160:stats_mode=diff[p];[y][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" -loop 0 "$OUT"
+[s2][s1]concat=n=2:v=1,split[x][y];[x]palettegen=max_colors=160:stats_mode=diff[p];[y][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" -loop 0 "$OUT"
 rm -rf "$T"
 echo "$OUT"
