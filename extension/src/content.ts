@@ -481,7 +481,7 @@ const css = `
 .chip.attached { background: var(--accent-bg); color: var(--fg); }
 .chip.needs { background: var(--fact-bg); color: var(--fact); }
 .chip.paused { border-color: var(--border); }
-.pop { position: fixed; width: 440px; max-width: calc(100vw - 16px); background: var(--chrome); border: 1px solid var(--border);
+.pop { box-sizing: border-box; position: fixed; width: 440px; max-width: calc(100vw - 16px); background: var(--chrome); border: 1px solid var(--border);
   border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 12px 32px rgba(0,0,0,.35); }
 .head { display: flex; gap: 8px; align-items: baseline; }
 .head b { font: 700 13px/18px ui-monospace, Menlo, monospace; color: var(--accent); }
