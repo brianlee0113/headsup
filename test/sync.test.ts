@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type { Prompt } from '../src/capture.js';
 import { DEFAULT_CONFIG } from '../src/config.js';
 import { Store } from '../src/store.js';
-import { recheckSpaces } from '../src/spaces.js';
+import { pendingAsWork, recheckSpaces } from '../src/spaces.js';
 import { handleSync, parseClaudeChat, readState, runSync, syncStatus } from '../src/sync.js';
 import { handleWeb } from '../src/web.js';
 
@@ -107,7 +107,7 @@ describe('catching up', () => {
 });
 
 describe('turning queued chats into notes', () => {
-  const reply = JSON.stringify([{ type: 'how', body: 'Writes release notes plainly and warmly, under 150 words', topics: ['writing'] }]);
+  const reply = JSON.stringify([{ type: 'how', body: 'Writes release notes plainly and warmly, under 150 words', topics: ['writing'], space: 'personal' }]);
 
   it('summarizes, saves ChatGPT notes and empties the queue', async () => {
     const { store, opts } = setup();
@@ -152,17 +152,34 @@ describe('turning queued chats into notes', () => {
     expect(store.list().map((n) => [n.space, n.body.slice(0, 10)]).sort()).toEqual([['personal', 'Training f'], ['work', 'Q4 OKR at ']]);
   });
 
+  it('files a note under work when the summarizer didn\'t say, or said something else', async () => {
+    const { store, opts } = setup();
+    handleSync({ type: 'sync-chats', site: 'chatgpt.com', chats: [chatgpt('a', '2026-10-20', [['user', long('Hi.')], ['assistant', 'Done.']])] }, store, opts);
+    const unsure = JSON.stringify([
+      { type: 'fact', body: 'Leads the payments squad at Lumen', topics: ['role'] },
+      { type: 'fact', body: 'Owns the checkout funnel dashboard', topics: ['dashboards'], space: 'both' },
+    ]);
+    await runSync(store, DEFAULT_CONFIG, async (p) => (p.system.includes('review') ? '{"keep":[0,1]}' : unsure));
+    expect(store.list().map((n) => n.space)).toEqual(['work', 'work']);
+  });
+
   it('moves web notes saved before that sorting, once', async () => {
     const store = new Store(tmp());
     const okr = store.add({ type: 'fact', space: 'personal', source: 'chatgpt', body: 'Q4 OKR at Lumen: cut checkout drop-off from 15% to 10%' }).note!;
     store.add({ type: 'fact', space: 'personal', source: 'chatgpt', body: 'Training for a half marathon in November' });
     store.add({ type: 'how', space: 'personal', source: 'claude-code', body: 'Uses pnpm' }); // a folder decided this one
     let calls = 0;
-    const r = await recheckSpaces(store, DEFAULT_CONFIG, async (p) => (calls++, p.user.split('\n').find((l) => l.includes('OKR'))!.startsWith('0') ? '{"work":[0]}' : '{"work":[1]}'));
+    const okrFirst = (p: { user: string }) => p.user.split('\n').find((l) => l.includes('OKR'))!.startsWith('0');
+    // An answer that leaves a note out is not taken: nothing moves, nothing is marked checked.
+    expect(await recheckSpaces(store, DEFAULT_CONFIG, async () => (calls++, '{"work":[],"personal":[]}'))).toMatchObject({ moved: [], failed: 1 });
+    // Until then the web notes count as work wherever notes are read to be shared.
+    expect(pendingAsWork(store.list(), store.home, DEFAULT_CONFIG).filter((n) => n.space === 'work')).toHaveLength(2);
+    const r = await recheckSpaces(store, DEFAULT_CONFIG, async (p) => (calls++, okrFirst(p) ? '{"work":[0],"personal":[1]}' : '{"work":[1],"personal":[0]}'));
     expect(r.moved.map((n) => n.id)).toEqual([okr.id]);
     expect(store.list().find((n) => n.id === okr.id)!.space).toBe('work');
-    expect(await recheckSpaces(store, DEFAULT_CONFIG, async () => (calls++, '{"work":[]}'))).toMatchObject({ checked: 0 });
-    expect(calls).toBe(1);
+    expect(pendingAsWork(store.list(), store.home, DEFAULT_CONFIG).filter((n) => n.space === 'work')).toHaveLength(1); // the OKR, now really work
+    expect(await recheckSpaces(store, DEFAULT_CONFIG, async () => (calls++, '{"work":[],"personal":[]}'))).toMatchObject({ checked: 0 });
+    expect(calls).toBe(2);
   });
 
   it('keeps a failed batch queued for next time', async () => {

@@ -20,7 +20,7 @@ export interface CapturedNote {
   type: NoteType;
   body: string;
   topics: string[];
-  work?: boolean; // chats with no folder (web, imports): the summarizer says which notes are about their job
+  personal?: boolean; // chats with no folder (web, imports): the summarizer said plainly it is not about their job
   replaces?: string; // id of an existing note this one updates (a new number, status or decision)
 }
 
@@ -153,7 +153,7 @@ export function parseNotes(text: string, max = MAX_NOTES): CapturedNote[] {
       type: n.type as NoteType,
       body: clip(n.body.trim(), MAX_BODY),
       topics: Array.isArray(n.topics) ? n.topics.filter((t): t is string => typeof t === 'string').map((t) => t.trim().toLowerCase()).filter(Boolean).slice(0, 4) : [],
-      ...(n.space === 'work' ? { work: true } : {}),
+      ...(n.space === 'personal' ? { personal: true } : {}),
       ...(typeof n.replaces === 'string' && n.replaces ? { replaces: n.replaces } : {}),
     }));
 }
@@ -217,23 +217,25 @@ export function saveNotes(
   found: CapturedNote[],
   existing: Note[],
   store: Store,
-  // workSpace: where notes the summarizer marked as being about the person's job go, for chats with no
-  // folder to decide. Without it, a folder decided and every note goes to base.space.
+  // workSpace: for chats with no folder to decide, where a note goes unless the summarizer marked it
+  // personal. A missing or odd answer counts as work: a work note is shared only after an OK, a personal
+  // one freely. Without workSpace, a folder decided and every note goes to base.space.
   base: { space: string; source: string; project?: string; workSpace?: string },
 ): { saved: Note[]; skipped: number } {
   const saved: Note[] = [];
   let skipped = 0;
   const { workSpace, ...into } = base;
-  for (const { work, replaces, ...n } of found) {
+  for (const { personal, replaces, ...n } of found) {
     if (duplicates(n.body, [...existing, ...saved])) {
       skipped++;
       continue;
     }
-    const { note } = store.add({ ...n, ...into, ...(work && workSpace ? { space: workSpace } : {}) });
+    const { note } = store.add({ ...n, ...into, ...(workSpace && !personal ? { space: workSpace } : {}) });
     if (note) saved.push(note);
     else skipped++; // the whole note was a secret
     // An update (140 weekly users, now 180) sets the old note aside, so the two never ride along together.
-    const old = note && replaces ? existing.find((e) => e.id === replaces && e.type === note.type) : undefined;
+    // Only within the same space and project: a wrong id must not set aside a note from somewhere else.
+    const old = note && replaces ? existing.find((e) => e.id === replaces && e.type === note.type && e.space === note.space && e.project === note.project) : undefined;
     if (old && store.list().some((e) => e.id === old.id)) {
       store.archive(old);
       store.log({ event: 'replaced', note: old.id, by: note!.id });

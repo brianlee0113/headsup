@@ -8,6 +8,7 @@ import { compactedSince, lastReply, readAgentContext, readTranscript, transcript
 import { learningOn, recordRemoved, recordShown, rememberShown, resting, settleShown } from '../learning.js';
 import { detect, type Decision } from '../gap.js';
 import type { Note } from '../note.js';
+import { pendingAsWork } from '../spaces.js';
 import type { Store } from '../store.js';
 
 export interface UserPromptSubmitInput {
@@ -35,7 +36,7 @@ export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Stor
   // in threads it doesn't save. Only a saved conversation is the person's.
   if (agent === 'codex' && !input.transcript_path) return null;
   store.countPrompt();
-  const notes = store.list();
+  const notes = pendingAsWork(store.list(), store.home, config);
   const learn = learningOn(config);
   // The answer to the previous prompt shows whether the notes added to it were drawn on.
   if (learn) settleShown(store.home, input.session_id, notes, lastReply(input.transcript_path));

@@ -41,21 +41,34 @@ export function unchecked(store: Store, config: Config): Note[] {
 export function buildSpacePrompt(notes: Note[]): Prompt {
   const system = `You sort a person's memory notes into work and personal. A note is "work" when it is about their job or employer: the company's plans, goals and numbers, its products, customers, colleagues, internal tools and processes, or how they do things at work. Everything else is personal: their own projects, studies, job search, hobbies, life, and how they like things done in general. When unsure, call it work: a work note is shared only after the person says yes.
 
-Return ONLY JSON: {"work": [indexes of the work notes]}. [] is fine.`;
+Return ONLY JSON with every note's index in exactly one of the two lists: {"work": [...], "personal": [...]}`;
   const user = `<notes>\n${notes.map((n, i) => `${i}. ${n.body}`).join('\n')}\n</notes>`;
   return { system, user };
 }
 
+// The work indexes, or null unless every note was sorted into exactly one list: an empty or partial
+// answer would otherwise leave a missed work note in personal for good.
 export function parseSpaceReply(text: string, count: number): number[] | null {
   const json = /\{[\s\S]*\}/.exec(text)?.[0];
   if (!json) return null;
   try {
-    const work = (JSON.parse(json) as { work?: unknown }).work;
-    if (!Array.isArray(work)) return null;
-    return [...new Set(work.filter((i): i is number => Number.isInteger(i) && i >= 0 && i < count))];
+    const { work, personal } = JSON.parse(json) as { work?: unknown; personal?: unknown };
+    if (!Array.isArray(work) || !Array.isArray(personal)) return null;
+    const valid = (i: unknown): i is number => Number.isInteger(i) && (i as number) >= 0 && (i as number) < count;
+    if (![...work, ...personal].every(valid)) return null;
+    const w = new Set(work as number[]), p = new Set(personal as number[]);
+    if (w.size + p.size !== count || [...w].some((i) => p.has(i))) return null;
+    return [...w];
   } catch {
     return null;
   }
+}
+
+// Until a web note has had that look, it is treated as work: shared only after an OK. Applied wherever
+// notes are read to be shared (detection in the hook and the extension, the About me block).
+export function pendingAsWork(notes: Note[], home: string, config: Config): Note[] {
+  const checked = readChecked(home);
+  return notes.map((n) => (WEB_SOURCES.has(n.source) && n.space === config.defaultSpace && !checked.has(n.id) ? { ...n, space: WORK_SPACE } : n));
 }
 
 // A batch whose reply can't be read stays unchecked and is tried again next time.

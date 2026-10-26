@@ -74,8 +74,8 @@ describe('reading the export', () => {
 describe('importing', () => {
   const plan = () => planImport(parseExport(exportJson), { since: new Date('2025-10-19'), done: new Set() });
   const notes = JSON.stringify([
-    { type: 'how', body: 'Writes in a plain, warm tone without buzzwords', topics: ['writing'] },
-    { type: 'fact', body: "Second-year master's student in HCI", topics: ['education'] },
+    { type: 'how', body: 'Writes in a plain, warm tone without buzzwords', topics: ['writing'], space: 'personal' },
+    { type: 'fact', body: "Second-year master's student in HCI", topics: ['education'], space: 'personal' },
   ]);
 
   it('saves ChatGPT notes in the chosen space and remembers which chats it read', async () => {

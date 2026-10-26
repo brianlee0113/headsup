@@ -38,6 +38,7 @@ if (PERSONAS.every((p) => existsSync(join(ROOT, 'sim', 'out', MEMORY_RUN, p, 'no
   for (const p of PERSONAS) execFileSync(tsx, [join(ROOT, 'sim', 'redetect.ts'), MEMORY_RUN, 'gate', p], { stdio: 'ignore' });
   execFileSync(tsx, [join(ROOT, 'sim', 'score.ts'), 'gate', ...PERSONAS, '--fast'], { stdio: 'ignore' });
   const scores = JSON.parse(readFileSync(join(ROOT, 'sim', 'out', 'gate', 'scores.json'), 'utf8')) as Array<{ persona: string; unnecessary: number; neededRecall: { mean: number }; outcome: { noteKinds: Record<string, number> }; violations: string[] }>;
+  for (const p of PERSONAS) if (!scores.some((s) => s.persona === p)) throw new Error(`no score for ${p}: the boundary check didn't run`);
   for (const s of scores) {
     // A work note crossing into personal without an OK is never acceptable, whatever the baseline says.
     put(`sim ${s.persona}: boundary violations`, s.violations.length, 'lower', 'count', 0);
@@ -47,7 +48,12 @@ if (PERSONAS.every((p) => existsSync(join(ROOT, 'sim', 'out', MEMORY_RUN, p, 'no
     put(`sim ${s.persona}: notes from another project`, s.outcome.noteKinds.otherProject ?? 0, 'lower', 'count');
     put(`sim ${s.persona}: unrelated notes added`, s.outcome.noteKinds.unrelated ?? 0, 'lower', 'count');
   }
-} else console.log(`(persona check skipped: no saved memory in sim/out/${MEMORY_RUN})`);
+} else {
+  // Without the saved memory the boundary check can't run, and a gate that silently skips its hard
+  // limit would pass for the wrong reason.
+  console.log(`no saved memory in sim/out/${MEMORY_RUN}: the persona and boundary checks can't run. Rebuild it (sim/run.ts) or set GATE_MEMORY_RUN.`);
+  process.exit(1);
+}
 
 // 3. the person's labeled real decisions
 const labelsFile = join(ROOT, '.local', 'real-labels.json');
@@ -109,13 +115,12 @@ for (const [name, m] of Object.entries(metrics)) {
   if (over) broken++;
   console.log(`${worse ? '✗' : '✓'} ${name.padEnd(42)} ${fmt(m, m.value).padStart(5)}${was === undefined ? '' : `  (was ${fmt(m, was)})`}`);
 }
-if (accept) {
+if (accept && broken) {
+  console.log(`\n${broken} hard limit${broken === 1 ? '' : 's'} broken; that can't be accepted, only fixed. Baseline left as it was.`);
+  process.exit(1);
+} else if (accept) {
   writeFileSync(BASELINE, JSON.stringify(Object.fromEntries(Object.entries(metrics).map(([k, m]) => [k, m.value])), null, 2));
   console.log(`\nbaseline saved to ${BASELINE}`);
-  if (broken) {
-    console.log(`${broken} hard limit${broken === 1 ? '' : 's'} still broken; that can't be accepted, only fixed`);
-    process.exit(1);
-  }
 } else if (failed) {
   console.log(`\n${failed} got worse than the baseline or broke a hard limit. Fix it, or accept a baseline change on purpose with: pnpm gate --accept`);
   process.exit(1);

@@ -159,6 +159,14 @@ describe('an update to an existing note', () => {
     expect(store.readLog().at(-1)).toMatchObject({ event: 'replaced', note: old.id });
   });
 
+  it('never sets aside a note from another space or project', () => {
+    const store = new Store(mkdtempSync(join(tmpdir(), 'headsup-')));
+    const work = store.add({ type: 'fact', space: 'work', source: 'claude-code', body: 'northwind-api has 3 services', project: 'northwind-api' }).note!;
+    const found = parseNotes(JSON.stringify([{ type: 'fact', body: 'Quorum has 4 services now', replaces: work.id }]));
+    saveNotes(found, store.list(), store, { space: 'personal', source: 'claude-code', project: 'quorum' });
+    expect(store.list()).toHaveLength(2);
+  });
+
   it('ignores an id that is not one of the notes it was shown', () => {
     const store = new Store(mkdtempSync(join(tmpdir(), 'headsup-')));
     store.add({ type: 'fact', space: 'personal', source: 'claude-code', body: 'Quorum has about 140 weekly users' });
