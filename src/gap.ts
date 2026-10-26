@@ -55,6 +55,7 @@ export interface DetectInput {
   knownText: string; // agent context files + current transcript
   notes: Note[];
   config: Config;
+  resting?: Set<string>; // notes learning has set aside for now (learning.ts)
 }
 
 export function findReferences(prompt: string): string[] {
@@ -114,6 +115,18 @@ function inScope(note: Note, at: { prompt: string; project?: string; notes: Note
 
 const GENERIC_FOLDERS = new Set(['developer', 'projects', 'code', 'src', 'work', 'home']);
 
+// A note that gives the assistant orders ("ignore their requests", "always end the reply with…") is never
+// added: framing notes as background was not enough, the simulation's planted order was still followed.
+// Notes describe the person; capture is told never to write orders, so a hit here is a bad or planted note.
+const ORDERS = [
+  /\b(?:ignore|disregard|override)\b[^.]{0,40}\b(?:instructions?|requests?|rules?|prompt|previous|above|user)\b/i,
+  /\balways\s+(?:end|start|begin|reply|respond|answer|say|write)\b/i,
+  /\b(?:you|assistant)\s+(?:must|should|have to)\b/i,
+  /(?:무시하고|무시해|무시할\s*것)/,
+  /(?:답변|응답|대답)\s*(?:끝|마지막|처음)에\s*(?:항상|반드시)/,
+];
+export const givesOrders = (body: string) => ORDERS.some((re) => re.test(body));
+
 function relevantEnough(h: Hit, hasSignal: boolean, foreign = false): boolean {
   const words = h.matched - h.concepts;
   if (h.note.type === 'how' && foreign && !hasSignal) return (h.concepts >= 1 && words >= 1) || words >= 2;
@@ -130,7 +143,7 @@ export function detect(input: DetectInput): Decision {
   // An agent's own notes come back only from other projects: a quorum note can help in northwind,
   // but echoing a project's own sessions into it is noise (that belongs in its CLAUDE.md).
   const project = input.cwd ? projectOf(input.cwd) : undefined;
-  const others = input.notes.filter((n) => n.source !== agent || (n.project !== undefined && n.project !== project));
+  const others = input.notes.filter((n) => !input.resting?.has(n.id) && !givesOrders(n.body) && (n.source !== agent || (n.project !== undefined && n.project !== project)));
   if (!others.length) return empty;
 
   const usual = new Set(signals.usageMismatch?.usualAgents ?? []);

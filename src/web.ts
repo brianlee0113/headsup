@@ -6,6 +6,7 @@ import { aboutLines } from './about.js';
 import { agentName } from './agents.js';
 import type { Config } from './config.js';
 import { detect } from './gap.js';
+import { learningOn, recordRemoved, recordShown, resting } from './learning.js';
 import type { Note } from './note.js';
 import type { WebNote } from './shared/block.js';
 import type { Store } from './store.js';
@@ -16,7 +17,7 @@ export const SITES: Record<string, string> = { 'chatgpt.com': 'chatgpt', 'claude
 export type WebRequest =
   | { type: 'status' }
   | { type: 'detect'; site: string; prompt: string; conversation?: string }
-  | { type: 'sent'; site: string; prompt: string; injected: string[]; offered: string[]; included: string[]; blocked: string[] }
+  | { type: 'sent'; site: string; prompt: string; injected: string[]; offered: string[]; included: string[]; blocked: string[]; removed?: string[] }
   | { type: 'about-me'; site: string; room: number }
   | { type: 'about-written'; site: string; ids: string[] }
   | { type: 'card' }
@@ -65,7 +66,10 @@ export function handleWeb(req: WebRequest, store: Store, config: Config, version
     case 'detect': {
       const agent = SITES[req.site];
       if (!agent) return { type: 'error', message: `headsup doesn't know ${req.site}` };
-      const d = detect({ prompt: req.prompt, agent, space: config.defaultSpace, knownText: req.conversation ?? '', notes: store.list(), config });
+      const d = detect({
+        prompt: req.prompt, agent, space: config.defaultSpace, knownText: req.conversation ?? '', notes: store.list(), config,
+        ...(learningOn(config) ? { resting: new Set(resting(store.home).keys()) } : {}),
+      });
       const reply: DetectReply = {
         type: 'detect',
         inject: d.inject.map(view),
@@ -90,6 +94,11 @@ export function handleWeb(req: WebRequest, store: Store, config: Config, version
         store.log(req.included.length
           ? { event: 'shared-after-ask', agent, session, notes: req.included }
           : { event: 'declined', agent, session, notes: declined });
+      }
+      if (learningOn(config)) {
+        // On the web the person sees the notes before sending: an unticked note or a declined offer was taken out.
+        recordRemoved(store.home, [...(req.removed ?? []), ...req.offered.filter((id) => !req.included.includes(id))]);
+        recordShown(store.home, [...req.injected, ...req.included]);
       }
       return { type: 'ok' };
     }

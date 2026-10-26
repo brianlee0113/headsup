@@ -3,7 +3,8 @@
 
 import { agentName } from '../agents.js';
 import type { Config } from '../config.js';
-import { readAgentContext, readTranscript } from '../context.js';
+import { lastReply, readAgentContext, readTranscript } from '../context.js';
+import { learningOn, recordRemoved, recordShown, rememberShown, resting, settleShown } from '../learning.js';
 import { detect, type Decision } from '../gap.js';
 import type { Note } from '../note.js';
 import type { Store } from '../store.js';
@@ -31,6 +32,9 @@ export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Stor
   if (GENERATED.test(input.prompt)) return null;
   store.countPrompt();
   const notes = store.list();
+  const learn = learningOn(config);
+  // The answer to the previous prompt shows whether the notes added to it were drawn on.
+  if (learn) settleShown(store.home, input.session_id, notes, lastReply(input.transcript_path));
   const pending = store.readPending(input.session_id);
   if (pending.length) {
     store.writePending(input.session_id, []);
@@ -41,6 +45,7 @@ export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Stor
     }
     if (DECLINE.test(input.prompt)) {
       store.log({ event: 'declined', agent: AGENT, session: input.session_id, notes: pending });
+      if (learn) recordRemoved(store.home, pending);
       return null;
     }
   }
@@ -52,8 +57,14 @@ export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Stor
     knownText: `${readAgentContext(AGENT, input.cwd)}\n${readTranscript(input.transcript_path)}`,
     notes,
     config,
+    ...(learn ? { resting: new Set(resting(store.home).keys()) } : {}),
   });
   logDecision(store, input, decision);
+  if (learn && decision.inject.length) {
+    const ids = decision.inject.map((n) => n.id);
+    recordShown(store.home, ids);
+    rememberShown(store.home, input.session_id, ids);
+  }
   if (decision.ask.length) store.writePending(input.session_id, decision.ask.map((n) => n.id));
 
   const context = [

@@ -351,6 +351,7 @@ function start(site: Site): void {
       injected: d.inject.filter((n) => ids.has(n.id)).map((n) => n.id),
       offered: d.ask.map((n) => n.id),
       included: d.ask.filter((n) => ids.has(n.id)).map((n) => n.id),
+      removed: d.inject.filter((n) => !ids.has(n.id)).map((n) => n.id), // unticked before sending
       blocked: d.blocked.ids,
     });
     state.detect = null;

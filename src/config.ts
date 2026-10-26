@@ -14,6 +14,7 @@ export interface Config {
   defaultSpace: string;
   spaces: Array<{ path: string; space: string }>; // "~/work" → "work"; longest matching prefix wins
   usage: UsageRule[];
+  learning?: boolean; // learn from use which notes to rest (default on; `headsup learning off`)
 }
 
 export const DEFAULT_CONFIG: Config = { preset: 'balanced', defaultSpace: 'personal', spaces: [], usage: [] };

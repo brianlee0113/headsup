@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync, spawn } from 'node:child_process';
-import { readFileSync, statSync } from 'node:fs';
+import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { createServer } from 'node:http';
 import { createInterface } from 'node:readline';
 import { parseArgs } from 'node:util';
@@ -9,7 +10,8 @@ import { capture, CAPTURING_ENV, claudeSummarizer } from './capture.js';
 import { catchUp, catchUpDue, claudeProjectsDir, IDLE_MS } from './catchup.js';
 import { buildCard, type CardData } from './card.js';
 import { cardPage } from './card-page.js';
-import { headsupHome, loadConfig } from './config.js';
+import { headsupHome, loadConfig, saveConfig } from './config.js';
+import { learningOn, readBook, resting } from './learning.js';
 import { handleUserPromptSubmit, type UserPromptSubmitInput } from './hooks/claude-code.js';
 import { claudeSettingsPath, uninstallClaudeHook } from './install.js';
 import { browserHostDirs, encode, EXTENSION_ID, installNativeHost, readMessage, uninstallNativeHost } from './native.js';
@@ -41,6 +43,8 @@ const HELP = `headsup — gives your AI a heads-up before it answers
   headsup sync-run              turn chats the extension read from your accounts into notes (runs on its own)
   headsup card                  make a card to share: which AI you use for what (opens in your browser)
   headsup tidy                  merge notes that say the same thing, set aside ones a newer note replaced (runs on its own)
+  headsup learning [on|off|reset]
+                                see which notes are resting because you took them out or answers ignored them
   headsup capture --session <id> --transcript <path> --cwd <dir>
                                 save notes from a Claude Code session (SessionEnd runs this)
   headsup catch-up              save notes from Claude Code sessions that went quiet or never ended,
@@ -312,6 +316,30 @@ async function main(argv: string[]): Promise<number> {
       if (!values['no-open']) spawn(process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'explorer' : 'xdg-open', [url], { stdio: 'ignore', detached: true }).unref();
       console.log(`Your card is at ${url} (this page stops in 20 minutes; Ctrl-C to stop now)`);
       await new Promise(() => {}); // keep serving
+      return 0;
+    }
+    case 'learning': {
+      // Learning only rests notes for a while; it never deletes them or touches sharing rules.
+      const arg = positionals[1];
+      if (arg === 'on' || arg === 'off') {
+        saveConfig({ ...config, learning: arg === 'on' });
+        console.log(`learning is ${arg}`);
+        return 0;
+      }
+      if (arg === 'reset') {
+        mkdirSync(join(store.home, 'state'), { recursive: true });
+        writeFileSync(join(store.home, 'state', 'learning.json'), '{}');
+        console.log('learning reset: every note starts fresh');
+        return 0;
+      }
+      const book = readBook(store.home);
+      const rest = resting(store.home);
+      const byId = new Map(store.list().map((n) => [n.id, n]));
+      console.log(`learning is ${learningOn(config) ? 'on' : 'off'} · ${Object.keys(book).length} notes with evidence · ${rest.size} resting`);
+      for (const [id, e] of rest) {
+        const why = e.reason === 'removed' ? `taken out ${e.removed}×` : `answers drew on it ${e.used} of ${e.used + e.ignored}×`;
+        console.log(`  ${id}  until ${e.restUntil!.slice(0, 10)}  ${why}  ${byId.get(id)?.body.slice(0, 80) ?? ''}`);
+      }
       return 0;
     }
     case 'tidy': {

@@ -38,6 +38,39 @@ export function readAgentContext(agent: string, cwd: string): string {
 }
 
 // Reads the tail of a JSONL transcript and keeps only message text, ignoring tool payloads' structure.
+function tailLines(path: string): string[] {
+  const size = statSync(path).size;
+  const start = Math.max(0, size - MAX_TRANSCRIPT_BYTES);
+  const buf = Buffer.alloc(size - start);
+  const fd = openSync(path, 'r');
+  try {
+    readSync(fd, buf, 0, buf.length, start);
+  } finally {
+    closeSync(fd);
+  }
+  return buf.toString('utf8').split('\n');
+}
+
+// The assistant's text since the person last typed something: what answered the previous prompt.
+export function lastReply(path: string | undefined): string {
+  if (!path || !existsSync(path)) return '';
+  const parts: string[] = [];
+  for (const line of tailLines(path)) {
+    let e: { type?: string; isMeta?: boolean; message?: { content?: unknown } };
+    try {
+      e = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    const content = e.message?.content;
+    if (e.type === 'user' && !e.isMeta && typeof content === 'string') parts.length = 0;
+    else if (e.type === 'assistant' && Array.isArray(content)) {
+      for (const b of content as Array<{ type?: string; text?: string }>) if (b?.type === 'text' && b.text) parts.push(b.text);
+    }
+  }
+  return parts.join('\n');
+}
+
 export function readTranscript(path: string | undefined): string {
   if (!path || !existsSync(path)) return '';
   const size = statSync(path).size;
