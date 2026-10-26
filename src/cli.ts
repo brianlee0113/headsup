@@ -14,6 +14,7 @@ import { headsupHome, loadConfig, saveConfig } from './config.js';
 import { learningOn, readBook, resting } from './learning.js';
 import { handleUserPromptSubmit, type UserPromptSubmitInput } from './hooks/claude-code.js';
 import { hooksPath, uninstallHook } from './install.js';
+import { recheckSpaces } from './spaces.js';
 import { browserHostDirs, encode, EXTENSION_ID, installNativeHost, readMessage, uninstallNativeHost } from './native.js';
 import { handleWeb, type WebRequest } from './web.js';
 import type { NoteType } from './note.js';
@@ -42,6 +43,7 @@ const HELP = `headsup — gives your AI a heads-up before it answers
   headsup log
   headsup sync-run              turn chats the extension read from your accounts into notes (runs on its own)
   headsup card                  make a card to share: which AI you use for what (opens in your browser)
+  headsup recheck-spaces        move notes from web chats that are about your job into work (runs on its own once)
   headsup tidy                  merge notes that say the same thing, set aside ones a newer note replaced (runs on its own)
   headsup learning [on|off|reset]
                                 see which notes are resting because you took them out or answers ignored them
@@ -351,6 +353,13 @@ async function main(argv: string[]): Promise<number> {
       // Normally runs on its own after new notes come in; this runs a pass now.
       const r = await tidy(store, claudeSummarizer());
       console.log(r ? `merged ${r.merged} notes · took out ${r.dropped} · moved to ${store.home}/archive${r.failed ? ` · ${r.failed} spaces failed` : ''}` : 'a tidy pass is already running');
+      return 0;
+    }
+    case 'recheck-spaces': {
+      // Normally runs once on its own when synced chats come in.
+      const r = await recheckSpaces(store, config, claudeSummarizer());
+      console.log(`looked at ${r.checked} notes from web chats · moved ${r.moved.length} to work${r.failed ? ` · ${r.failed} batches failed, try again` : ''}`);
+      for (const n of r.moved) console.log(`  ${n.id}  ${n.body}`);
       return 0;
     }
     case 'sync-run': {

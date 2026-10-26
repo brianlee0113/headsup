@@ -6,10 +6,11 @@
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseNotes, reviewNotes, saveNotes, type Summarize } from './capture.js';
+import { parseNotes, reviewNotes, saveNotes, WORK_SPACE, type Summarize } from './capture.js';
 import type { Config } from './config.js';
 import { buildImportPrompt, parseChatGPTChat, planImport, type Chat, type ExportChat } from './import/chatgpt.js';
 import { redactSecrets } from './secrets.js';
+import { markChecked, recheckSpaces, spacesCheckDue } from './spaces.js';
 import type { Store } from './store.js';
 
 export const SYNC_AGENTS: Record<string, { agent: string; label: string }> = {
@@ -168,6 +169,8 @@ export async function runSync(store: Store, config: Config, summarize: Summarize
   if (!release) return null; // another runner is on it and will pick up what was just queued
   const total: SyncRunResult = { chats: 0, saved: 0, failed: 0 };
   try {
+    // Web notes saved before they were sorted into work and personal get that look once.
+    if (spacesCheckDue(store, config)) await recheckSpaces(store, config, summarize);
     // Chats can arrive while this runs; keep going until a pass finds the queue empty or only failures.
     for (;;) {
       const r = await runPass(store, config, summarize, opts.concurrency ?? 2);
@@ -229,10 +232,11 @@ async function runPass(store: Store, config: Config, summarize: Summarize, concu
       while (next < plan.batches.length) {
         const batch = plan.batches[next++]!;
         try {
-          const existing = store.list().filter((n) => n.space === config.defaultSpace);
+          const existing = store.list().filter((n) => n.space === config.defaultSpace || n.space === WORK_SPACE);
           const reply = await summarize(buildImportPrompt(batch, existing, label));
           if (!reply.includes('[')) throw new Error('no JSON in reply');
-          const r = saveNotes(await reviewNotes(parseNotes(reply, NOTES_PER_BATCH), existing, summarize), existing, store, { space: config.defaultSpace, source: agent });
+          const r = saveNotes(await reviewNotes(parseNotes(reply, NOTES_PER_BATCH), existing, summarize), existing, store, { space: config.defaultSpace, source: agent, workSpace: WORK_SPACE });
+          markChecked(store.home, r.saved.map((n) => n.id));
           result.saved += r.saved.length;
           for (const c of batch) finish(worth.find((w) => w.chat.id === c.id)!);
           store.log({ event: 'synced', agent, chats: batch.map((c) => c.id), saved: r.saved.map((n) => n.id), skipped: r.skipped });

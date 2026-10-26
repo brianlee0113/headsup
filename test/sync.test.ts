@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type { Prompt } from '../src/capture.js';
 import { DEFAULT_CONFIG } from '../src/config.js';
 import { Store } from '../src/store.js';
+import { recheckSpaces } from '../src/spaces.js';
 import { handleSync, parseClaudeChat, readState, runSync, syncStatus } from '../src/sync.js';
 import { handleWeb } from '../src/web.js';
 
@@ -138,6 +139,30 @@ describe('turning queued chats into notes', () => {
     expect(prompts[0]!.user).toContain('Question 9.');
     expect(prompts[0]!.user).toContain('Question 6.');
     expect(prompts[0]!.user).not.toContain('Question 0.');
+  });
+
+  it('files notes about the person\'s job under work: a web chat has no folder to tell', async () => {
+    const { store, opts } = setup();
+    handleSync({ type: 'sync-chats', site: 'chatgpt.com', chats: [chatgpt('a', '2026-10-20', [['user', long('Hi.')], ['assistant', 'Done.']])] }, store, opts);
+    const two = JSON.stringify([
+      { type: 'fact', body: 'Q4 OKR at Lumen: cut checkout drop-off from 15% to 10%', topics: ['okr'], space: 'work' },
+      { type: 'fact', body: 'Training for a half marathon in November', topics: ['running'], space: 'personal' },
+    ]);
+    await runSync(store, DEFAULT_CONFIG, async (p) => (p.system.includes('review') ? '{"keep":[0,1]}' : two));
+    expect(store.list().map((n) => [n.space, n.body.slice(0, 10)]).sort()).toEqual([['personal', 'Training f'], ['work', 'Q4 OKR at ']]);
+  });
+
+  it('moves web notes saved before that sorting, once', async () => {
+    const store = new Store(tmp());
+    const okr = store.add({ type: 'fact', space: 'personal', source: 'chatgpt', body: 'Q4 OKR at Lumen: cut checkout drop-off from 15% to 10%' }).note!;
+    store.add({ type: 'fact', space: 'personal', source: 'chatgpt', body: 'Training for a half marathon in November' });
+    store.add({ type: 'how', space: 'personal', source: 'claude-code', body: 'Uses pnpm' }); // a folder decided this one
+    let calls = 0;
+    const r = await recheckSpaces(store, DEFAULT_CONFIG, async (p) => (calls++, p.user.split('\n').find((l) => l.includes('OKR'))!.startsWith('0') ? '{"work":[0]}' : '{"work":[1]}'));
+    expect(r.moved.map((n) => n.id)).toEqual([okr.id]);
+    expect(store.list().find((n) => n.id === okr.id)!.space).toBe('work');
+    expect(await recheckSpaces(store, DEFAULT_CONFIG, async () => (calls++, '{"work":[]}'))).toMatchObject({ checked: 0 });
+    expect(calls).toBe(1);
   });
 
   it('keeps a failed batch queued for next time', async () => {

@@ -78,6 +78,15 @@ export class Store {
     writeFileSync(this.filePath(note), serializeNote(note));
   }
 
+  // Files a note under another space (a web note found to be about work).
+  move(note: Note, space: string): Note {
+    const moved = { ...note, space };
+    mkdirSync(this.notesDir(space), { recursive: true });
+    writeFileSync(this.filePath(moved), serializeNote(moved));
+    rmSync(this.filePath(note), { force: true });
+    return moved;
+  }
+
   remove(id: string): boolean {
     const note = this.list().find((n) => n.id === id);
     if (!note) return false;

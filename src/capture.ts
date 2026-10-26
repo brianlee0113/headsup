@@ -20,7 +20,11 @@ export interface CapturedNote {
   type: NoteType;
   body: string;
   topics: string[];
+  work?: boolean; // chats with no folder (web, imports): the summarizer says which notes are about their job
 }
+
+// The space notes about someone's job go to when there is no folder to tell (see buildImportPrompt).
+export const WORK_SPACE = 'work';
 
 export interface Prompt {
   system: string; // the extraction instructions
@@ -138,13 +142,14 @@ export function parseNotes(text: string, max = MAX_NOTES): CapturedNote[] {
   }
   if (!Array.isArray(raw)) return [];
   return raw
-    .filter((n): n is { type: string; body: string; topics?: unknown } =>
+    .filter((n): n is { type: string; body: string; topics?: unknown; space?: unknown } =>
       !!n && typeof n === 'object' && (n.type === 'how' || n.type === 'fact') && typeof n.body === 'string' && n.body.trim().length > 0)
     .slice(0, max)
     .map((n) => ({
       type: n.type as NoteType,
       body: clip(n.body.trim(), MAX_BODY),
       topics: Array.isArray(n.topics) ? n.topics.filter((t): t is string => typeof t === 'string').map((t) => t.trim().toLowerCase()).filter(Boolean).slice(0, 4) : [],
+      ...(n.space === 'work' ? { work: true } : {}),
     }));
 }
 
@@ -207,16 +212,19 @@ export function saveNotes(
   found: CapturedNote[],
   existing: Note[],
   store: Store,
-  base: { space: string; source: string; project?: string },
+  // workSpace: where notes the summarizer marked as being about the person's job go, for chats with no
+  // folder to decide. Without it, a folder decided and every note goes to base.space.
+  base: { space: string; source: string; project?: string; workSpace?: string },
 ): { saved: Note[]; skipped: number } {
   const saved: Note[] = [];
   let skipped = 0;
-  for (const n of found) {
+  const { workSpace, ...into } = base;
+  for (const { work, ...n } of found) {
     if (duplicates(n.body, [...existing, ...saved])) {
       skipped++;
       continue;
     }
-    const { note } = store.add({ ...n, ...base });
+    const { note } = store.add({ ...n, ...into, ...(work && workSpace ? { space: workSpace } : {}) });
     if (note) saved.push(note);
     else skipped++; // the whole note was a secret
   }
