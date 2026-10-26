@@ -15,7 +15,7 @@ import { detect } from '../src/gap.js';
 import { Store } from '../src/store.js';
 
 const ROOT = join(new URL('.', import.meta.url).pathname, '..');
-const MEMORY_RUN = process.env.GATE_MEMORY_RUN ?? 'r10'; // saved memory the persona check replays: r9 with web notes sorted into work (sim/recheck-memory.ts)
+const MEMORY_RUN = process.env.GATE_MEMORY_RUN ?? 'r15'; // saved memory the persona check replays (sam r15, jieun r13: current capture rules)
 const PERSONAS = ['sam', 'jieun'];
 const BASELINE = join(ROOT, '.local', 'gate-baseline.json'); // includes real-label numbers, so it stays local
 const TOLERANCE = { rate: 0.02, count: 1 };

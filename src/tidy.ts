@@ -43,7 +43,7 @@ export function buildTidyPrompt(notes: Note[]): Prompt {
 
 Return two kinds of changes, and only when you are sure:
 - merge: two or more notes that say the same thing, even in different words. Write one note that keeps every detail from them, in the notes' own language, under 220 characters.
-- drop: a note a NEWER note has made untrue (plans that happened, a job that changed, a preference reversed). Name the newer note in "because".
+- drop: a note a NEWER note has made untrue (plans that happened, a job that changed, a preference reversed). That includes a newer note saying the opposite about the same thing, even in other words or narrowed to one project: "commit only when asked" then "commit without asking" means the older one goes. Name the newer note in "because".
 
 Leave everything else alone. Notes that are merely related are not the same thing. When unsure, leave it.
 Each note id may appear in at most one change.
@@ -98,11 +98,7 @@ export function parseTidy(text: string, notes: Note[]): { merge: Merge[]; drop: 
   return { merge, drop };
 }
 
-function archive(store: Store, note: Note, day: string): void {
-  const dir = join(store.home, 'archive', day);
-  mkdirSync(dir, { recursive: true });
-  renameSync(store.filePath(note), join(dir, `${note.id}.md`));
-}
+const archive = (store: Store, note: Note, day: string) => store.archive(note, new Date(`${day}T12:00:00Z`));
 
 export interface TidyResult {
   merged: number; // notes that went into a merged note

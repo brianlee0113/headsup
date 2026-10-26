@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs';
+import { appendFileSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { parseNote, serializeNote, type Note, type NoteType } from './note.js';
@@ -76,6 +76,13 @@ export class Store {
   // Rewrites a note in place (type, share, topics or body changed in review).
   update(note: Note): void {
     writeFileSync(this.filePath(note), serializeNote(note));
+  }
+
+  // Sets a note aside in <home>/archive/<date>/: out of use, never deleted.
+  archive(note: Note, now = new Date()): void {
+    const dir = join(this.home, 'archive', now.toISOString().slice(0, 10));
+    mkdirSync(dir, { recursive: true });
+    renameSync(this.filePath(note), join(dir, `${note.id}.md`));
   }
 
   // Files a note under another space (a web note found to be about work).

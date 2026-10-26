@@ -22,7 +22,7 @@ export const TARGETS = {
 };
 
 interface Audit {
-  notes: Array<{ id: string; items: string[]; verdict: 'accurate' | 'wrong' | 'stale' | 'junk'; typeOk: boolean; spaceOk: boolean; duplicateOf: string | null }>;
+  notes: Array<{ id: string; items: string[]; verdict: 'accurate' | 'wrong' | 'stale' | 'junk' | 'unlisted'; typeOk: boolean; spaceOk: boolean; duplicateOf: string | null }>;
   covered: string[];
 }
 
@@ -32,9 +32,10 @@ const noteLine = (n: Note) => `- ${n.id} [${n.type}, ${n.space}, from ${n.source
 
 async function audit(p: Persona, week: number, notes: Note[]): Promise<Audit> {
   const system = `You audit a memory store against the ground truth about a fictional person (as of week ${week}). Return ONLY JSON:
-{"notes": [{"id": "<note id>", "items": ["<ground-truth ids this note expresses>"], "verdict": "accurate|wrong|stale|junk", "typeOk": true, "spaceOk": true, "duplicateOf": "<earlier note id saying the same thing, or null>"}], "covered": ["<key ground-truth ids that some accurate note expresses with its current value>"]}
-- accurate: true per the ground truth now. wrong: contradicts it. stale: was true but a later value replaced it. junk: a one-off task detail, temporary state or trivia not worth remembering (even if true).
-- typeOk: "how" notes are habits and preferences, "fact" notes are facts. spaceOk: the note's space matches the item's space (work/personal); for junk use true.
+{"notes": [{"id": "<note id>", "items": ["<ground-truth ids this note expresses>"], "verdict": "accurate|wrong|stale|junk|unlisted", "typeOk": true, "spaceOk": true, "duplicateOf": "<earlier note id saying the same thing, or null>"}], "covered": ["<key ground-truth ids that some accurate note expresses with its current value>"]}
+- accurate: true per the ground truth now. wrong: contradicts it. stale: was true but a later value replaced it. junk: a one-off task detail, temporary state, trivia, or a codebase internal (which library, endpoint, service or logging setup one repo uses, how one endpoint behaves) not worth remembering (even if true).
+- unlisted: a lasting habit, preference or fact about the PERSON that the ground truth doesn't mention and nothing in it contradicts, worth remembering for later requests in other tools (how they write tickets, format reports, run meetings, choose libraries). Not junk just because it is missing from the ground truth; but a codebase internal is junk.
+- typeOk: "how" notes are habits and preferences, "fact" notes are facts. spaceOk: the note's space matches the item's space (work/personal); for junk use true; for unlisted, judge from what the note is about.
 - Every note gets exactly one entry.`;
   return askJson<Audit>('sonnet', system, `GROUND TRUTH:\n${truth(p, week)}\n\nNOTES:\n${notes.map(noteLine).join('\n')}`);
 }
@@ -140,7 +141,8 @@ async function scorePersona(run: string, id: string, fast = false) {
   const memoryOf = (a: Audit) => {
     const v = (k: string) => a.notes.filter((n) => n.verdict === k).length;
     return {
-      accurate: ratio(v('accurate'), a.notes.length - v('junk')),
+      // Lasting notes the ground truth doesn't list (unlisted) are neither junk nor checked for accuracy.
+      accurate: ratio(v('accurate'), a.notes.length - v('junk') - v('unlisted')),
       stale: ratio(v('stale'), a.notes.length), junk: ratio(v('junk'), a.notes.length),
       duplicate: ratio(a.notes.filter((n) => n.duplicateOf).length, a.notes.length),
       keyCoverage: ratio(a.covered.filter((c) => revealedKeys.includes(c)).length, revealedKeys.length),

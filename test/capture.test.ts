@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync, appendFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { buildPrompt, capture, parseNotes, readConversation, type Summarize } from '../src/capture.js';
+import { buildPrompt, capture, parseNotes, readConversation, saveNotes, type Summarize } from '../src/capture.js';
 import { DEFAULT_CONFIG, type Config } from '../src/config.js';
 import { detect } from '../src/gap.js';
 import type { Note } from '../src/note.js';
@@ -146,5 +146,23 @@ describe('reviewing candidates before they are saved', () => {
     let calls = 0;
     expect(await reviewNotes([], [], async () => { calls++; return '{}'; })).toEqual([]);
     expect(calls).toBe(0);
+  });
+});
+
+describe('an update to an existing note', () => {
+  it('sets the old note aside, so the old and new figures never go in together', () => {
+    const store = new Store(mkdtempSync(join(tmpdir(), 'headsup-')));
+    const old = store.add({ type: 'fact', space: 'personal', source: 'claude-code', body: 'Quorum has about 140 weekly users across 9 clubs' }).note!;
+    const found = parseNotes(JSON.stringify([{ type: 'fact', body: 'Quorum has about 180 weekly users across 12 clubs since v0.4', topics: ['quorum'], replaces: old.id }]));
+    saveNotes(found, store.list(), store, { space: 'personal', source: 'claude-code' });
+    expect(store.list().map((n) => n.body)).toEqual(['Quorum has about 180 weekly users across 12 clubs since v0.4']);
+    expect(store.readLog().at(-1)).toMatchObject({ event: 'replaced', note: old.id });
+  });
+
+  it('ignores an id that is not one of the notes it was shown', () => {
+    const store = new Store(mkdtempSync(join(tmpdir(), 'headsup-')));
+    store.add({ type: 'fact', space: 'personal', source: 'claude-code', body: 'Quorum has about 140 weekly users' });
+    saveNotes(parseNotes('[{"type":"fact","body":"Quorum moved to Neon Postgres","replaces":"made-up"}]'), store.list(), store, { space: 'personal', source: 'claude-code' });
+    expect(store.list()).toHaveLength(2);
   });
 });
