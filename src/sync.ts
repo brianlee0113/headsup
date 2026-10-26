@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { parseNotes, reviewNotes, saveNotes, type Summarize } from './capture.js';
 import type { Config } from './config.js';
 import { buildImportPrompt, parseChatGPTChat, planImport, type Chat, type ExportChat } from './import/chatgpt.js';
+import { redactSecrets } from './secrets.js';
 import type { Store } from './store.js';
 
 export const SYNC_AGENTS: Record<string, { agent: string; label: string }> = {
@@ -109,7 +110,9 @@ export function handleSync(req: SyncRequest, store: Store, opts: { now?: Date; s
   for (const raw of req.chats) {
     const chat = parseChat(target.agent, raw); // a shape we don't know fails the whole request, so the extension can say so
     if (chat.updated < new Date(state.since)) continue;
-    const entry: Queued = { agent: target.agent, chat: { ...chat, updated: chat.updated.toISOString() } };
+    // The queue is on disk until summarized (longer if summarizing fails), so secrets come out first.
+    const turns = chat.turns.map((t) => ({ ...t, text: redactSecrets(t.text).text }));
+    const entry: Queued = { agent: target.agent, chat: { ...chat, turns, updated: chat.updated.toISOString() } };
     writeFileSync(join(queueDir(home), `${target.agent}-${safe(chat.id)}.json`), JSON.stringify(entry));
     state.chats[chat.id] = { updated: entry.chat.updated, turns: state.chats[chat.id]?.turns ?? 0 };
     queued++;

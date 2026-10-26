@@ -44,6 +44,10 @@ describe('what goes in', () => {
     expect(aboutLines(notes, DEFAULT_CONFIG, 'claude-ai', 1200).ids).toContain('from-chatgpt');
   });
 
+  it('follows the sharing preset: Cautious keeps work how-you-work notes out', () => {
+    expect(aboutLines(notes, { ...DEFAULT_CONFIG, preset: 'cautious' }, 'chatgpt', 1200).ids).toEqual(['how-new', 'how-old', 'fact']);
+  });
+
   it('fits the room it is given', () => {
     const r = aboutLines(notes, DEFAULT_CONFIG, 'chatgpt', aboutBlock(['note how-new']).length);
     expect(r.lines).toEqual(['note how-new']);

@@ -59,6 +59,16 @@ describe('reading chats from the sites', () => {
   });
 });
 
+describe('the queue on disk', () => {
+  it('holds chats with secrets already taken out', () => {
+    const { store, opts } = setup();
+    handleSync({ type: 'sync-chats', site: 'chatgpt.com', chats: [chatgpt('k', '2026-10-20', [['user', long('My key is sk-proj-abcdefghijklmnopqrstuvwx, why does it fail?')], ['assistant', 'Rotate it.']])] }, store, opts);
+    const queued = readFileSync(join(store.home, 'sync', 'queue', 'chatgpt-k.json'), 'utf8');
+    expect(queued).not.toContain('sk-proj-abcdefghijklmnopqrstuvwx');
+    expect(queued).toContain('[openai-key removed]');
+  });
+});
+
 describe('catching up', () => {
   it('starts 12 months back with consent to backfill, otherwise now', () => {
     expect(setup(true).start.since).toBe('2025-10-21T10:00:00.000Z');

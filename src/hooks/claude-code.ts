@@ -154,7 +154,7 @@ function logDecision(store: Store, input: UserPromptSubmitInput, d: Decision, fr
     targetSpace: d.targetSpace,
     fresh,
     cwd: input.cwd,
-    prompt: input.prompt.slice(0, 200),
+    prompt: input.prompt,
     signals: d.signals,
     injected: d.inject.map((n) => n.id),
     asked: d.ask.map((n) => n.id),

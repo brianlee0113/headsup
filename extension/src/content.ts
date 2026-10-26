@@ -18,6 +18,7 @@ type Reply = Detect | { type: 'error'; message: string; unreachable?: boolean } 
 
 const DEBOUNCE_MS = 450;
 const MIN_PROMPT = 8;
+const SENT_CHECK_MS = 1500; // the sites clear the composer well within this once a message is taken
 const HEALTH_GRACE_MS = 8000;
 const SYNC_DELAY_MS = 5000; // let the page load its own requests first
 const SYNC_GAP_MS = 1000; // between chat fetches, so a backfill reads like a person scrolling, not a burst
@@ -32,6 +33,7 @@ function start(site: Site): void {
   const state = {
     enabled: true,
     detect: null as Detect | null,
+    detectFor: null as string | null, // the exact draft `detect` was worked out for
     unreachable: false,
     unchecked: new Set<string>(),
     askAccepted: false,
@@ -285,6 +287,7 @@ function start(site: Site): void {
     const mine = ++seq;
     if (!state.enabled || prompt.length < MIN_PROMPT) {
       state.detect = null;
+      state.detectFor = null;
       render();
       return;
     }
@@ -299,6 +302,7 @@ function start(site: Site): void {
       for (const id of state.unchecked) if (!ids.has(id)) state.unchecked.delete(id);
       if (!d.ask.length) state.askAccepted = false;
       state.detect = d;
+      state.detectFor = prompt;
     }
     render();
   }
@@ -340,8 +344,7 @@ function start(site: Site): void {
     setTimeout(() => (bypass = false), 0);
   }
 
-  function report(prompt: string, notes: WebNote[]): void {
-    const d = state.detect;
+  function report(prompt: string, notes: WebNote[], d: Detect | null): void {
     if (!d) return;
     const ids = new Set(notes.map((n) => n.id));
     void send({
@@ -354,12 +357,34 @@ function start(site: Site): void {
       removed: d.inject.filter((n) => !ids.has(n.id)).map((n) => n.id), // unticked before sending
       blocked: d.blocked.ids,
     });
+  }
+
+  // A send is recorded only once the site took it, which shows as the draft leaving the composer. A
+  // send the site refused would otherwise count in review history and learning as shared.
+  function reportWhenSent(prompt: string, notes: WebNote[]): void {
+    const d = state.detect;
     state.detect = null;
+    state.detectFor = null;
     state.unchecked.clear();
     state.askAccepted = false;
     state.open = false;
     render();
+    const start = prompt.slice(0, 40);
+    setTimeout(() => {
+      if (!draft().includes(start)) report(prompt, notes, d);
+    }, SENT_CHECK_MS);
   }
+
+  function sendWith(composer: HTMLElement, prompt: string, notes: WebNote[]): void {
+    if (notes.length) appendBlock(composer, buildBlock(notes));
+    reportWhenSent(prompt, notes);
+    setTimeout(() => submit(composer), 60); // let the editor settle before the real send
+  }
+
+  const takeOver = (e: Event) => {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  };
 
   // Returns true when the send was taken over to add notes first.
   function onSend(e: Event): boolean {
@@ -367,16 +392,24 @@ function start(site: Site): void {
     if (!composer || !state.enabled) return false;
     clearTimeout(timer);
     const prompt = draft();
-    const notes = included();
-    if (!notes.length || composer.innerText.includes(BLOCK_MARKER)) {
-      report(prompt, []);
+    if (composer.innerText.includes(BLOCK_MARKER)) {
+      reportWhenSent(prompt, []);
       return false;
     }
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    appendBlock(composer, buildBlock(notes));
-    report(prompt, notes);
-    setTimeout(() => submit(composer), 60); // let the editor settle before the real send
+    // Sent before the typing pause ran out: the notes on screen were picked for an earlier draft, so
+    // this exact text is checked first.
+    if (prompt.length >= MIN_PROMPT && state.detectFor !== prompt) {
+      takeOver(e);
+      void ask().then(() => sendWith(composer, prompt, state.detectFor === prompt ? included() : []));
+      return true;
+    }
+    const notes = included();
+    if (!notes.length) {
+      reportWhenSent(prompt, []);
+      return false;
+    }
+    takeOver(e);
+    sendWith(composer, prompt, notes);
     return true;
   }
 

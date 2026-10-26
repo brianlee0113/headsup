@@ -85,7 +85,7 @@ export function handleWeb(req: WebRequest, store: Store, config: Config, version
       if (!req.injected.length && !req.offered.length && !req.blocked.length) return { type: 'ok' };
       const session = `web-${Date.now()}`;
       store.log({
-        event: 'heads-up', agent, session, targetSpace: config.defaultSpace, prompt: req.prompt.slice(0, 200), signals: {},
+        event: 'heads-up', agent, session, targetSpace: config.defaultSpace, prompt: req.prompt, signals: {},
         injected: req.injected, asked: req.offered, blocked: req.blocked, skippedKnown: [],
       });
       // On the web the answer comes before sending: ticked notes count as shared, the rest as declined.

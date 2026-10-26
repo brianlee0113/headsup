@@ -90,13 +90,23 @@ try {
   await sleep(1500);
   console.log('third sent has block:', JSON.parse(await js('JSON.stringify(window.__sentTexts)'))[2]?.includes('payout retries'));
 
+  // 4) Sent before the typing pause runs out: the note is looked up for this exact text at send time
+  await type('Write a one-line pitch for Quorum for student clubs');
+  await key('Enter', 'Enter', 13, '\r');
+  await sleep(1500);
+  console.log('fourth sent:', JSON.stringify(JSON.parse(await js('JSON.stringify(window.__sentTexts)'))[3]));
+
+  await sleep(1000); // a send is recorded once the site has taken it (1.5 s after sending)
   const sentTexts = JSON.parse(await js('JSON.stringify(window.__sentTexts)'));
+  const logged = readFileSync(HOME + '/log.jsonl', 'utf8').trim().split('\n').map((l) => JSON.parse(l));
   const checks = {
     'same-space note added at send': sentTexts[0]?.includes('Quorum v0.3 adds recurring meetings'),
     'block folded into a pill': (await js(`document.querySelector('.headsup-pill')?.textContent`)) === '1 note',
     'work note left out without an OK': !sentTexts[1]?.includes('Northwind'),
     'work note added after including it': !!sentTexts[2]?.includes('payout retries'),
     'unticked work note left out': !sentTexts[2]?.includes('Northwind internship'),
+    'sent before the pause, still checked for this text': !!sentTexts[3]?.includes('140 weekly users'),
+    'every send recorded once the site took it': logged.filter((e) => e.event === 'heads-up').length === 4,
   };
   for (const [name, ok] of Object.entries(checks)) console.log(`${ok ? '✓' : '✗'} ${name}`);
   if (Object.values(checks).some((ok) => !ok)) done(1);

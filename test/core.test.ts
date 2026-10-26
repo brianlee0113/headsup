@@ -52,6 +52,14 @@ describe('secrets', () => {
     expect(r.text).not.toContain('sk_live');
   });
 
+  it('takes secrets out of a prompt before it goes in the log', () => {
+    const store = new Store(mkdtempSync(join(tmpdir(), 'headsup-')));
+    store.log({ event: 'heads-up', prompt: `${'x'.repeat(180)} sk-ant-abcdefghijklmnopqrstuvwxyz0123` });
+    const logged = String(store.readLog()[0]!.prompt);
+    expect(logged).not.toContain('sk-ant-abcdefghij');
+    expect(logged.length).toBeLessThanOrEqual(200);
+  });
+
   it('saves nothing when the note was only a secret', () => {
     const store = new Store(mkdtempSync(join(tmpdir(), 'headsup-')));
     expect(store.add({ type: 'fact', space: 'work', source: 'claude-code', body: 'ghp_abcdefghijklmnopqrstuvwxyz0123456789' }).note).toBeUndefined();

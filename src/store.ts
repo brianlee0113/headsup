@@ -85,9 +85,12 @@ export class Store {
     return true;
   }
 
+  // A prompt goes in as its start, with secrets taken out first (before cutting, so a key cut in half
+  // can't slip past the patterns).
   log(entry: Record<string, unknown>): void {
     mkdirSync(this.home, { recursive: true });
-    appendFileSync(join(this.home, 'log.jsonl'), JSON.stringify({ at: new Date().toISOString(), ...entry }) + '\n');
+    const record = typeof entry.prompt === 'string' ? { ...entry, prompt: redactSecrets(entry.prompt).text.slice(0, 200) } : entry;
+    appendFileSync(join(this.home, 'log.jsonl'), JSON.stringify({ at: new Date().toISOString(), ...record }) + '\n');
   }
 
   readLog(): Array<Record<string, unknown>> {
