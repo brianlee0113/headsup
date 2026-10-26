@@ -119,7 +119,7 @@ Every note is either **how you work** (preferences, style, conventions) or a **f
 | Where you use AI | How headsup connects | What you get |
 |---|---|---|
 | **Claude Code** | hooks | Checked on every prompt, notes added before the answer |
-| **Codex CLI** | hooks | The same. Trust the hook once with `/hooks` |
+| **Codex** (CLI and app) | hooks | The same. Trust the hook once with `/hooks`. The app adds the notes but doesn't show the heads-up line |
 | **chatgpt.com · claude.ai** | Chrome extension | Notes attached as you hit send. Untick any first |
 | **ChatGPT · Claude apps** (phone, desktop) | your account, through the extension | App chats are collected, and an "About me" block in your custom instructions is kept up to date (opt-in). No per-question notes |
 | Gemini CLI | hooks | Coming soon |
