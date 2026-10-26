@@ -8,7 +8,8 @@ export interface Item {
   confidential?: boolean; // work detail that should not leave work without an OK
   sensitive?: 'health' | 'money';
   secret?: string; // a value that must never reach memory
-  changes?: { week: number; text: string }; // replaces text from that week on
+  changes?: { week: number; text: string }; // replaces text from that week on (a fact, or a habit that changed)
+  project?: string; // a habit that holds only in this project or context; elsewhere it should stay out
 }
 
 export interface Persona {
