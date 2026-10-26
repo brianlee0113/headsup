@@ -40,7 +40,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc --noEmit -p extension",
     "pack:ext": "pnpm build:ext && node scripts/pack-extension.mjs",
-    "build:ext": "tsup extension/src/background.ts extension/src/content.ts extension/src/popup.ts --format iife --target chrome120 --out-dir extension/build --clean && for f in background content popup; do mv extension/build/$f.global.js extension/build/$f.js; done && cp -R extension/manifest.json extension/popup.html extension/icons extension/build/"
+    "build:ext": "tsup extension/src/background.ts extension/src/content.ts extension/src/popup.ts --format iife --target chrome120 --out-dir extension/build --clean && for f in background content popup; do mv extension/build/$f.global.js extension/build/$f.js; done && cp -R extension/manifest.json extension/popup.html extension/icons extension/build/",
+    "gate": "pnpm typecheck && pnpm test && tsx sim/gate.ts"
   },
   "devDependencies": {
     "@types/chrome": "^0.3.5",
