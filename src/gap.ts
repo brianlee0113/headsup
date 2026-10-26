@@ -190,7 +190,12 @@ export function detect(input: DetectInput): Decision {
   // feature name), so it counts as writing about oneself only with "my" / "내" / "제" in front.
   const selfRefs = inProject ? signals.references.filter((r) => !SELF_WRITING.test(r) || POSSESSIVE_SELF.test(prompt)) : signals.references;
   const aboutSelf = !inProject && hasSignal && (signals.references.length > 0 || conceptsOf(prompt).includes('profile'));
-  const eligible = hits.filter((h) => relevantEnough(h, hasSignal, foreign(h.note)) && fitsGenre(h.note) && inScope(h.note, { prompt, project: inProject, notes: input.notes, aboutSelf, namesSelf: selfRefs.length > 0 || (!!signals.usageMismatch && sharesSpecificConcept(h.note, promptConceptSet)) }));
+  // After the opening, the agent has the conversation to go on: a how-you-work note comes in only for a
+  // kind of task it is specifically about (tests, commits, deploys), not for sharing a broad sense like
+  // writing or format. General style notes belong at the opening.
+  const later = input.fresh === false;
+  const stillHelps = (h: Hit) => !later || hasSignal || h.note.type !== 'how' || sharesSpecificConcept(h.note, promptConceptSet);
+  const eligible = hits.filter((h) => stillHelps(h) && relevantEnough(h, hasSignal, foreign(h.note)) && fitsGenre(h.note) && inScope(h.note, { prompt, project: inProject, notes: input.notes, aboutSelf, namesSelf: selfRefs.length > 0 || (!!signals.usageMismatch && sharesSpecificConcept(h.note, promptConceptSet)) }));
   const top = eligible[0]?.score ?? 0;
   const relevant = eligible.filter((h) => h.score >= top * RELATIVE_CUTOFF).slice(0, MAX_NOTES);
 
