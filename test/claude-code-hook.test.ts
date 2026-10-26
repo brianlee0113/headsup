@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { appendFileSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -16,8 +16,8 @@ function setup() {
   return store;
 }
 
-const prompt = (store: Store, text: string, session = 's1') =>
-  handleUserPromptSubmit({ session_id: session, cwd: personalRepo, prompt: text }, store, config);
+const prompt = (store: Store, text: string, session = 's1', transcript_path?: string) =>
+  handleUserPromptSubmit({ session_id: session, cwd: personalRepo, prompt: text, ...(transcript_path ? { transcript_path } : {}) }, store, config);
 
 describe('Claude Code hook', () => {
   it('injects quietly, and only announces work facts by topic', () => {
@@ -56,5 +56,19 @@ describe('Claude Code hook', () => {
     const store = setup();
     expect(prompt(store, '<task-notification>\n<status>completed</status>\n<summary>set up CI tests</summary>\n</task-notification>')).toBeNull();
     expect(store.readLog()).toHaveLength(0);
+  });
+
+  it('adds a note once per conversation, and again after the conversation is compacted', () => {
+    const store = setup();
+    const transcript = join(store.home, 'transcript.jsonl');
+    writeFileSync(transcript, '{"type":"user"}\n');
+    const vitest = (text: string) => prompt(store, text, 's2', transcript)?.hookSpecificOutput?.additionalContext ?? '';
+    expect(vitest('add tests for the parser')).toContain('Prefers Vitest');
+    expect(vitest('now add tests for the formatter')).not.toContain('Prefers Vitest');
+    expect(vitest('add tests for the router too')).toBe('');
+    appendFileSync(transcript, '{"type":"system","subtype":"compact_boundary"}\n');
+    expect(vitest('and tests for the cache')).toContain('Prefers Vitest');
+    // Another conversation starts with nothing given.
+    expect(prompt(store, 'add tests for the parser', 's3')?.hookSpecificOutput?.additionalContext).toContain('Prefers Vitest');
   });
 });

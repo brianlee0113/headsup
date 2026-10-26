@@ -55,22 +55,36 @@ if (existsSync(labelsFile)) {
     const m = /-Developer-(.+)$/.exec(d);
     cwdOf.set(f.slice(0, -6), m ? join(homedir(), 'Developer', m[1]!) : homedir());
   }
+  // Replayed in order as conversations, so a note added earlier in one isn't counted as missing later.
   const log = readFileSync(join(home, 'log.jsonl'), 'utf8').split('\n').flatMap((l) => {
-    try { return [JSON.parse(l) as { at: string; event: string; agent: string; prompt?: string; session: string }]; } catch { return []; }
-  }).filter((e) => e.event === 'heads-up' && e.prompt && label.has(e.at));
+    try { return [JSON.parse(l) as { at: string; event: string; agent: string; prompt?: string; session: string; cwd?: string }]; } catch { return []; }
+  }).filter((e) => e.event === 'heads-up' && e.prompt);
   const generic = new Set(['developer', 'projects', 'code', 'src', 'work', 'home']);
-  let needed = 0, neededCaught = 0, noiseNotes = 0, otherFacts = 0, quietNeeded = 0;
+  const sessions = new Map<string, { cwd: string; given: Set<string> }>();
+  let needed = 0, neededCaught = 0, noiseNotes = 0, otherFacts = 0, quietNeeded = 0, terminal = 0, stepped = 0, later = 0, laterStepped = 0;
   for (const e of log) {
     const web = e.agent === 'chatgpt' || e.agent === 'claude-ai';
-    const cwd = cwdOf.get(e.session) ?? homedir();
-    const d = detect({ prompt: e.prompt!, agent: e.agent, ...(web ? { space: config.defaultSpace } : { cwd }), knownText: '', notes, config });
+    const cwd = e.cwd ?? cwdOf.get(e.session) ?? homedir();
+    const was = web ? undefined : sessions.get(e.session);
+    const fresh = !was || was.cwd !== cwd;
+    const d = detect({ prompt: e.prompt!, agent: e.agent, ...(web ? { space: config.defaultSpace } : { cwd, given: was?.given ?? new Set(), fresh }), knownText: '', notes, config });
     const added = [...d.inject, ...d.ask];
+    if (!web) {
+      sessions.set(e.session, { cwd, given: new Set([...(was?.given ?? []), ...added.map((n) => n.id)]) });
+      terminal++; if (added.length) stepped++;
+      if (!fresh) { later++; if (added.length) laterStepped++; }
+    }
     const l = label.get(e.at);
-    if (l === 'needed') { needed++; if (added.length) neededCaught++; }
+    if (!l) continue;
+    // A needed note added earlier in the conversation still serves this prompt: the agent has it.
+    const servedEarlier = !web && !!was && [...detect({ prompt: e.prompt!, agent: e.agent, cwd, knownText: '', notes, config }).inject].some((n) => was.given.has(n.id));
+    if (l === 'needed') { needed++; if (added.length || servedEarlier) neededCaught++; }
     if (l === 'noise') noiseNotes += added.length;
     if (l === 'fine' && added.length) quietNeeded++;
     if (!web) otherFacts += added.filter((n) => n.type === 'fact' && n.project && n.project !== projectOf(cwd) && !generic.has(n.project.toLowerCase())).length;
   }
+  console.log(`real Claude Code prompts: stepped in on ${stepped}/${terminal}; after the opening ${laterStepped}/${later}`);
+  put('real: Claude Code prompts stepped in', terminal ? stepped / terminal : NaN, 'lower');
   put('real: "needed" prompts still served', needed ? neededCaught / needed : NaN, 'higher');
   put('real: notes on "noise" prompts', noiseNotes, 'lower', 'count');
   put('real: other projects\' facts added', otherFacts, 'lower', 'count');

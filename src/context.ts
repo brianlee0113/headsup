@@ -114,3 +114,24 @@ export function projectOf(cwd: string): string {
     dir = parent;
   }
 }
+
+export function transcriptSize(path: string | undefined): number {
+  return path && existsSync(path) ? statSync(path).size : 0;
+}
+
+// Whether the conversation was compacted after the transcript was `offset` bytes long. A compaction
+// drops the notes added before it from what the agent can see. Reads only what was appended since.
+export function compactedSince(path: string | undefined, offset: number): boolean {
+  if (!path || !existsSync(path)) return false;
+  const size = statSync(path).size;
+  if (size < offset) return true; // rewritten from scratch
+  if (size === offset) return false;
+  const buf = Buffer.alloc(size - offset);
+  const fd = openSync(path, 'r');
+  try {
+    readSync(fd, buf, 0, buf.length, offset);
+  } finally {
+    closeSync(fd);
+  }
+  return buf.includes('"compact_boundary"');
+}

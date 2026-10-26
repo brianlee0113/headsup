@@ -3,7 +3,7 @@
 
 import { agentName } from '../agents.js';
 import type { Config } from '../config.js';
-import { lastReply, readAgentContext, readTranscript } from '../context.js';
+import { compactedSince, lastReply, readAgentContext, readTranscript, transcriptSize } from '../context.js';
 import { learningOn, recordRemoved, recordShown, rememberShown, resting, settleShown } from '../learning.js';
 import { detect, type Decision } from '../gap.js';
 import type { Note } from '../note.js';
@@ -35,12 +35,20 @@ export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Stor
   const learn = learningOn(config);
   // The answer to the previous prompt shows whether the notes added to it were drawn on.
   if (learn) settleShown(store.home, input.session_id, notes, lastReply(input.transcript_path));
+  // Notes added earlier in this conversation are still in front of the agent, unless it was compacted.
+  const session = store.readSession(input.session_id);
+  const compacted = !!session && compactedSince(input.transcript_path, session.offset);
+  const given = compacted ? [] : session?.given ?? [];
+  const fresh = !session || compacted || session.cwd !== input.cwd;
+  const remember = (ids: string[]) =>
+    store.writeSession(input.session_id, { cwd: input.cwd, given: [...new Set([...given, ...ids])], offset: transcriptSize(input.transcript_path) });
   const pending = store.readPending(input.session_id);
   if (pending.length) {
     store.writePending(input.session_id, []);
     const waiting = notes.filter((n) => pending.includes(n.id));
     if (APPROVE.test(input.prompt) && waiting.length) {
       store.log({ event: 'shared-after-ask', agent: AGENT, session: input.session_id, notes: waiting.map((n) => n.id) });
+      remember(waiting.map((n) => n.id));
       return output(`shared ${count(waiting.length, 'note')} you approved`, renderNotes(waiting));
     }
     if (DECLINE.test(input.prompt)) {
@@ -58,8 +66,12 @@ export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Stor
     notes,
     config,
     ...(learn ? { resting: new Set(resting(store.home).keys()) } : {}),
+    given: new Set(given),
+    fresh,
   });
-  logDecision(store, input, decision);
+  logDecision(store, input, decision, fresh);
+  // Notes offered for approval count as given too: asking again in the same conversation only nags.
+  remember([...decision.inject, ...decision.ask].map((n) => n.id));
   if (learn && decision.inject.length) {
     const ids = decision.inject.map((n) => n.id);
     recordShown(store.home, ids);
@@ -127,13 +139,15 @@ function renderMessage(d: Decision, config: Config): string {
   return parts.join(' · ');
 }
 
-function logDecision(store: Store, input: UserPromptSubmitInput, d: Decision): void {
+function logDecision(store: Store, input: UserPromptSubmitInput, d: Decision, fresh: boolean): void {
   if (!d.inject.length && !d.ask.length && !d.blocked.length && !d.skippedKnown.length) return;
   store.log({
     event: 'heads-up',
     agent: AGENT,
     session: input.session_id,
     targetSpace: d.targetSpace,
+    fresh,
+    cwd: input.cwd,
     prompt: input.prompt.slice(0, 200),
     signals: d.signals,
     injected: d.inject.map((n) => n.id),

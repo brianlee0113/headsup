@@ -19,6 +19,12 @@ export interface AddResult {
 }
 
 // Notes live in <home>/notes/<space>/<id>.md so people can read, edit and grep them directly.
+export interface SessionState {
+  cwd: string;
+  given: string[];
+  offset: number;
+}
+
 export class Store {
   constructor(readonly home: string) {}
 
@@ -103,6 +109,21 @@ export class Store {
     mkdirSync(join(this.home, 'state'), { recursive: true });
     if (ids.length) writeFileSync(this.pendingFile(sessionId), JSON.stringify({ ids }));
     else rmSync(this.pendingFile(sessionId), { force: true });
+  }
+
+  // Per-session state: the folder of the last prompt, the notes already added (the agent still has them
+  // until the conversation is compacted), and how far the transcript had grown, to spot a compaction since.
+  readSession(sessionId: string): SessionState | null {
+    try {
+      return JSON.parse(readFileSync(this.stateFile(sessionId, 'session'), 'utf8')) as SessionState;
+    } catch {
+      return null;
+    }
+  }
+
+  writeSession(sessionId: string, state: SessionState): void {
+    mkdirSync(join(this.home, 'state'), { recursive: true });
+    writeFileSync(this.stateFile(sessionId, 'session'), JSON.stringify(state));
   }
 
   // How many turns of a session were already captured, so a resumed session only adds what is new.

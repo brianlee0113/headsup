@@ -58,6 +58,10 @@ export interface DetectInput {
   notes: Note[];
   config: Config;
   resting?: Set<string>; // notes learning has set aside for now (learning.ts)
+  given?: Set<string>; // notes already added earlier in this conversation: the agent still has them
+  // The opening of a conversation, a move to another folder, or the turn after the conversation was
+  // compacted: when the agent knows least. Later turns build on what is already said. Default true.
+  fresh?: boolean;
 }
 
 export function findReferences(prompt: string): string[] {
@@ -161,7 +165,7 @@ export function detect(input: DetectInput): Decision {
   const project = input.cwd ? projectOf(input.cwd) : undefined;
   // For project scoping, a home or root folder is not a project: the person is not working on anything.
   const inProject = project && !GENERIC_FOLDERS.has(project.toLowerCase()) && resolve(input.cwd!) !== resolve(homedir()) && resolve(input.cwd!) !== '/' ? project : undefined;
-  const others = input.notes.filter((n) => !input.resting?.has(n.id) && !givesOrders(n.body) && (n.source !== agent || (n.project !== undefined && n.project !== project)));
+  const others = input.notes.filter((n) => !input.resting?.has(n.id) && !input.given?.has(n.id) && !givesOrders(n.body) && (n.source !== agent || (n.project !== undefined && n.project !== project)));
   if (!others.length) return empty;
 
   const usual = new Set(signals.usageMismatch?.usualAgents ?? []);
