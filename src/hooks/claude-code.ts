@@ -26,7 +26,7 @@ const APPROVE = /^\s*(?:y|yes|yep|sure|ok(?:ay)?|share(?:\s+(?:them|it))?|go ahe
 const DECLINE = /^\s*(?:n|no|nope|don'?t|skip|keep (?:them|it) (?:private|home)|아니|괜찮아|공유하지)/i;
 
 // Claude Code also submits messages nobody typed, such as a background task finishing.
-const GENERATED = /^\s*<(?:task-notification|local-command-stdout|local-command-stderr|local-command-caveat)>/;
+const GENERATED = /^\s*<(?:task-notification|local-command-stdout|local-command-stderr|local-command-caveat|agent-message|teammate-message|system-reminder)\b/;
 
 export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Store, config: Config): HookOutput | null {
   if (GENERATED.test(input.prompt)) return null;

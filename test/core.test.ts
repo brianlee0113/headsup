@@ -79,8 +79,9 @@ describe('spaces and policy', () => {
 });
 
 describe('gap detector', () => {
+  // Web chats have no folder, as in the extension; terminal agents work in one.
   const run = (prompt: string, agent: string, notes: Note[], over: Partial<Config> = {}, knownText = '', cwd = '/tmp') =>
-    detect({ prompt, agent, cwd, knownText, notes, config: { ...config, ...over } });
+    detect({ prompt, agent, ...(agent === 'chatgpt' || agent === 'claude-ai' ? { space: 'personal' } : { cwd }), knownText, notes, config: { ...config, ...over } });
 
   it('Demo 1: a launch post in ChatGPT pulls the side project from Claude Code', () => {
     const d = run('Write a LinkedIn post announcing my side project launch. Keep it short.', 'chatgpt', [...quorum, ...northwind]);
