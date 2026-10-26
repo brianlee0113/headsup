@@ -14,7 +14,7 @@ import { headsupHome, loadConfig, saveConfig } from './config.js';
 import { learningOn, readBook, resting } from './learning.js';
 import { handleUserPromptSubmit, type UserPromptSubmitInput } from './hooks/claude-code.js';
 import { hooksPath, uninstallHook } from './install.js';
-import { recheckSpaces } from './spaces.js';
+import { recheckSpaces, startRecheck } from './spaces.js';
 import { browserHostDirs, encode, EXTENSION_ID, installNativeHost, readMessage, uninstallNativeHost } from './native.js';
 import { handleWeb, type WebRequest } from './web.js';
 import type { NoteType } from './note.js';
@@ -183,6 +183,7 @@ async function main(argv: string[]): Promise<number> {
       // Started by the browser. Every outcome, errors included, goes back as one framed reply.
       let reply: unknown;
       try {
+        startRecheck(store, config);
         reply = handleWeb((await readMessage(process.stdin)) as WebRequest, store, config, VERSION);
       } catch (err) {
         reply = { type: 'error', message: err instanceof Error ? err.message : String(err) };
@@ -253,6 +254,7 @@ async function main(argv: string[]): Promise<number> {
         const args = ['catch-up', ...(idle ? ['--session', input.session_id] : [])];
         spawn(process.execPath, [process.argv[1]!, ...args], { detached: true, stdio: 'ignore' }).unref();
       }
+      startRecheck(store, config);
       const out = handleUserPromptSubmit(input, store, config, agent);
       if (out) process.stdout.write(JSON.stringify(out));
       return 0;

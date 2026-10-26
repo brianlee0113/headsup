@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type { Prompt } from '../src/capture.js';
 import { DEFAULT_CONFIG } from '../src/config.js';
 import { Store } from '../src/store.js';
-import { pendingAsWork, recheckSpaces } from '../src/spaces.js';
+import { recheckSpaces, withoutPending } from '../src/spaces.js';
 import { handleSync, parseClaudeChat, readState, runSync, syncStatus } from '../src/sync.js';
 import { handleWeb } from '../src/web.js';
 
@@ -172,12 +172,12 @@ describe('turning queued chats into notes', () => {
     const okrFirst = (p: { user: string }) => p.user.split('\n').find((l) => l.includes('OKR'))!.startsWith('0');
     // An answer that leaves a note out is not taken: nothing moves, nothing is marked checked.
     expect(await recheckSpaces(store, DEFAULT_CONFIG, async () => (calls++, '{"work":[],"personal":[]}'))).toMatchObject({ moved: [], failed: 1 });
-    // Until then the web notes count as work wherever notes are read to be shared.
-    expect(pendingAsWork(store.list(), store.home, DEFAULT_CONFIG).filter((n) => n.space === 'work')).toHaveLength(2);
+    // Until then the web notes are left out wherever notes are read to be shared.
+    expect(withoutPending(store.list(), store.home, DEFAULT_CONFIG).map((n) => n.body)).toEqual(['Uses pnpm']);
     const r = await recheckSpaces(store, DEFAULT_CONFIG, async (p) => (calls++, okrFirst(p) ? '{"work":[0],"personal":[1]}' : '{"work":[1],"personal":[0]}'));
     expect(r.moved.map((n) => n.id)).toEqual([okr.id]);
     expect(store.list().find((n) => n.id === okr.id)!.space).toBe('work');
-    expect(pendingAsWork(store.list(), store.home, DEFAULT_CONFIG).filter((n) => n.space === 'work')).toHaveLength(1); // the OKR, now really work
+    expect(withoutPending(store.list(), store.home, DEFAULT_CONFIG)).toHaveLength(3); // all sorted now
     expect(await recheckSpaces(store, DEFAULT_CONFIG, async () => (calls++, '{"work":[],"personal":[]}'))).toMatchObject({ checked: 0 });
     expect(calls).toBe(2);
   });

@@ -167,6 +167,14 @@ describe('an update to an existing note', () => {
     expect(store.list()).toHaveLength(2);
   });
 
+  it('keeps a note in the same project that is about something else', () => {
+    const store = new Store(mkdtempSync(join(tmpdir(), 'headsup-')));
+    const stack = store.add({ type: 'fact', space: 'personal', source: 'claude-code', body: 'Quorum is built with Next.js and Supabase', project: 'quorum' }).note!;
+    const found = parseNotes(JSON.stringify([{ type: 'fact', body: 'Quorum has about 180 weekly users across 12 clubs', replaces: stack.id }]));
+    saveNotes(found, store.list(), store, { space: 'personal', source: 'claude-code', project: 'quorum' });
+    expect(store.list()).toHaveLength(2);
+  });
+
   it('ignores an id that is not one of the notes it was shown', () => {
     const store = new Store(mkdtempSync(join(tmpdir(), 'headsup-')));
     store.add({ type: 'fact', space: 'personal', source: 'claude-code', body: 'Quorum has about 140 weekly users' });

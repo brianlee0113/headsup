@@ -213,6 +213,12 @@ export function duplicates(body: string, existing: Note[]): boolean {
 }
 
 // Stores what the model found, dropping near-duplicates of existing notes and of each other.
+function sameSubject(older: string, newer: string): boolean {
+  const before = [...new Set(tokenize(older))];
+  const after = new Set(tokenize(newer));
+  return before.length > 0 && before.filter((w) => after.has(w)).length / before.length >= 0.5;
+}
+
 export function saveNotes(
   found: CapturedNote[],
   existing: Note[],
@@ -234,8 +240,11 @@ export function saveNotes(
     if (note) saved.push(note);
     else skipped++; // the whole note was a secret
     // An update (140 weekly users, now 180) sets the old note aside, so the two never ride along together.
-    // Only within the same space and project: a wrong id must not set aside a note from somewhere else.
-    const old = note && replaces ? existing.find((e) => e.id === replaces && e.type === note.type && e.space === note.space && e.project === note.project) : undefined;
+    // Only within the same space and project, and only when the two are plainly about the same thing
+    // (half the old note's words carry over): a wrong id must not set aside an unrelated note.
+    const old = note && replaces
+      ? existing.find((e) => e.id === replaces && e.type === note.type && e.space === note.space && e.project === note.project && sameSubject(e.body, note.body))
+      : undefined;
     if (old && store.list().some((e) => e.id === old.id)) {
       store.archive(old);
       store.log({ event: 'replaced', note: old.id, by: note!.id });

@@ -7,6 +7,7 @@ import type { Prompt, Summarize } from './capture.js';
 import { conceptsOf, TOPIC_CONCEPTS } from './concepts.js';
 import type { Config } from './config.js';
 import type { Note } from './note.js';
+import { withoutPending } from './spaces.js';
 import type { Store } from './store.js';
 
 export interface CardTool {
@@ -99,10 +100,11 @@ export function templateHeadline(tools: CardTool[]): string {
   return lines.join(' ') || 'One memory across my AI tools.';
 }
 
-// Only how-you-work notes from the person's own spaces, never ones marked never-share.
+// Only how-you-work notes from the person's own spaces, never ones marked never-share, and never a web
+// note not yet sorted into work or personal (see spaces.ts): the card is public.
 export function styleSource(store: Store, config: Config): Note[] {
   const work = new Set(config.spaces.map((s) => s.space));
-  return store.list().filter((n) => n.type === 'how' && n.share !== 'never' && !work.has(n.space) && n.space !== 'work');
+  return withoutPending(store.list(), store.home, config).filter((n) => n.type === 'how' && n.share !== 'never' && !work.has(n.space) && n.space !== 'work');
 }
 
 export function buildCardPrompt(tools: CardTool[], how: Note[]): Prompt {

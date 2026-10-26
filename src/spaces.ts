@@ -3,7 +3,8 @@
 // (the launch simulation caught it). New notes are now sorted by the summarizer (buildImportPrompt);
 // this looks once at the ones saved before, and moves those about the person's job to work.
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { WORK_SPACE, type Prompt, type Summarize } from './capture.js';
 import type { Config } from './config.js';
@@ -12,6 +13,7 @@ import type { Store } from './store.js';
 
 const WEB_SOURCES = new Set(['chatgpt', 'claude-ai']);
 const BATCH = 40;
+const RESTART_MS = 10 * 60_000; // a recheck started this recently is still running, or failed and waits
 
 const checkedFile = (home: string) => join(home, 'state', 'spaces-checked.json');
 
@@ -64,11 +66,27 @@ export function parseSpaceReply(text: string, count: number): number[] | null {
   }
 }
 
-// Until a web note has had that look, it is treated as work: shared only after an OK. Applied wherever
-// notes are read to be shared (detection in the hook and the extension, the About me block).
-export function pendingAsWork(notes: Note[], home: string, config: Config): Note[] {
+// Until a web note has had that look it is left out wherever notes are read to be shared (the hook,
+// the extension, About me, the share card): asking about it would puzzle the person, and treating it as
+// work would still let a how-you-work note about their employer through. The look runs soon after an
+// update (startRecheck), so this lasts minutes.
+export function withoutPending(notes: Note[], home: string, config: Config): Note[] {
   const checked = readChecked(home);
-  return notes.map((n) => (WEB_SOURCES.has(n.source) && n.space === config.defaultSpace && !checked.has(n.id) ? { ...n, space: WORK_SPACE } : n));
+  return notes.filter((n) => !(WEB_SOURCES.has(n.source) && n.space === config.defaultSpace && !checked.has(n.id)));
+}
+
+// Whether to start a recheck in the background now: there are notes waiting, and none started lately.
+export function recheckDue(store: Store, config: Config, now = Date.now()): boolean {
+  if (!spacesCheckDue(store, config)) return false;
+  const marker = join(store.home, 'state', 'spaces-started');
+  try {
+    if (now - statSync(marker).mtimeMs < RESTART_MS) return false;
+  } catch {
+    /* never started */
+  }
+  mkdirSync(join(store.home, 'state'), { recursive: true });
+  writeFileSync(marker, String(now));
+  return true;
 }
 
 // A batch whose reply can't be read stays unchecked and is tried again next time.
@@ -99,3 +117,9 @@ export async function recheckSpaces(store: Store, config: Config, summarize: Sum
 }
 
 export const spacesCheckDue = (store: Store, config: Config) => existsSync(store.home) && unchecked(store, config).length > 0;
+
+// Starts `headsup recheck-spaces` in the background when it is due, from the hook or the extension's
+// first request after an update, so older web notes are sorted within minutes of it.
+export function startRecheck(store: Store, config: Config): void {
+  if (recheckDue(store, config)) spawn(process.execPath, [process.argv[1]!, 'recheck-spaces'], { detached: true, stdio: 'ignore' }).unref();
+}
