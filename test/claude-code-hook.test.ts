@@ -71,4 +71,13 @@ describe('Claude Code hook', () => {
     // Another conversation starts with nothing given.
     expect(prompt(store, 'add tests for the parser', 's3')?.hookSpecificOutput?.additionalContext).toContain('Prefers Vitest');
   });
+
+  it('works for Codex too: leaves out Codex\'s own notes and prints the mark without color codes', () => {
+    const store = setup();
+    store.add({ type: 'how', space: 'personal', source: 'claude-code', body: 'Runs the parser tests with pnpm test --watch', topics: ['testing'] });
+    const out = handleUserPromptSubmit({ session_id: 'c1', cwd: personalRepo, prompt: 'add tests for the parser' }, store, config, 'codex');
+    expect(out?.systemMessage).toBe('⌃ heads-up · added 1 note from Claude Code · personal');
+    expect(out?.hookSpecificOutput?.additionalContext).not.toContain('Prefers Vitest'); // Codex wrote it
+    expect(store.readLog().at(-1)).toMatchObject({ agent: 'codex' });
+  });
 });

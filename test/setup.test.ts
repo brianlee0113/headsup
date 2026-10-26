@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config.js';
-import { hookCommand, installClaudeHook, isInstalled, uninstallClaudeHook } from '../src/install.js';
+import { hookCommand, installHook, isInstalled, uninstallHook } from '../src/install.js';
 import { runSetup, USAGE_EXAMPLE } from '../src/setup.js';
 import { parseUsage } from '../src/usage.js';
 
@@ -47,7 +47,7 @@ describe('Claude Code settings', () => {
     const path = join(tmp(), 'settings.json');
     const other = { type: 'command', command: 'echo hi' };
     writeFileSync(path, JSON.stringify({ model: 'opus', hooks: { UserPromptSubmit: [{ hooks: [other] }], Stop: [{ hooks: [other] }] } }));
-    expect(installClaudeHook(CMD, path)).toBe('added');
+    expect(installHook('claude-code', CMD, path)).toBe('added');
     const s = json(path);
     expect(s.model).toBe('opus');
     expect(s.hooks.Stop).toHaveLength(1);
@@ -57,26 +57,26 @@ describe('Claude Code settings', () => {
 
   it('is idempotent and replaces an old command', () => {
     const path = join(tmp(), 'settings.json');
-    installClaudeHook(CMD, path);
-    expect(installClaudeHook(CMD, path)).toBe('unchanged');
-    expect(installClaudeHook('npx -y headsup-ai hook claude-code', path)).toBe('updated');
+    installHook('claude-code', CMD, path);
+    expect(installHook('claude-code', CMD, path)).toBe('unchanged');
+    expect(installHook('claude-code', 'npx -y headsup-ai hook claude-code', path)).toBe('updated');
     expect(json(path).hooks.UserPromptSubmit).toHaveLength(1);
   });
 
   it('uninstalls only its own entry', () => {
     const path = join(tmp(), 'settings.json');
     writeFileSync(path, JSON.stringify({ hooks: { UserPromptSubmit: [{ hooks: [{ type: 'command', command: 'echo hi' }] }] } }));
-    installClaudeHook(CMD, path);
-    expect(uninstallClaudeHook(path)).toBe(true);
-    expect(isInstalled(path)).toBe(false);
+    installHook('claude-code', CMD, path);
+    expect(uninstallHook('claude-code', path)).toBe(true);
+    expect(isInstalled('claude-code', path)).toBe(false);
     expect(json(path).hooks.UserPromptSubmit).toHaveLength(1);
-    expect(uninstallClaudeHook(path)).toBe(false);
+    expect(uninstallHook('claude-code', path)).toBe(false);
   });
 
   it('refuses to rewrite a settings file it cannot parse', () => {
     const path = join(tmp(), 'settings.json');
     writeFileSync(path, '{ "model": "opus", ');
-    expect(() => installClaudeHook(CMD, path)).toThrow(/not valid JSON/);
+    expect(() => installHook('claude-code', CMD, path)).toThrow(/not valid JSON/);
     expect(readFileSync(path, 'utf8')).toBe('{ "model": "opus", ');
   });
 });
@@ -104,7 +104,7 @@ describe('setup wizard', () => {
     expect(config.spaces).toEqual([{ path: '~/work', space: 'work' }, { path: '~/clients', space: 'work' }]);
     expect(r.out).toMatch(/ChatGPT · Claude\.ai +→ personal {3}browser chats have no folder/);
     expect(config.preset).toBe('cautious');
-    expect(isInstalled(r.settingsPath)).toBe(true);
+    expect(isInstalled('claude-code', r.settingsPath)).toBe(true);
     expect(r.out).toContain('Try it: ask Claude Code to do something you usually do in ChatGPT.');
   });
 
@@ -137,6 +137,35 @@ describe('setup wizard', () => {
     const r = await run(['', '~/work', 'e', '~/work, ~/clients', '', '', '', 'n']);
     expect(r.prefills.slice(1, 4)).toEqual(['', '', '~/work']);
     expect(loadConfig(r.home).spaces).toEqual([{ path: '~/work', space: 'work' }, { path: '~/clients', space: 'work' }]);
+  });
+});
+
+describe('Codex hooks', () => {
+  it('writes its own entries to hooks.json, next to Claude Code\'s and apart from them', () => {
+    const path = join(tmp(), 'hooks.json');
+    writeFileSync(path, JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: 'command', command: 'echo done' }] }] } }));
+    expect(installHook('codex', 'headsup hook codex', path)).toBe('added');
+    const hooks = json(path).hooks;
+    expect(hooks.UserPromptSubmit[0].hooks[0]).toEqual({ type: 'command', command: 'headsup hook codex', timeout: 3 });
+    expect(hooks.SessionEnd).toHaveLength(1);
+    expect(hooks.Stop).toHaveLength(1);
+    expect(isInstalled('codex', path)).toBe(true);
+    expect(isInstalled('claude-code', path)).toBe(false);
+    expect(uninstallHook('codex', path)).toBe(true);
+    expect(json(path).hooks).toEqual({ Stop: [{ hooks: [{ type: 'command', command: 'echo done' }] }] });
+  });
+
+  it('offers to connect Codex in setup when it is installed', async () => {
+    const userHome = tmp();
+    mkdirSync(join(userHome, '.codex'));
+    const codexHooksPath = join(userHome, '.codex', 'hooks.json');
+    const out: string[] = [];
+    await runSetup(
+      { ask: async () => '', print: (l = '') => out.push(l), color: false },
+      { home: tmp(), settingsPath: join(tmp(), 'settings.json'), userHome, command: CMD, codexHooksPath, codexCommand: 'headsup hook codex', version: '0.0.1', browserDirs: [] },
+    );
+    expect(isInstalled('codex', codexHooksPath)).toBe(true);
+    expect(out.join('\n')).toContain('/hooks');
   });
 });
 

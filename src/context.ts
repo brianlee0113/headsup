@@ -56,10 +56,17 @@ export function lastReply(path: string | undefined): string {
   if (!path || !existsSync(path)) return '';
   const parts: string[] = [];
   for (const line of tailLines(path)) {
-    let e: { type?: string; isMeta?: boolean; message?: { content?: unknown } };
+    let e: { type?: string; isMeta?: boolean; message?: { content?: unknown }; payload?: { type?: string; role?: string; content?: unknown } };
     try {
       e = JSON.parse(line);
     } catch {
+      continue;
+    }
+    // Codex rollouts: response items with a role; its own injected text comes as user items too.
+    if (e.type === 'response_item' && e.payload?.type === 'message') {
+      const texts = Array.isArray(e.payload.content) ? (e.payload.content as Array<{ text?: string }>).map((b) => b?.text ?? '') : [];
+      if (e.payload.role === 'user' && texts.some((t) => codexUserText(t))) parts.length = 0;
+      else if (e.payload.role === 'assistant') parts.push(...texts.filter(Boolean));
       continue;
     }
     const content = e.message?.content;
@@ -69,6 +76,14 @@ export function lastReply(path: string | undefined): string {
     }
   }
   return parts.join('\n');
+}
+
+// Codex sends its own text as user messages: the AGENTS.md instructions, the environment, app state.
+// What is left after dropping those is what the person typed.
+const CODEX_INSERTS = /<([\w-]+)(?:\s[^>]*)?>[\s\S]*?<\/\1>/g;
+export function codexUserText(text: string): string {
+  if (/^\s*# AGENTS\.md instructions/.test(text)) return '';
+  return text.replace(CODEX_INSERTS, '').trim();
 }
 
 export function readTranscript(path: string | undefined): string {
@@ -104,8 +119,14 @@ function collectText(value: unknown, out: string[]): void {
   }
 }
 
-// The repo a folder belongs to (nearest .git up the tree), else the folder itself.
+// The Codex app starts each chat in a fresh dated folder (~/Documents/Codex/2026-10-24/<slug>):
+// a place to put files, not a project.
+const CODEX_SCRATCH = /\/Codex\/\d{4}-\d{2}-\d{2}(?:\/|$)/;
+
+// The repo a folder belongs to (nearest .git up the tree), else the folder itself. 'home' for folders
+// that are no project at all.
 export function projectOf(cwd: string): string {
+  if (CODEX_SCRATCH.test(resolve(cwd))) return 'home';
   let dir = resolve(cwd);
   for (;;) {
     if (existsSync(join(dir, '.git'))) return basename(dir);
@@ -133,5 +154,6 @@ export function compactedSince(path: string | undefined, offset: number): boolea
   } finally {
     closeSync(fd);
   }
-  return buf.includes('"compact_boundary"');
+  // Claude Code marks it with a compact_boundary entry, Codex with a compacted item.
+  return buf.includes('"compact_boundary"') || buf.includes('"type":"compacted"');
 }

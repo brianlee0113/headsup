@@ -36,7 +36,7 @@ const view = (n: Note): WebNote => ({
   type: n.type,
   body: n.body,
   topics: n.topics,
-  from: n.project && n.source === 'claude-code' ? `${agentName(n.source)} (${n.project})` : agentName(n.source),
+  from: n.project ? `${agentName(n.source)} (${n.project})` : agentName(n.source),
   space: n.space,
 });
 

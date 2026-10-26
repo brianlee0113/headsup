@@ -10,7 +10,7 @@ import { expandHome, loadConfig, saveConfig, type Config, type Preset } from './
 import { importChatGPT } from './import/flow.js';
 import { browserHostDirs, installNativeHost } from './native.js';
 import { Store } from './store.js';
-import { claudeSettingsPath, hookCommand, installClaudeHook } from './install.js';
+import { claudeSettingsPath, codexHooksPath, hookCommand, installHook } from './install.js';
 import { parseUsage, TOPIC_ALIASES } from './usage.js';
 
 // Shown under the question; a test keeps it parseable.
@@ -28,6 +28,8 @@ export interface SetupOptions {
   settingsPath?: string; // Claude Code settings.json
   userHome?: string; // where agents are looked for
   command?: string; // hook command to register
+  codexHooksPath?: string; // Codex hooks.json
+  codexCommand?: string;
   version: string;
   importSummarize?: Summarize; // tests replace the model
   browserDirs?: string[]; // where browsers look for native hosts; tests pass []
@@ -48,10 +50,10 @@ const paint = (on: boolean) => {
   return { bold: c('1'), dim: c('2'), green: c('32'), blue: c('34'), accent: c('38;5;205') };
 };
 
-// Phase 1 connects Claude Code only; the rest are listed so people see where headsup is going.
+// Claude Code and Codex connect now; the rest are listed so people see where headsup is going.
 const AGENTS: Array<{ id: string; dir: string; via: string; ready: boolean }> = [
   { id: 'claude-code', dir: '.claude', via: 'hooks · UserPromptSubmit', ready: true },
-  { id: 'codex', dir: '.codex', via: 'hooks', ready: false },
+  { id: 'codex', dir: '.codex', via: 'hooks · UserPromptSubmit', ready: true },
   { id: 'cursor', dir: '.cursor', via: 'MCP server', ready: false },
   { id: 'gemini-cli', dir: '.gemini', via: 'MCP server', ready: false },
 ];
@@ -77,9 +79,9 @@ export async function runSetup(io: SetupIO, opts: SetupOptions): Promise<Config>
   io.print(`Step 1/5 ${c.bold('Agents found')}`);
   for (const a of AGENTS) {
     const found = existsSync(join(userHome, a.dir));
-    if (!found && !a.ready) continue;
+    if (!found && (!a.ready || a.id !== 'claude-code')) continue;
     const mark = found ? c.green('✓') : c.dim('·');
-    const note = a.ready ? (found ? '' : c.dim('  not found — install Claude Code first')) : c.dim('  (soon)');
+    const note = a.ready ? (found || a.id !== 'claude-code' ? '' : c.dim('  not found — install Claude Code first')) : c.dim('  (soon)');
     io.print(`  ${mark} ${agentName(a.id).padEnd(12)} ${c.dim(a.via)}${note}`);
   }
   io.print();
@@ -183,12 +185,28 @@ export async function runSetup(io: SetupIO, opts: SetupOptions): Promise<Config>
   io.print(c.dim('  Only headsup\'s own entries are touched; a backup is saved first. Undo with: headsup uninstall'));
   if (opts.isolated) io.print(c.dim(`  HEADSUP_HOME is set, so this defaults to no: it changes your real ${tilde(settingsPath)}.`));
   if (yes(await io.ask(`  Add it? ${opts.isolated ? '[y/N]' : '[Y/n]'} `), !opts.isolated)) {
-    const result = installClaudeHook(command, settingsPath);
+    const result = installHook('claude-code', command, settingsPath);
     io.print(`  ${c.green('✓')} hook ${result}`);
   } else {
     io.print(c.dim('  Skipped. Run headsup setup again whenever you\'re ready.'));
   }
   io.print();
+
+  // Codex reads the same kind of hook from its own hooks.json, and asks once before running it.
+  if (existsSync(join(userHome, '.codex'))) {
+    const codexPath = opts.codexHooksPath ?? codexHooksPath();
+    const codexCommand = opts.codexCommand ?? hookCommand('codex');
+    io.print(`${c.bold('Connect Codex')}  ${c.dim(`adds UserPromptSubmit + SessionEnd hooks to ${tilde(codexPath)}`)}`);
+    io.print(c.dim(`  command: ${codexCommand}`));
+    io.print(c.dim('  Codex runs a new hook only after you trust it: open Codex, type /hooks, and trust headsup.'));
+    if (opts.isolated) io.print(c.dim(`  HEADSUP_HOME is set, so this defaults to no: it changes your real ${tilde(codexPath)}.`));
+    if (yes(await io.ask(`  Add it? ${opts.isolated ? '[y/N]' : '[Y/n]'} `), !opts.isolated)) {
+      io.print(`  ${c.green('✓')} hook ${installHook('codex', codexCommand, codexPath)} · next: /hooks in Codex to trust it`);
+    } else {
+      io.print(c.dim('  Skipped. Run headsup setup again whenever you\'re ready.'));
+    }
+    io.print();
+  }
 
   const browsers = opts.browserDirs ?? browserHostDirs();
   if (browsers.length) {

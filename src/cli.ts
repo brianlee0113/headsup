@@ -13,7 +13,7 @@ import { cardPage } from './card-page.js';
 import { headsupHome, loadConfig, saveConfig } from './config.js';
 import { learningOn, readBook, resting } from './learning.js';
 import { handleUserPromptSubmit, type UserPromptSubmitInput } from './hooks/claude-code.js';
-import { claudeSettingsPath, uninstallClaudeHook } from './install.js';
+import { hooksPath, uninstallHook } from './install.js';
 import { browserHostDirs, encode, EXTENSION_ID, installNativeHost, readMessage, uninstallNativeHost } from './native.js';
 import { handleWeb, type WebRequest } from './web.js';
 import type { NoteType } from './note.js';
@@ -45,11 +45,12 @@ const HELP = `headsup — gives your AI a heads-up before it answers
   headsup tidy                  merge notes that say the same thing, set aside ones a newer note replaced (runs on its own)
   headsup learning [on|off|reset]
                                 see which notes are resting because you took them out or answers ignored them
-  headsup capture --session <id> --transcript <path> --cwd <dir>
-                                save notes from a Claude Code session (SessionEnd runs this)
-  headsup catch-up              save notes from Claude Code sessions that went quiet or never ended,
-                                like tmux panes and reboots (runs on its own)
-  headsup hook claude-code      (reads a UserPromptSubmit or SessionEnd payload on stdin)
+  headsup capture --session <id> --transcript <path> --cwd <dir> [--agent codex]
+                                save notes from a Claude Code or Codex session (SessionEnd runs this)
+  headsup catch-up              save notes from Claude Code and Codex sessions that went quiet or never
+                                ended, like tmux panes and reboots (runs on its own)
+  headsup hook claude-code|codex
+                                (reads a UserPromptSubmit or SessionEnd payload on stdin)
 
 Memory lives in ${headsupHome()}`;
 
@@ -112,6 +113,7 @@ async function main(argv: string[]): Promise<number> {
       session: { type: 'string' },
       transcript: { type: 'string' },
       cwd: { type: 'string' },
+      agent: { type: 'string' },
       since: { type: 'string' },
       limit: { type: 'string' },
       port: { type: 'string' },
@@ -195,7 +197,9 @@ async function main(argv: string[]): Promise<number> {
       return 0;
     }
     case 'uninstall':
-      console.log(uninstallClaudeHook() ? `removed the headsup hook from ${claudeSettingsPath()}` : 'no headsup hook found');
+      for (const target of ['claude-code', 'codex'] as const) {
+        if (uninstallHook(target)) console.log(`removed the headsup hook from ${hooksPath(target)}`);
+      }
       console.log(`removed the browser connection from ${uninstallNativeHost()} browser(s)`);
       console.log(`notes are still in ${headsupHome()} — delete that folder to remove them too`);
       return 0;
@@ -227,14 +231,15 @@ async function main(argv: string[]): Promise<number> {
       for (const e of store.readLog().slice(-20)) console.log(JSON.stringify(e));
       return 0;
     case 'hook': {
-      if (rest[0] !== 'claude-code') throw new Error(`unknown hook target "${rest[0] ?? ''}"`);
+      const agent = rest[0];
+      if (agent !== 'claude-code' && agent !== 'codex') throw new Error(`unknown hook target "${agent ?? ''}"`);
       const input = JSON.parse(await readStdin()) as UserPromptSubmitInput & { hook_event_name?: string };
       // The summarizer's own `claude -p` session must not inject or capture.
       if (process.env[CAPTURING_ENV]) return 0;
       if (input.hook_event_name === 'SessionEnd') {
         // SessionEnd allows ~1.5s; summarizing takes longer, so it runs on after this process exits.
         if (input.transcript_path) {
-          const args = ['capture', '--session', input.session_id, '--transcript', input.transcript_path, '--cwd', input.cwd];
+          const args = ['capture', '--session', input.session_id, '--transcript', input.transcript_path, '--cwd', input.cwd, '--agent', agent];
           spawn(process.execPath, [process.argv[1]!, ...args], { detached: true, stdio: 'ignore' }).unref();
         }
         return 0;
@@ -246,7 +251,7 @@ async function main(argv: string[]): Promise<number> {
         const args = ['catch-up', ...(idle ? ['--session', input.session_id] : [])];
         spawn(process.execPath, [process.argv[1]!, ...args], { detached: true, stdio: 'ignore' }).unref();
       }
-      const out = handleUserPromptSubmit(input, store, config);
+      const out = handleUserPromptSubmit(input, store, config, agent);
       if (out) process.stdout.write(JSON.stringify(out));
       return 0;
     }
@@ -255,7 +260,7 @@ async function main(argv: string[]): Promise<number> {
       const base = { session: values.session, cwd: values.cwd };
       try {
         const r = await capture(
-          { sessionId: values.session, transcriptPath: values.transcript, cwd: values.cwd, agent: 'claude-code' },
+          { sessionId: values.session, transcriptPath: values.transcript, cwd: values.cwd, agent: values.agent === 'codex' ? 'codex' : 'claude-code' },
           store,
           config,
           claudeSummarizer(),

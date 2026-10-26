@@ -1,4 +1,4 @@
-// Turns a Claude Code session into notes. The SessionEnd hook only gets ~1.5s, so it spawns
+// Turns a Claude Code or Codex session into notes. The SessionEnd hook only gets ~1.5s, so it spawns
 // `headsup capture` in the background (catchup.ts covers sessions that never end), which
 // summarizes the transcript with `claude -p` (the user's own Claude login, no API key) and stores
 // what is worth remembering.
@@ -6,7 +6,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolveSpace, type Config } from './config.js';
-import { projectOf } from './context.js';
+import { codexUserText, projectOf } from './context.js';
 import type { Note, NoteType } from './note.js';
 import { tokenize } from './search.js';
 import type { Store } from './store.js';
@@ -45,10 +45,20 @@ export function readConversation(path: string): Turn[] {
   const turns: Turn[] = [];
   for (const line of readFileSync(path, 'utf8').split('\n')) {
     if (!line.trim()) continue;
-    let entry: { type?: string; isMeta?: boolean; isSidechain?: boolean; message?: { content?: unknown } };
+    let entry: { type?: string; isMeta?: boolean; isSidechain?: boolean; message?: { content?: unknown }; payload?: { type?: string; role?: string; content?: unknown } };
     try {
       entry = JSON.parse(line);
     } catch {
+      continue;
+    }
+    // Codex rollouts keep messages as response items; developer messages (headsup's own notes among
+    // them) are not the conversation.
+    if (entry.type === 'response_item' && entry.payload?.type === 'message') {
+      const { role, content } = entry.payload;
+      if (role !== 'user' && role !== 'assistant') continue;
+      const texts = Array.isArray(content) ? (content as Array<{ text?: unknown }>).map((b) => (typeof b?.text === 'string' ? b.text : '')) : [];
+      const text = (role === 'user' ? texts.map(codexUserText) : texts).filter(Boolean).join('\n').trim();
+      if (text) turns.push({ role, text });
       continue;
     }
     if ((entry.type !== 'user' && entry.type !== 'assistant') || entry.isMeta || entry.isSidechain) continue;

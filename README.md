@@ -44,7 +44,7 @@ You build in Claude Code and write in ChatGPT. Ask ChatGPT for a cover letter an
 - **Steps in only when it helps.** It reads your prompt first and adds a note only when *this* AI is missing something *another* one knows. Unrelated prompts get nothing.
 - **Knows what the AI already knows.** Anything already in `CLAUDE.md`, `AGENTS.md` or the current conversation is left out.
 - **Work stays at work.** Notes live in a work or personal space. Facts that would cross over wait for your OK, and secrets are never stored.
-- **Works where you chat.** Claude Code through hooks, chatgpt.com and claude.ai through a Chrome extension. Chats from the ChatGPT and Claude phone apps come in through your account.
+- **Works where you chat.** Claude Code and Codex through hooks, chatgpt.com and claude.ai through a Chrome extension. Chats from the ChatGPT and Claude phone apps come in through your account.
 - **Nothing to maintain.** Notes are collected as you work, repeats are merged, and outdated facts are set aside. No exports to redo, no lists to paste.
 - **Yours, on your computer.** Plain Markdown in `~/.headsup`. No server, no account, no telemetry. Adds well under a second to a prompt, with zero runtime dependencies.
 
@@ -61,7 +61,7 @@ Just trying it? `npx headsup-ai setup` works too, but then every prompt starts h
 
 `headsup setup` asks five things:
 
-1. **Agents.** Connect Claude Code. It adds its own hook entries to `~/.claude/settings.json` and backs up the file first.
+1. **Agents.** Connect Claude Code, and Codex if you have it. It adds its own hook entries to `~/.claude/settings.json` and `~/.codex/hooks.json`, and backs up each file first. Codex runs a new hook only after you trust it: type `/hooks` in Codex once.
 2. **How you split your tools**, in your own words. For example: *"Claude for coding and side projects, ChatGPT for writing and everyday stuff."*
 3. **Which folders are work.** Everything else is personal.
 4. **Sharing preset.** Balanced unless you change it.
@@ -95,7 +95,7 @@ flowchart LR
 3. **May it cross over?** Notes live in a **work** or **personal** space. Your preset decides what may travel between them (below).
 4. **Show what happened.** Every heads-up prints one line saying what was added and where it came from. `headsup review` shows the rest.
 
-Notes are collected for you: when a Claude Code session ends or goes quiet, and when you open chatgpt.com or claude.ai with the extension installed. Chats you had in the phone and desktop apps sync through your account, so they come in too. In the background, notes that say the same thing are merged, and ones a newer fact replaced are set aside.
+Notes are collected for you: when a Claude Code or Codex session ends or goes quiet, and when you open chatgpt.com or claude.ai with the extension installed. Chats you had in the phone and desktop apps sync through your account, so they come in too. In the background, notes that say the same thing are merged, and ones a newer fact replaced are set aside.
 
 ## Share how you work, not what you work on
 
@@ -119,9 +119,10 @@ Every note is either **how you work** (preferences, style, conventions) or a **f
 | Where you use AI | How headsup connects | What you get |
 |---|---|---|
 | **Claude Code** | hooks | Checked on every prompt, notes added before the answer |
+| **Codex CLI** | hooks | The same. Trust the hook once with `/hooks` |
 | **chatgpt.com · claude.ai** | Chrome extension | Notes attached as you hit send. Untick any first |
 | **ChatGPT · Claude apps** (phone, desktop) | your account, through the extension | App chats are collected, and an "About me" block in your custom instructions is kept up to date (opt-in). No per-question notes |
-| Codex CLI · Gemini CLI | hooks | Coming soon |
+| Gemini CLI | hooks | Coming soon |
 | Cursor · Claude Desktop · Windsurf | MCP | After launch. The AI decides when to call it, so it can miss |
 | Phone only, no desktop Chrome | — | Not supported |
 
@@ -136,7 +137,7 @@ Every note is either **how you work** (preferences, style, conventions) or a **f
 ## Commands
 
 ```text
-headsup setup              connect Claude Code and choose what may be shared
+headsup setup              connect Claude Code and Codex, and choose what may be shared
 headsup review             see what was shared where; edit, reclassify or delete notes
 headsup connect-browser    let the Chrome extension reach headsup on this computer
 headsup import chatgpt <export.zip>
@@ -182,7 +183,8 @@ The code is TypeScript with no runtime dependencies. Search is BM25 plus a small
 - [ ] Tune when to step in, using simulated conversations
 - [x] npm release
 - [ ] Chrome Web Store release
-- [ ] Codex CLI and Gemini CLI hooks
+- [x] Codex CLI: the same hooks as Claude Code
+- [ ] Gemini CLI hooks
 - [ ] gemini.google.com
 - [ ] Thin MCP server for Cursor, Claude Desktop and Windsurf
 

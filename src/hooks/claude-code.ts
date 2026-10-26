@@ -1,4 +1,5 @@
-// Claude Code UserPromptSubmit hook. Hooks cannot ask the user anything themselves, so notes that
+// UserPromptSubmit hook for terminal agents: Claude Code, and Codex, whose hooks take the same payload
+// and the same reply. Hooks cannot ask the user anything themselves, so notes that
 // need approval are announced by topic only; Claude asks, and the user's next message decides.
 
 import { agentName } from '../agents.js';
@@ -21,14 +22,14 @@ export interface HookOutput {
   hookSpecificOutput?: { hookEventName: 'UserPromptSubmit'; additionalContext: string };
 }
 
-const AGENT = 'claude-code';
+export type TerminalAgent = 'claude-code' | 'codex';
 const APPROVE = /^\s*(?:y|yes|yep|sure|ok(?:ay)?|share(?:\s+(?:them|it))?|go ahead|include (?:them|it)|응|네|예|좋아|공유)\b/i;
 const DECLINE = /^\s*(?:n|no|nope|don'?t|skip|keep (?:them|it) (?:private|home)|아니|괜찮아|공유하지)/i;
 
 // Claude Code also submits messages nobody typed, such as a background task finishing.
 const GENERATED = /^\s*<(?:task-notification|local-command-stdout|local-command-stderr|local-command-caveat|agent-message|teammate-message|system-reminder)\b/;
 
-export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Store, config: Config): HookOutput | null {
+export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Store, config: Config, agent: TerminalAgent = 'claude-code'): HookOutput | null {
   if (GENERATED.test(input.prompt)) return null;
   store.countPrompt();
   const notes = store.list();
@@ -47,12 +48,12 @@ export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Stor
     store.writePending(input.session_id, []);
     const waiting = notes.filter((n) => pending.includes(n.id));
     if (APPROVE.test(input.prompt) && waiting.length) {
-      store.log({ event: 'shared-after-ask', agent: AGENT, session: input.session_id, notes: waiting.map((n) => n.id) });
+      store.log({ event: 'shared-after-ask', agent, session: input.session_id, notes: waiting.map((n) => n.id) });
       remember(waiting.map((n) => n.id));
-      return output(`shared ${count(waiting.length, 'note')} you approved`, renderNotes(waiting));
+      return output(`shared ${count(waiting.length, 'note')} you approved`, renderNotes(waiting), agent);
     }
     if (DECLINE.test(input.prompt)) {
-      store.log({ event: 'declined', agent: AGENT, session: input.session_id, notes: pending });
+      store.log({ event: 'declined', agent, session: input.session_id, notes: pending });
       if (learn) recordRemoved(store.home, pending);
       return null;
     }
@@ -60,16 +61,16 @@ export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Stor
 
   const decision = detect({
     prompt: input.prompt,
-    agent: AGENT,
+    agent,
     cwd: input.cwd,
-    knownText: `${readAgentContext(AGENT, input.cwd)}\n${readTranscript(input.transcript_path)}`,
+    knownText: `${readAgentContext(agent, input.cwd)}\n${readTranscript(input.transcript_path)}`,
     notes,
     config,
     ...(learn ? { resting: new Set(resting(store.home).keys()) } : {}),
     given: new Set(given),
     fresh,
   });
-  logDecision(store, input, decision, fresh);
+  logDecision(store, input, decision, fresh, agent);
   // Notes offered for approval count as given too: asking again in the same conversation only nags.
   remember([...decision.inject, ...decision.ask].map((n) => n.id));
   if (learn && decision.inject.length) {
@@ -84,16 +85,18 @@ export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Stor
     decision.ask.length ? renderAsk(decision.ask) : '',
   ].filter(Boolean).join('\n\n');
   const message = renderMessage(decision, config);
-  return message || context ? output(message, context) : null;
+  return message || context ? output(message, context, agent) : null;
 }
 
 // Claude Code shows a hook's message dimmed; the mark in color keeps it from blending in. 256-color
-// pink for terminals without true color; NO_COLOR turns it off.
-const MARK = process.env.NO_COLOR ? '⌃ heads-up' : '\x1b[1;38;5;205m⌃ heads-up\x1b[0m';
+// pink for terminals without true color; NO_COLOR turns it off. Codex shows the message in its own
+// styling, where escape codes would print as text.
+const MARK = '⌃ heads-up';
+const markFor = (agent: TerminalAgent) => (agent === 'claude-code' && !process.env.NO_COLOR ? `\x1b[1;38;5;205m${MARK}\x1b[0m` : MARK);
 
-function output(message: string, context: string): HookOutput {
+function output(message: string, context: string, agent: TerminalAgent): HookOutput {
   return {
-    ...(message ? { systemMessage: `${MARK} · ${message}` } : {}),
+    ...(message ? { systemMessage: `${markFor(agent)} · ${message}` } : {}),
     ...(context ? { hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: context } } : {}),
   };
 }
@@ -102,8 +105,8 @@ const count = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const typeLabel = (n: Note) => (n.type === 'how' ? 'how you work' : 'fact');
 const about = (n: Note) => (n.topics.length ? n.topics.join(', ') : n.body.split(/\s+/).slice(0, 4).join(' ') + '…');
 
-// "Codex", or "Claude Code (quorum)" when the note comes from another project in the same tool.
-const from = (n: Note) => (n.source === AGENT && n.project ? `${agentName(n.source)} (${n.project})` : agentName(n.source));
+// "ChatGPT", or "Codex (quorum)" when the note was learned in a project.
+const from = (n: Note) => (n.project ? `${agentName(n.source)} (${n.project})` : agentName(n.source));
 
 function origin(notes: Note[]): string {
   const groups = [...new Set(notes.map((n) => `${from(n)} · ${n.space}`))];
@@ -139,11 +142,11 @@ function renderMessage(d: Decision, config: Config): string {
   return parts.join(' · ');
 }
 
-function logDecision(store: Store, input: UserPromptSubmitInput, d: Decision, fresh: boolean): void {
+function logDecision(store: Store, input: UserPromptSubmitInput, d: Decision, fresh: boolean, agent: TerminalAgent): void {
   if (!d.inject.length && !d.ask.length && !d.blocked.length && !d.skippedKnown.length) return;
   store.log({
     event: 'heads-up',
-    agent: AGENT,
+    agent,
     session: input.session_id,
     targetSpace: d.targetSpace,
     fresh,

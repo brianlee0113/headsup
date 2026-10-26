@@ -62,7 +62,7 @@ function ago(iso: string, now: Date): string {
   return days <= 0 ? 'today' : days < 7 ? `${days}d ago` : days < 60 ? `${Math.floor(days / 7)}w ago` : `${Math.floor(days / 30)}mo ago`;
 }
 
-const from = (n: Note) => `${agent(n.source)}${n.project && n.source === 'claude-code' ? ` (${n.project})` : ''} · ${n.space}`;
+const from = (n: Note) => `${agent(n.source)}${n.project ? ` (${n.project})` : ''} · ${n.space}`;
 
 function outcomeText(r: HeadsUp): string {
   return r.outcome === 'shared' ? `shared ${r.sharedCount}/${r.notes.filter((n) => n.status === 'asked' || n.status === 'shared').length}` : r.outcome;
