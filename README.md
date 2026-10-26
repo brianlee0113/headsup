@@ -45,6 +45,7 @@ You build in Claude Code and write in ChatGPT. Ask ChatGPT for a cover letter an
 - **Knows what the AI already knows.** Anything already in `CLAUDE.md`, `AGENTS.md` or the current conversation is left out.
 - **Work stays at work.** Notes live in a work or personal space. Facts that would cross over wait for your OK, and secrets are never stored.
 - **Works where you chat.** Claude Code and Codex through hooks, chatgpt.com and claude.ai through a Chrome extension. Chats from the ChatGPT and Claude phone apps come in through your account.
+- **A card worth sharing.** `headsup card` turns how you use your AI tools into an image to post. You pick what goes on it.
 - **Nothing to maintain.** Notes are collected as you work, repeats are merged, and outdated facts are set aside. No exports to redo, no lists to paste.
 - **Yours, on your computer.** Plain Markdown in `~/.headsup`. No server, no account, no telemetry. Adds well under a second to a prompt, with zero runtime dependencies.
 
@@ -125,6 +126,17 @@ Every note is either **how you work** (preferences, style, conventions) or a **f
 | Gemini CLI | hooks | Coming soon |
 | Cursor · Claude Desktop · Windsurf | MCP | After launch. The AI decides when to call it, so it can miss |
 | Phone only, no desktop Chrome | — | Not supported |
+
+## Share your card
+
+<img src="docs/share-card.png" width="320" align="right" alt="A share card for a fictional user, Sam: 'ChatGPT for writing. Claude Code for coding.' It shows where each AI fits (ChatGPT for writing and everyday, Claude Code and Codex for coding and side projects) and the context that crossed over, such as Claude Code to ChatGPT about career and launching, 8 times.">
+
+`headsup card` draws a picture of how you use AI: which tool you reach for, for what, and how often context crossed between them. Run it in the terminal, or press **Share my card →** in the extension popup. Either way it opens a page on your computer where you untick anything you'd rather keep, then save or copy the PNG.
+
+The card is built from counts, tool names and broad topics, plus a few how-you-work lines reworded in general terms. Facts, work notes and never-share notes never go on it.
+
+<sub>The card on the right is Sam's, the fictional user from the demos.</sub>
+<br clear="right">
 
 ## Your data
 
