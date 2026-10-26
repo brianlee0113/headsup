@@ -10,11 +10,13 @@ const LEXICON: Record<string, string[]> = {
   ],
   traction: [
     'launch', 'launched', 'launching', 'announce', 'announcing', 'users', 'weekly', 'growth', 'signups', 'mvp',
-    'customers', 'traction', '런칭', '출시', '사용자', '유저',
+    'customers', 'traction', 'how many people', 'people use', '런칭', '출시', '사용자', '유저',
   ],
   testing: ['test', 'tests', 'testing', 'spec', 'vitest', 'jest', 'pytest', 'mocha', 'coverage', 'unit test', 'e2e', '테스트'],
+  // The package manager shapes every command: running tests, scripts, CI steps.
   packages: [
-    'install', 'dependency', 'dependencies', 'package manager', 'pnpm', 'npm', 'yarn', 'bun', 'lockfile', '설치', '패키지',
+    'install', 'dependency', 'dependencies', 'package manager', 'pnpm', 'npm', 'yarn', 'bun', 'lockfile', 'script', 'scripts',
+    'test script', 'watch mode', '설치', '패키지', '스크립트',
   ],
   git: ['commit', 'commits', 'commit message', 'branch', 'rebase', 'pull request', 'git', '커밋'],
   ci: ['ci', 'github actions', 'workflow', 'workflows', 'pipeline', 'runner', 'runners', 'lint', 'typecheck'],
