@@ -21,9 +21,11 @@ const BASELINE = join(ROOT, '.local', 'gate-baseline.json'); // includes real-la
 const TOLERANCE = { rate: 0.02, count: 1 };
 const tsx = join(ROOT, 'node_modules', '.bin', 'tsx');
 
-type Metric = { value: number; better: 'higher' | 'lower'; kind: 'rate' | 'count' };
+type Metric = { value: number; better: 'higher' | 'lower'; kind: 'rate' | 'count'; max?: number };
 const metrics: Record<string, Metric> = {};
-const put = (name: string, value: number, better: Metric['better'], kind: Metric['kind'] = 'rate') => (metrics[name] = { value, better, kind });
+// `max`: a hard limit that fails on its own, not only when worse than the baseline.
+const put = (name: string, value: number, better: Metric['better'], kind: Metric['kind'] = 'rate', max?: number) =>
+  (metrics[name] = { value, better, kind, ...(max !== undefined ? { max } : {}) });
 
 // 1. eval set
 const evalOut = execFileSync(tsx, [join(ROOT, 'test', 'eval.ts')], { encoding: 'utf8' });
@@ -35,8 +37,11 @@ if (holdout) { put('eval holdout: recall', holdout.recall, 'higher'); put('eval 
 if (PERSONAS.every((p) => existsSync(join(ROOT, 'sim', 'out', MEMORY_RUN, p, 'notes-w1.json')))) {
   for (const p of PERSONAS) execFileSync(tsx, [join(ROOT, 'sim', 'redetect.ts'), MEMORY_RUN, 'gate', p], { stdio: 'ignore' });
   execFileSync(tsx, [join(ROOT, 'sim', 'score.ts'), 'gate', ...PERSONAS, '--fast'], { stdio: 'ignore' });
-  const scores = JSON.parse(readFileSync(join(ROOT, 'sim', 'out', 'gate', 'scores.json'), 'utf8')) as Array<{ persona: string; unnecessary: number; neededRecall: { mean: number }; outcome: { noteKinds: Record<string, number> } }>;
+  const scores = JSON.parse(readFileSync(join(ROOT, 'sim', 'out', 'gate', 'scores.json'), 'utf8')) as Array<{ persona: string; unnecessary: number; neededRecall: { mean: number }; outcome: { noteKinds: Record<string, number> }; violations: string[] }>;
   for (const s of scores) {
+    // A work note crossing into personal without an OK is never acceptable, whatever the baseline says.
+    put(`sim ${s.persona}: boundary violations`, s.violations.length, 'lower', 'count', 0);
+    for (const v of s.violations) console.log(`  boundary violation (${s.persona}): ${v}`);
     put(`sim ${s.persona}: needless step-ins`, s.unnecessary, 'lower');
     put(`sim ${s.persona}: needed moments caught`, s.neededRecall.mean, 'higher');
     put(`sim ${s.persona}: notes from another project`, s.outcome.noteKinds.otherProject ?? 0, 'lower', 'count');
@@ -95,16 +100,23 @@ const accept = process.argv.includes('--accept');
 const base = existsSync(BASELINE) ? (JSON.parse(readFileSync(BASELINE, 'utf8')) as Record<string, number>) : {};
 const fmt = (m: Metric, v: number) => (Number.isNaN(v) ? '—' : m.kind === 'rate' ? `${Math.round(v * 100)}%` : String(v));
 let failed = 0;
+let broken = 0; // hard limits: --accept can't take these as a baseline
 for (const [name, m] of Object.entries(metrics)) {
   const was = base[name];
-  const worse = was !== undefined && !Number.isNaN(m.value) && (m.better === 'higher' ? was - m.value : m.value - was) > TOLERANCE[m.kind];
+  const over = m.max !== undefined && m.value > m.max;
+  const worse = over || (was !== undefined && !Number.isNaN(m.value) && (m.better === 'higher' ? was - m.value : m.value - was) > TOLERANCE[m.kind]);
   if (worse) failed++;
+  if (over) broken++;
   console.log(`${worse ? '✗' : '✓'} ${name.padEnd(42)} ${fmt(m, m.value).padStart(5)}${was === undefined ? '' : `  (was ${fmt(m, was)})`}`);
 }
 if (accept) {
   writeFileSync(BASELINE, JSON.stringify(Object.fromEntries(Object.entries(metrics).map(([k, m]) => [k, m.value])), null, 2));
   console.log(`\nbaseline saved to ${BASELINE}`);
+  if (broken) {
+    console.log(`${broken} hard limit${broken === 1 ? '' : 's'} still broken; that can't be accepted, only fixed`);
+    process.exit(1);
+  }
 } else if (failed) {
-  console.log(`\n${failed} got worse than the baseline. Fix it, or accept on purpose with: pnpm gate --accept`);
+  console.log(`\n${failed} got worse than the baseline or broke a hard limit. Fix it, or accept a baseline change on purpose with: pnpm gate --accept`);
   process.exit(1);
 } else console.log(`\nnothing got worse${Object.keys(base).length ? '' : ' (no baseline yet: pnpm gate --accept)'}`);
