@@ -109,6 +109,25 @@ describe('gap detector', () => {
     expect(d.skippedKnown).toHaveLength(1);
   });
 
+  it('after the opening, adds only what the conversation is reaching for', () => {
+    const notes = [
+      note({ source: 'chatgpt', type: 'how', body: 'Reviews open pull requests first thing in the morning', topics: ['review'] }),
+      note({ source: 'codex', type: 'how', body: 'Prefers Vitest with test files next to the source; never Jest', topics: ['testing'] }),
+      note({ source: 'chatgpt', body: 'Applying to product roles for summer 2027', topics: ['job search'] }),
+    ];
+    const at = (prompt: string, fresh: boolean) =>
+      detect({ prompt, agent: 'claude-code', cwd: join(homedir(), 'side', 'quorum'), knownText: '', notes, config, fresh }).inject.map((n) => n.body);
+    expect(at('review the open pull requests', true)).toContain(notes[0]!.body);
+    expect(at('review the open pull requests', false)).toEqual([]); // a habit that shares only words belongs at the opening
+    expect(at('add tests for the slot finder', false)).toEqual([notes[1]!.body]); // the kind of task it is about
+    expect(at('add tests for the slot finder', false)).not.toContain(notes[2]!.body);
+  });
+
+  it('leaves out notes already added in this conversation', () => {
+    const d = detect({ prompt: 'write a launch post for Quorum', agent: 'chatgpt', space: 'personal', knownText: '', notes: quorum, config, given: new Set([quorum[0]!.id]) });
+    expect(d.inject.map((n) => n.id)).not.toContain(quorum[0]!.id);
+  });
+
   it('never surfaces notes the current agent wrote itself', () => {
     const d = run('my side project launch post', 'claude-code', quorum);
     expect(d.inject).toHaveLength(0);

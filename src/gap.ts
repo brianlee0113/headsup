@@ -194,7 +194,9 @@ export function detect(input: DetectInput): Decision {
   // kind of task it is specifically about (tests, commits, deploys), not for sharing a broad sense like
   // writing or format. General style notes belong at the opening.
   const later = input.fresh === false;
-  const stillHelps = (h: Hit) => !later || hasSignal || h.note.type !== 'how' || sharesSpecificConcept(h.note, promptConceptSet);
+  // A fact comes in later only when the prompt reaches for something the conversation doesn't hold:
+  // "my …", "the way we do it at work", or work usually done in another tool.
+  const stillHelps = (h: Hit) => !later || hasSignal || (h.note.type === 'how' && sharesSpecificConcept(h.note, promptConceptSet));
   const eligible = hits.filter((h) => stillHelps(h) && relevantEnough(h, hasSignal, foreign(h.note)) && fitsGenre(h.note) && inScope(h.note, { prompt, project: inProject, notes: input.notes, aboutSelf, namesSelf: selfRefs.length > 0 || (!!signals.usageMismatch && sharesSpecificConcept(h.note, promptConceptSet)) }));
   const top = eligible[0]?.score ?? 0;
   const relevant = eligible.filter((h) => h.score >= top * RELATIVE_CUTOFF).slice(0, MAX_NOTES);
