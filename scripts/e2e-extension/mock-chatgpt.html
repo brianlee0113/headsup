@@ -12,6 +12,7 @@ import { keymap } from 'https://esm.sh/prosemirror-keymap@1.2.2';
 const send = () => {
   const text = view.state.doc.textBetween(0, view.state.doc.content.size, '\n');
   if (!text.trim()) return true;
+  if (window.__refuse) return true; // the site turned the send down (network error, rate limit)
   // Same shape as chatgpt.com in 2026-10: no data-message-author-role, a search-unit turn around a bubble.
   const n = document.querySelectorAll('[data-chatgpt-search-unit-key]').length;
   const turn = document.createElement('div'); turn.dataset.chatgptSearchUnitKey = `fallback-turn-0:${n}:user`;

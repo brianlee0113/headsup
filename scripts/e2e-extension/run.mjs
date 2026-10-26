@@ -19,6 +19,7 @@ const env = { ...process.env, HEADSUP_HOME: HOME };
 const add = (args) => execFileSync('node', [REPO + '/dist/cli.js', 'add', ...args], { env });
 add(['--type', 'fact', '--space', 'personal', '--source', 'claude-code', '--topics', 'quorum,release', 'Quorum v0.3 adds recurring meetings and Google Calendar sync']);
 add(['--type', 'fact', '--space', 'personal', '--source', 'claude-code', '--topics', 'quorum,users', 'Quorum finds a meeting time for student clubs; 140 weekly users']);
+add(['--type', 'fact', '--space', 'personal', '--source', 'claude-code', '--topics', 'portfolio,site', 'The portfolio site runs on Astro and is hosted on Netlify']);
 add(['--type', 'fact', '--space', 'work', '--source', 'claude-code', '--topics', 'northwind,internship', 'Northwind internship on the payments team, summer 2026']);
 add(['--type', 'fact', '--space', 'work', '--source', 'claude-code', '--topics', 'internship,payouts', 'Shipped payout retries at the internship that cut failed payouts by 30%']);
 // Native host registered inside the throwaway profile only.
@@ -96,7 +97,18 @@ try {
   await sleep(1500);
   console.log('fourth sent:', JSON.stringify(JSON.parse(await js('JSON.stringify(window.__sentTexts)'))[3]));
 
-  await sleep(1000); // a send is recorded once the site has taken it (1.5 s after sending)
+  // 5) The site refuses the send and the person clears the draft: nothing is recorded as sent
+  await js('window.__refuse = true');
+  await type('Write a short intro for my portfolio site, it runs on Astro');
+  await sleep(1800);
+  console.log('refused send chip:', JSON.stringify(await chip()));
+  await key('Enter', 'Enter', 13, '\r');
+  await sleep(300);
+  await js(`document.querySelector('.ProseMirror').focus(); document.execCommand('selectAll'); document.execCommand('delete')`);
+  await sleep(2500);
+  await js('window.__refuse = false');
+
+  await sleep(1000); // a send is recorded once it shows up as a new message on the page
   const sentTexts = JSON.parse(await js('JSON.stringify(window.__sentTexts)'));
   const logged = readFileSync(HOME + '/log.jsonl', 'utf8').trim().split('\n').map((l) => JSON.parse(l));
   const checks = {
@@ -106,7 +118,8 @@ try {
     'work note added after including it': !!sentTexts[2]?.includes('payout retries'),
     'unticked work note left out': !sentTexts[2]?.includes('Northwind internship'),
     'sent before the pause, still checked for this text': !!sentTexts[3]?.includes('140 weekly users'),
-    'every send recorded once the site took it': logged.filter((e) => e.event === 'heads-up').length === 4,
+    'every send recorded once it shows on the page': logged.filter((e) => e.event === 'heads-up').length === 4,
+    'a refused send, then a cleared draft, not recorded': !logged.some((e) => e.prompt?.includes('portfolio')),
   };
   for (const [name, ok] of Object.entries(checks)) console.log(`${ok ? '✓' : '✗'} ${name}`);
   if (Object.values(checks).some((ok) => !ok)) done(1);

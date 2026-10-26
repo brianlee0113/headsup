@@ -112,7 +112,7 @@ export function handleSync(req: SyncRequest, store: Store, opts: { now?: Date; s
     if (chat.updated < new Date(state.since)) continue;
     // The queue is on disk until summarized (longer if summarizing fails), so secrets come out first.
     const turns = chat.turns.map((t) => ({ ...t, text: redactSecrets(t.text).text }));
-    const entry: Queued = { agent: target.agent, chat: { ...chat, turns, updated: chat.updated.toISOString() } };
+    const entry: Queued = { agent: target.agent, chat: { ...chat, title: redactSecrets(chat.title).text, turns, updated: chat.updated.toISOString() } };
     writeFileSync(join(queueDir(home), `${target.agent}-${safe(chat.id)}.json`), JSON.stringify(entry));
     state.chats[chat.id] = { updated: entry.chat.updated, turns: state.chats[chat.id]?.turns ?? 0 };
     queued++;

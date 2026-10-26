@@ -66,6 +66,9 @@ describe('the queue on disk', () => {
     const queued = readFileSync(join(store.home, 'sync', 'queue', 'chatgpt-k.json'), 'utf8');
     expect(queued).not.toContain('sk-proj-abcdefghijklmnopqrstuvwx');
     expect(queued).toContain('[openai-key removed]');
+    const titled = chatgpt('t', '2026-10-20', [['user', long('Why does this fail?')], ['assistant', 'Rotate it.']]);
+    handleSync({ type: 'sync-chats', site: 'chatgpt.com', chats: [{ ...titled, title: 'token=abcd1234efgh5678 not working' }] }, store, opts);
+    expect(readFileSync(join(store.home, 'sync', 'queue', 'chatgpt-t.json'), 'utf8')).not.toContain('abcd1234efgh5678');
   });
 });
 

@@ -18,7 +18,8 @@ type Reply = Detect | { type: 'error'; message: string; unreachable?: boolean } 
 
 const DEBOUNCE_MS = 450;
 const MIN_PROMPT = 8;
-const SENT_CHECK_MS = 1500; // the sites clear the composer well within this once a message is taken
+const SENT_CHECK_MS = 300; // how often to look for the sent message on the page
+const SENT_CHECKS = 20; // for up to 6 seconds
 const HEALTH_GRACE_MS = 8000;
 const SYNC_DELAY_MS = 5000; // let the page load its own requests first
 const SYNC_GAP_MS = 1000; // between chat fetches, so a backfill reads like a person scrolling, not a burst
@@ -359,8 +360,8 @@ function start(site: Site): void {
     });
   }
 
-  // A send is recorded only once the site took it, which shows as the draft leaving the composer. A
-  // send the site refused would otherwise count in review history and learning as shared.
+  // A send is recorded only once it shows up as a new message of yours on the page. A send the site
+  // refused would otherwise count in review history and learning as shared.
   function reportWhenSent(prompt: string, notes: WebNote[]): void {
     const d = state.detect;
     state.detect = null;
@@ -369,10 +370,15 @@ function start(site: Site): void {
     state.askAccepted = false;
     state.open = false;
     render();
-    const start = prompt.slice(0, 40);
-    setTimeout(() => {
-      if (!draft().includes(start)) report(prompt, notes, d);
-    }, SENT_CHECK_MS);
+    const squash = (t: string) => t.replace(/\s+/g, ' ').trim();
+    const start = squash(prompt).slice(0, 40);
+    const before = new Set(site.userMessages());
+    let tries = 0;
+    const check = () => {
+      if (site.userMessages().some((m) => !before.has(m) && squash(m.innerText).includes(start))) report(prompt, notes, d);
+      else if (++tries < SENT_CHECKS) setTimeout(check, SENT_CHECK_MS);
+    };
+    setTimeout(check, SENT_CHECK_MS);
   }
 
   function sendWith(composer: HTMLElement, prompt: string, notes: WebNote[]): void {
@@ -400,7 +406,11 @@ function start(site: Site): void {
     // this exact text is checked first.
     if (prompt.length >= MIN_PROMPT && state.detectFor !== prompt) {
       takeOver(e);
-      void ask().then(() => sendWith(composer, prompt, state.detectFor === prompt ? included() : []));
+      void ask().then(() => {
+        // Edited while the check ran: nothing is sent, so the person sends the new text themselves.
+        if (draft() !== prompt) return;
+        sendWith(composer, prompt, state.detectFor === prompt ? included() : []);
+      });
       return true;
     }
     const notes = included();
