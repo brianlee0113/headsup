@@ -31,6 +31,9 @@ const GENERATED = /^\s*<(?:task-notification|local-command-stdout|local-command-
 
 export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Store, config: Config, agent: TerminalAgent = 'claude-code'): HookOutput | null {
   if (GENERATED.test(input.prompt)) return null;
+  // The Codex app runs its own background prompts (suggestions, safety checks) through the same hooks,
+  // in threads it doesn't save. Only a saved conversation is the person's.
+  if (agent === 'codex' && !input.transcript_path) return null;
   store.countPrompt();
   const notes = store.list();
   const learn = learningOn(config);

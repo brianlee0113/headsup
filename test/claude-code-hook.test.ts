@@ -75,9 +75,17 @@ describe('Claude Code hook', () => {
   it('works for Codex too: leaves out Codex\'s own notes and prints the mark without color codes', () => {
     const store = setup();
     store.add({ type: 'how', space: 'personal', source: 'claude-code', body: 'Runs the parser tests with pnpm test --watch', topics: ['testing'] });
-    const out = handleUserPromptSubmit({ session_id: 'c1', cwd: personalRepo, prompt: 'add tests for the parser' }, store, config, 'codex');
+    const transcript_path = join(store.home, 'rollout.jsonl');
+    writeFileSync(transcript_path, '');
+    const out = handleUserPromptSubmit({ session_id: 'c1', cwd: personalRepo, prompt: 'add tests for the parser', transcript_path }, store, config, 'codex');
     expect(out?.systemMessage).toBe('⌃ heads-up · added 1 note from Claude Code · personal');
     expect(out?.hookSpecificOutput?.additionalContext).not.toContain('Prefers Vitest'); // Codex wrote it
     expect(store.readLog().at(-1)).toMatchObject({ agent: 'codex' });
+  });
+
+  it('leaves alone the Codex app\'s own background prompts, which run in threads it doesn\'t save', () => {
+    const store = setup();
+    expect(handleUserPromptSubmit({ session_id: 'bg', cwd: personalRepo, prompt: 'Generate 0 to 3 hyperpersonalized suggestions for what this user can do with Codex' }, store, config, 'codex')).toBeNull();
+    expect(store.readLog()).toHaveLength(0);
   });
 });
