@@ -147,8 +147,12 @@ function sharesSpecificConcept(note: Note, promptConcepts: Set<string>): boolean
   return conceptsOf(`${note.body} ${note.topics.join(' ')}`).some((c) => promptConcepts.has(c) && !BROAD_CONCEPTS.has(c));
 }
 
-function relevantEnough(h: Hit, hasSignal: boolean, foreign = false): boolean {
+function relevantEnough(h: Hit, hasSignal: boolean, foreign = false, promptConcepts: Set<string> = new Set()): boolean {
   const words = h.matched - h.concepts;
+  // A shared concept counts for a how-you-work note only when the note's text carries it. Topics are the
+  // summarizer's labels and run broad: a note on trying out new AI models was tagged "testing" and came
+  // up for every "add tests" and "run e2e". Without the concept, it needs two words of its own.
+  if (h.note.type === 'how' && !hasSignal && h.concepts && !conceptsOf(h.note.body).some((c) => promptConcepts.has(c))) return words >= 2;
   if (h.note.type === 'how' && foreign && !hasSignal) return (h.concepts >= 1 && words >= 1) || words >= 2;
   if (hasSignal || h.note.type === 'how') return h.concepts >= 1 || h.matched >= 2;
   return h.matched - h.concepts >= 3;
@@ -197,7 +201,7 @@ export function detect(input: DetectInput): Decision {
   // A fact comes in later only when the prompt reaches for something the conversation doesn't hold:
   // "my …", "the way we do it at work", or work usually done in another tool.
   const stillHelps = (h: Hit) => !later || hasSignal || (h.note.type === 'how' && sharesSpecificConcept(h.note, promptConceptSet));
-  const eligible = hits.filter((h) => stillHelps(h) && relevantEnough(h, hasSignal, foreign(h.note)) && fitsGenre(h.note) && inScope(h.note, { prompt, project: inProject, notes: input.notes, aboutSelf, namesSelf: selfRefs.length > 0 || (!!signals.usageMismatch && sharesSpecificConcept(h.note, promptConceptSet)) }));
+  const eligible = hits.filter((h) => stillHelps(h) && relevantEnough(h, hasSignal, foreign(h.note), promptConceptSet) && fitsGenre(h.note) && inScope(h.note, { prompt, project: inProject, notes: input.notes, aboutSelf, namesSelf: selfRefs.length > 0 || (!!signals.usageMismatch && sharesSpecificConcept(h.note, promptConceptSet)) }));
   const top = eligible[0]?.score ?? 0;
   const relevant = eligible.filter((h) => h.score >= top * RELATIVE_CUTOFF).slice(0, MAX_NOTES);
 

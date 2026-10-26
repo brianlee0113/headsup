@@ -28,8 +28,9 @@ describe('retrieval quality', () => {
     for (const row of runEval(silent(samKorean), samKoreanNotes).rows) expect(row.noise, row.prompt).toEqual([]);
   });
 
-  // Known noise for the pre-launch simulation; this starts failing once the gates are tuned — move the cases into samKorean then.
-  it('keeps another project\'s notes out of prompts that only share a testing sense', () => {
+  // Noise seen in real use, kept so it stays fixed: "테스트" meaning trying something out, and a note
+  // tagged "testing" whose text is about something else.
+  it('keeps notes out of prompts that only share a testing sense', () => {
     expect(runEval(samPending, samPendingNotes).noise).toBe(0);
   });
 });

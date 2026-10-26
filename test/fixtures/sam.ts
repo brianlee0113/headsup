@@ -120,4 +120,8 @@ export const samPending: EvalCase[] = [
   { agent: 'claude-code', cwd: other, prompt: 'mock e2e 다시 돌려줘', expect: [], ok: ['vitest', 'model-api'] },
   { agent: 'claude-code', cwd: other, prompt: 'ChatGPT 휴대폰 앱도 되나?', expect: [] },
   { agent: 'claude-code', cwd: other, prompt: '배포하면 내가 일단 셀프로 테스트는 가능한 상태인건가?', expect: [], ok: ['vitest', 'model-api'] },
+  { agent: 'claude-code', cwd: other, prompt: '내가 한 번 처음부터 테스트를 해보고 싶은데, 가입된 계정을 지워야 하나?', expect: [] },
+  // Real tests still get the testing note; the one about trying out models only shares the word.
+  { agent: 'claude-code', cwd: other, prompt: 'parser 유닛 테스트 추가해줘', expect: ['vitest'] },
+  { agent: 'claude-code', cwd: other, prompt: 'add tests for the transcript parser', expect: ['vitest'] },
 ];

@@ -12,7 +12,13 @@ const LEXICON: Record<string, string[]> = {
     'launch', 'launched', 'launching', 'announce', 'announcing', 'users', 'weekly', 'growth', 'signups', 'mvp',
     'customers', 'traction', 'how many people', 'people use', '런칭', '출시', '사용자', '유저',
   ],
-  testing: ['test', 'tests', 'testing', 'spec', 'vitest', 'jest', 'pytest', 'mocha', 'coverage', 'unit test', 'e2e', '테스트'],
+  // Korean 테스트 alone mostly means trying something out ("배포하면 셀프로 테스트 가능해?"), so it counts as
+  // testing only beside a sign of test code.
+  testing: [
+    'test', 'tests', 'testing', 'spec', 'vitest', 'jest', 'pytest', 'mocha', 'coverage', 'unit test', 'e2e',
+    '유닛 테스트', '단위 테스트', '테스트 코드', '테스트 케이스', '테스트 파일', '테스트 작성', '테스트 추가', '테스트를 추가',
+    '테스트를 작성', '테스트 돌', '테스트를 돌', '테스트 실행', '테스트를 실행', '테스트 통과', '테스트가 통과', '테스트가 깨', '테스트 실패',
+  ],
   // The package manager shapes every command: running tests, scripts, CI steps.
   packages: [
     'install', 'dependency', 'dependencies', 'package manager', 'pnpm', 'npm', 'yarn', 'bun', 'lockfile', 'script', 'scripts',
@@ -55,7 +61,8 @@ const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const MATCHERS: Array<[string, RegExp]> = Object.entries(LEXICON).map(([concept, words]) => {
   const latin = words.filter((w) => !HANGUL.test(w)).map((w) => escape(w).replace(/ /g, '\\s+'));
-  const hangul = words.filter((w) => HANGUL.test(w)).map(escape); // Korean attaches particles: match inside words
+  // Korean attaches particles: match inside words. Spacing in Korean varies, so a space may be left out.
+  const hangul = words.filter((w) => HANGUL.test(w)).map((w) => escape(w).replace(/ /g, '\\s*'));
   const parts = [latin.length ? `(?<![\\p{L}\\p{N}])(?:${latin.join('|')})(?![\\p{L}\\p{N}])` : '', ...hangul].filter(Boolean);
   return [concept, new RegExp(parts.join('|'), 'iu')];
 });
