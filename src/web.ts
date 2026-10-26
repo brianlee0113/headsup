@@ -6,7 +6,7 @@ import { aboutLines } from './about.js';
 import { agentName } from './agents.js';
 import type { Config } from './config.js';
 import { detect } from './gap.js';
-import { learningOn, recordRemoved, recordShown, resting } from './learning.js';
+import { learningOn, readBook, recordRemoved, recordShown, resting } from './learning.js';
 import type { Note } from './note.js';
 import type { WebNote } from './shared/block.js';
 import type { Store } from './store.js';
@@ -52,7 +52,7 @@ export function handleWeb(req: WebRequest, store: Store, config: Config, version
     case 'about-me': {
       const agent = SITES[req.site];
       if (!agent) return { type: 'error', message: `headsup doesn't know ${req.site}` };
-      return { type: 'about-me', ...aboutLines(store.list(), config, agent, req.room) };
+      return { type: 'about-me', ...aboutLines(store.list(), config, agent, req.room, learningOn(config) ? readBook(store.home) : {}) };
     }
     case 'about-written':
       store.log({ event: 'about-me', agent: SITES[req.site] ?? req.site, notes: req.ids });

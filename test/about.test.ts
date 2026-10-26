@@ -48,6 +48,33 @@ describe('what goes in', () => {
     expect(aboutLines(notes, { ...DEFAULT_CONFIG, preset: 'cautious' }, 'chatgpt', 1200).ids).toEqual(['how-new', 'how-old', 'fact']);
   });
 
+  it('puts notes answers drew on ahead of newer ones, and keeps seats for facts', () => {
+    const many = [
+      ...Array.from({ length: 12 }, (_, i) => note(`how-${i}`, { created: `2026-10-${String(10 + i).padStart(2, '0')}` })),
+      note('core', { created: '2026-08-01' }),
+      note('fact-a', { type: 'fact' }),
+      note('fact-b', { type: 'fact' }),
+      note('resting', { created: '2026-10-30' }),
+    ];
+    const book = {
+      core: { shown: 6, used: 4, ignored: 2, removed: 0 },
+      resting: { shown: 5, used: 0, ignored: 5, removed: 0, restUntil: '2026-11-30T00:00:00Z' },
+    };
+    const ids = aboutLines(many, DEFAULT_CONFIG, 'chatgpt', 5000, book, new Date('2026-11-01')).ids;
+    expect(ids[0]).toBe('core'); // old, but answers keep drawing on it
+    expect(ids).toEqual(expect.arrayContaining(['fact-a', 'fact-b'])); // twelve style notes don't push facts out
+    expect(ids).not.toContain('resting');
+    expect(ids).toHaveLength(12);
+  });
+
+  it('leaves out a how-you-work rule that names one project', () => {
+    const notes = [
+      note('rule', { body: 'headsup runs in autonomous mode: commit and push without asking', project: 'headsup' }),
+      note('general', { body: 'Answers in Korean', project: 'headsup' }),
+    ];
+    expect(aboutLines(notes, DEFAULT_CONFIG, 'chatgpt', 1200).ids).toEqual(['general']);
+  });
+
   it('fits the room it is given', () => {
     const r = aboutLines(notes, DEFAULT_CONFIG, 'chatgpt', aboutBlock(['note how-new']).length);
     expect(r.lines).toEqual(['note how-new']);
