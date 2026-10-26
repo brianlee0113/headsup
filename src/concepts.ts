@@ -72,9 +72,10 @@ const GENRES: Record<string, string[]> = {
   email: ['email', 'e-mail', 'mail', '메일', '이메일'],
   chat: ['slack', 'teams message', 'dm', 'text message', '슬랙', '메신저', '카톡'],
   ticket: ['jira', 'ticket', 'issue', 'user story', '티켓', '이슈'],
-  report: ['report', 'status update', 'weekly update', 'memo', '보고서', '보고', '리포트'],
+  report: ['report', 'status update', 'weekly update', 'memo', '보고서', '리포트', '주간 보고', '업무 보고', '보고 초안', '상황 보고', '결과 보고', '보고 메일'],
   social: ['linkedin', 'instagram', 'tweet', 'twitter', 'x post', 'social post', '인스타', '링크드인', 'sns'],
-  commit: ['commit message', 'commit messages', 'commit', '커밋'],
+  // The style of commit messages, not committing as an action ("commit and record it in PLAN.md").
+  commit: ['commit message', 'commit messages', '커밋 메시지', '커밋 메세지'],
   docs: ['readme', 'documentation', 'docs', '문서'],
 };
 const GENRE_MATCHERS: Array<[string, RegExp]> = Object.entries(GENRES).map(([g, words]) => {
