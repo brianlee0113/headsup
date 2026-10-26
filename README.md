@@ -29,47 +29,15 @@
 
 ---
 
-You write in ChatGPT and build in Claude Code. Ask Claude Code for release notes "in my voice" and it has no idea what your voice is. ChatGPT knows, but that knowledge is stuck in ChatGPT. headsup notices the gap and passes the right note along before the answer is written:
+You build in Claude Code and write in ChatGPT. Ask ChatGPT for a cover letter and it has to ask what you've built. Claude Code knew all along, but that knowledge is stuck in Claude Code. headsup notices the gap and passes the right notes along before the answer is written:
 
-<table>
-<tr>
-<th width="50%">Without headsup</th>
-<th width="50%">With headsup</th>
-</tr>
-<tr>
-<td valign="top">
-
-```text
-> write the v2.3 release notes in my voice
-
-● # 🚀 v2.3 Release Notes
-  We're excited to announce a range of
-  improvements that make billing more
-  robust than ever! ✨
-  ## What's New
-  - Enhanced webhook performance ...
-```
-
-</td>
-<td valign="top">
-
-```text
-> write the v2.3 release notes in my voice
-
-⌃ heads-up · added 1 note from ChatGPT
-  · personal (how you work)
-
-● ## v2.3
-  Billing webhooks are faster. Retries no
-  longer double-charge. Checkout errors now
-  show a clear message, not a stack trace.
-```
-
-</td>
-</tr>
-</table>
-
-<sub>Trimmed example output. Most of the time headsup does nothing at all — that's the point.</sub>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/compare-dark.svg">
+    <img src="docs/compare-light.svg" width="900" alt="The same prompt in ChatGPT, 'help me write a cover letter for a PM internship'. Without headsup, the answer asks three questions: what projects you built, what results you can point to, which company it's for. With headsup, a heads-up line says 3 notes came from Claude Code, and the answer goes straight to the letter: an internship on the payments team at Northwind, payout retries that cut failed payouts by 30%, and Quorum, a web app that finds meeting times for student clubs. Those phrases are highlighted as coming from notes.">
+  </picture>
+  <br><sub>Highlighted = came from a note. The notes are what headsup adds for this prompt from a fictional user's notes; the two Northwind ones are work notes, so they go in only after you tick them. The answer text is a trimmed example. Most of the time headsup does nothing at all — that's the point.</sub>
+</p>
 
 ## Highlights
 

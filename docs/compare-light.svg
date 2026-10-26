@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="314" viewBox="0 0 900 314" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13">
+<rect x="0.5" y="0.5" width="437" height="313" rx="12" fill="#F6F6F6" stroke="#E5E5E5"/>
+<rect x="462.5" y="0.5" width="437" height="313" rx="12" fill="#F6F6F6" stroke="#E5E5E5"/>
+<text x="22" y="36" fill="#0A0A0A" font-weight="700" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="14">Without headsup</text>
+<text x="416" y="36" fill="#6B6B6B" text-anchor="end" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="12">ChatGPT</text>
+<text x="22" y="70" fill="#6B6B6B">&gt; <tspan fill="#0A0A0A">help me write a cover letter for a PM internship</tspan></text>
+<text x="22" y="122" fill="#0A0A0A" xml:space="preserve"><tspan>● I’d be glad to help! To make it stand out,</tspan></text>
+<text x="22" y="144" fill="#0A0A0A" xml:space="preserve"><tspan>  tell me a bit about you:</tspan></text>
+<text x="22" y="166" fill="#0A0A0A" xml:space="preserve"><tspan></tspan></text>
+<text x="22" y="188" fill="#0A0A0A" xml:space="preserve"><tspan>  1. What projects have you built?</tspan></text>
+<text x="22" y="210" fill="#0A0A0A" xml:space="preserve"><tspan>  2. Any results you can point to?</tspan></text>
+<text x="22" y="232" fill="#0A0A0A" xml:space="preserve"><tspan>  3. Which company is it for?</tspan></text>
+<text x="484" y="36" fill="#0A0A0A" font-weight="700" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="14">With headsup</text>
+<text x="878" y="36" fill="#6B6B6B" text-anchor="end" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="12">ChatGPT</text>
+<text x="484" y="70" fill="#6B6B6B">&gt; <tspan fill="#0A0A0A">help me write a cover letter for a PM internship</tspan></text>
+<text x="484" y="92" fill="#6B6B6B"><tspan fill="#E0186C" font-weight="700">⌃ heads-up</tspan> · 3 notes from Claude Code</text>
+<text x="484" y="122" fill="#0A0A0A" xml:space="preserve"><tspan>● Dear hiring team,</tspan></text>
+<text x="484" y="144" fill="#0A0A0A" xml:space="preserve"><tspan></tspan></text>
+<text x="484" y="166" fill="#0A0A0A" xml:space="preserve"><tspan>  This summer I interned on </tspan><tspan fill="#E0186C" font-weight="700" text-decoration="underline">the payments</tspan></text>
+<text x="484" y="188" fill="#0A0A0A" xml:space="preserve"><tspan>  </tspan><tspan fill="#E0186C" font-weight="700" text-decoration="underline">team at Northwind</tspan><tspan>, where I </tspan><tspan fill="#E0186C" font-weight="700" text-decoration="underline">shipped payout</tspan></text>
+<text x="484" y="210" fill="#0A0A0A" xml:space="preserve"><tspan>  </tspan><tspan fill="#E0186C" font-weight="700" text-decoration="underline">retries that cut failed payouts by 30%</tspan><tspan>.</tspan></text>
+<text x="484" y="232" fill="#0A0A0A" xml:space="preserve"><tspan>  On the side I built </tspan><tspan fill="#E0186C" font-weight="700" text-decoration="underline">Quorum, a web app that</tspan></text>
+<text x="484" y="254" fill="#0A0A0A" xml:space="preserve"><tspan>  </tspan><tspan fill="#E0186C" font-weight="700" text-decoration="underline">finds a meeting time for student clubs</tspan></text>
+<text x="484" y="276" fill="#0A0A0A" xml:space="preserve"><tspan>  </tspan><tspan fill="#E0186C" font-weight="700" text-decoration="underline">from everyone’s calendar</tspan><tspan>. ...</tspan></text>
+</svg>
