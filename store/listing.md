@@ -71,4 +71,6 @@ Certify all three: not sold to third parties; not used or transferred for purpos
 
 ## Test instructions for the reviewer
 
-> headsup needs its companion app. On macOS or Linux with Node 22+: run `npx headsup-ai setup`, accept the browser connection step, then reload chatgpt.com. Type "write a LinkedIn post about my side project in my usual voice" (no need to send): the headsup mark by the message box shows the notes that would be added. With no notes saved yet, the mark stays quiet; `npx headsup-ai add "Writes short, plain posts without emoji" --type how --space personal --source claude-code` adds one to try (a note from another tool: a note ChatGPT gave is not handed back to ChatGPT).
+500 characters max (this is 421):
+
+> Needs the free headsup app (macOS/Linux, Node 22+). 1) Run: npx headsup-ai setup, accept the browser step. 2) Add a test note: npx headsup-ai add "Writes short, plain posts without emoji" --type how --space personal --source claude-code 3) Reload chatgpt.com and type (no need to send): write a LinkedIn post about my side project in my usual voice. The headsup mark by the message box shows the note that would be added.
