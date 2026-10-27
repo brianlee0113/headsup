@@ -54,12 +54,16 @@ function topicsFor(agent: string, notes: Note[], config: Config): string[] {
 
 export function cardFacts(store: Store, config: Config, now = new Date()): Omit<CardData, 'headline' | 'style'> {
   const notes = store.list();
+  // Counts reveal nothing and use every note. The words on the card (topics, what crossed over) come
+  // only from notes the person could post: personal, sorted, not an employer's process.
+  const postable = new Set(withoutPending(notes, store.home, config).filter((n) => n.space === config.defaultSpace && !n.internal && n.share !== 'never').map((n) => n.id));
+  const words = (ns: Note[]) => ns.filter((n) => postable.has(n.id));
   const bySource = new Map<string, Note[]>();
   for (const n of notes) bySource.set(n.source, [...(bySource.get(n.source) ?? []), n]);
   const tools = [...bySource]
     .sort((a, b) => b[1].length - a[1].length)
     .slice(0, 4)
-    .map(([agent, ns]) => ({ name: cardName(agent), topics: topicsFor(agent, ns, config), share: ns.length / notes.length }));
+    .map(([agent, ns]) => ({ name: cardName(agent), topics: topicsFor(agent, words(ns), config), share: ns.length / notes.length }));
 
   // Every note that went into a prompt, by where it came from and where it went.
   const byId = new Map(notes.map((n) => [n.id, n]));
@@ -79,7 +83,7 @@ export function cardFacts(store: Store, config: Config, now = new Date()): Omit<
     .slice(0, 3)
     .map(([key, ns]) => {
       const [from, to] = key.split('\u0000') as [string, string];
-      const what = top(tally(conceptWords(ns)), 2).join(', ') || (ns.every((n) => n.type === 'how') ? 'how you work' : 'context');
+      const what = top(tally(conceptWords(words(ns))), 2).join(', ') || (ns.every((n) => n.type === 'how') ? 'how you work' : 'context');
       return { from: cardName(from), to: cardName(to), what, times: ns.length };
     });
 

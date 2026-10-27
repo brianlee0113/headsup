@@ -28,6 +28,9 @@ export function aboutLines(notes: Note[], config: Config, agent: string, room: n
     .filter((n) => verdictFor(n, config.defaultSpace, config.preset) === 'auto')
     .filter((n) => n.type === 'how' || n.space === config.defaultSpace || n.share === 'always')
     .filter((n) => !(book[n.id]?.restUntil && new Date(book[n.id]!.restUntil!) > now))
+    // An employer's own process ("release needs a security review") would ride along in every chat of a
+    // personal account; it still goes into a single request where it fits.
+    .filter((n) => !n.internal)
     // A how-you-work rule that names one project ("headsup runs in autonomous mode") is for that
     // project's tool, not for every chat in the account.
     .filter((n) => n.type !== 'how' || !projects.some((p) => n.body.toLowerCase().includes(p)));

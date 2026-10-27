@@ -11,6 +11,7 @@ export interface Note {
   topics: string[];
   created: string; // ISO date
   share?: 'never' | 'always';
+  internal?: true; // a way of working particular to their employer (approvals, internal tools), not a personal preference
   body: string;
 }
 
@@ -22,6 +23,7 @@ export function serializeNote(note: Note): string {
   if (note.topics.length) lines.push(`topics: [${note.topics.join(', ')}]`);
   lines.push(`created: ${note.created}`);
   if (note.share) lines.push(`share: ${note.share}`);
+  if (note.internal) lines.push('internal: true');
   lines.push('---', '', note.body.trim(), '');
   return lines.join('\n');
 }
@@ -52,6 +54,7 @@ export function parseNote(text: string): Note {
     topics: (fields.topics as string[] | undefined) ?? [],
     created: str('created'),
     ...(share === 'never' || share === 'always' ? { share } : {}),
+    ...(str('internal') === 'true' ? { internal: true as const } : {}),
     body: match[2]!.trim(),
   };
 }

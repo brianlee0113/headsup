@@ -46,6 +46,11 @@ describe('notes', () => {
 });
 
 describe('secrets', () => {
+  it('keeps the internal mark through a save', () => {
+    const n = note({ type: 'how', body: 'Release needs a security review first', internal: true });
+    expect(parseNote(serializeNote(n))).toEqual(n);
+  });
+
   it('drops keys before anything is stored', () => {
     const r = redactSecrets('webhook 401, key is sk_live_51NxABCDEFGHIJKLMNOP');
     expect(r.dropped).toEqual(['stripe-key']);

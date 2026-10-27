@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { Prompt } from '../src/capture.js';
+import { markChecked } from '../src/spaces.js';
 import { buildCard, cardFacts, parseCardReply, styleSource, templateHeadline } from '../src/card.js';
 import { DEFAULT_CONFIG, type Config } from '../src/config.js';
 import { Store } from '../src/store.js';
@@ -21,6 +22,7 @@ function setup() {
   store.log({ event: 'heads-up', agent: 'chatgpt', injected: [voice.id] });
   store.log({ event: 'heads-up', agent: 'chatgpt', injected: [voice.id] });
   store.log({ event: 'heads-up', agent: 'claude-code', injected: [voice.id] }); // same tool: not a crossing
+  markChecked(store.home, store.list().map((n) => n.id)); // web notes already sorted into work and personal
   return { store, voice };
 }
 
@@ -36,6 +38,17 @@ describe('the share card', () => {
     expect(f.numbers).toMatchObject({ tools: 2, notes: 5 });
     store.add({ type: 'how', space: 'personal', source: 'claude-ai', body: 'Reads papers with a summary first.' });
     expect(cardFacts(store, config).tools.map((t) => t.name)).toContain('Claude');
+  });
+
+  it('takes its words only from notes the person could post', () => {
+    const { store } = setup();
+    // A work note's topics and an unsorted web note's never name what crossed over or what a tool is for.
+    const secret = store.add({ type: 'fact', space: 'work', source: 'chatgpt', body: 'Plans the Lumen team offsite trip to Lisbon' }).note!;
+    const unsorted = store.add({ type: 'fact', space: 'personal', source: 'chatgpt', body: 'Vegetarian and allergic to peanuts; cooks dinner most nights' }).note!;
+    store.log({ event: 'heads-up', agent: 'claude-code', injected: [secret.id, unsorted.id] });
+    const f = cardFacts(store, config);
+    expect(f.flows.find((x) => x.from === 'ChatGPT')).toBeDefined(); // the crossing still counts
+    expect(JSON.stringify(f)).not.toMatch(/travel|food/);
   });
 
   it('rewords only how-you-work notes from personal spaces', () => {

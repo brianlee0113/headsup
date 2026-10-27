@@ -75,6 +75,14 @@ describe('what goes in', () => {
     expect(aboutLines(notes, DEFAULT_CONFIG, 'chatgpt', 1200).ids).toEqual(['general']);
   });
 
+  it('leaves an employer\'s own process out, without asking', () => {
+    const notes = [
+      note('process', { body: 'Release needs a security review first', space: 'work', internal: true }),
+      note('habit', { body: 'Writes tickets as background, then acceptance criteria', space: 'work' }),
+    ];
+    expect(aboutLines(notes, DEFAULT_CONFIG, 'chatgpt', 1200).ids).toEqual(['habit']);
+  });
+
   it('fits the room it is given', () => {
     const r = aboutLines(notes, DEFAULT_CONFIG, 'chatgpt', aboutBlock(['note how-new']).length);
     expect(r.lines).toEqual(['note how-new']);

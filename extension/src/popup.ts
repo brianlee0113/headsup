@@ -19,7 +19,7 @@ const BROKEN: Record<Exclude<Part, 'chat list'>, string> = {
 
 async function main(): Promise<void> {
   const status = (await chrome.runtime.sendMessage({ type: 'status' }).catch(() => null)) as
-    | { type: 'status'; version: string; notes: number; preset: string; sync?: Record<string, SiteSync> }
+    | { type: 'status'; version: string; notes: number; preset: string; sync?: Record<string, SiteSync>; waiting?: number }
     | { type: 'error'; message: string }
     | null;
 
@@ -31,7 +31,9 @@ async function main(): Promise<void> {
   }
   $('dot').className = 'dot ok';
   $('status').textContent = 'Connected';
-  $('summary').textContent = `${status.notes} note${status.notes === 1 ? '' : 's'} on this computer · sharing: ${status.preset[0]!.toUpperCase()}${status.preset.slice(1)}`;
+  $('summary').textContent = `${status.notes} note${status.notes === 1 ? '' : 's'} on this computer · sharing: ${status.preset[0]!.toUpperCase()}${status.preset.slice(1)}` +
+    // Older chat notes are held back until sorted into work and personal; say so only if that got stuck.
+    (status.waiting ? ` · ${status.waiting} older chat note${status.waiting === 1 ? '' : 's'} waiting to be sorted (headsup recheck-spaces)` : '');
   $('connected').hidden = false;
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });

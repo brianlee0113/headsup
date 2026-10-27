@@ -11,6 +11,7 @@ export interface NewNote {
   body: string;
   topics?: string[];
   project?: string;
+  internal?: boolean;
 }
 
 export interface AddResult {
@@ -44,6 +45,7 @@ export class Store {
       ...(input.project ? { project: input.project } : {}),
       topics: input.topics ?? [],
       created: now.toISOString(),
+      ...(input.internal ? { internal: true as const } : {}),
       body: text,
     };
     mkdirSync(this.notesDir(note.space), { recursive: true });

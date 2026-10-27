@@ -113,6 +113,9 @@ export async function recheckSpaces(store: Store, config: Config, summarize: Sum
   mkdirSync(join(store.home, 'state'), { recursive: true });
   writeFileSync(checkedFile(store.home), JSON.stringify([...checked]));
   if (moved.length) store.log({ event: 'moved-to-work', notes: moved.map((n) => n.id) });
+  // The outcome is kept, so a recheck that keeps failing shows in the extension popup instead of
+  // leaving notes out of sight for good.
+  writeFileSync(join(store.home, 'state', 'spaces-result.json'), JSON.stringify({ at: new Date().toISOString(), failed }));
   return { checked: todo.length, moved, failed };
 }
 
@@ -121,5 +124,19 @@ export const spacesCheckDue = (store: Store, config: Config) => existsSync(store
 // Starts `headsup recheck-spaces` in the background when it is due, from the hook or the extension's
 // first request after an update, so older web notes are sorted within minutes of it.
 export function startRecheck(store: Store, config: Config): void {
-  if (recheckDue(store, config)) spawn(process.execPath, [process.argv[1]!, 'recheck-spaces'], { detached: true, stdio: 'ignore' }).unref();
+  if (!recheckDue(store, config)) return;
+  const child = spawn(process.execPath, [process.argv[1]!, 'recheck-spaces'], { detached: true, stdio: 'ignore' });
+  child.on('error', () => {}); // tried again after RESTART_MS
+  child.unref();
+}
+
+// Web notes still waiting to be sorted after a recheck that didn't finish: worth telling the person.
+// While a first recheck is simply under way, nothing is shown.
+export function stuckWaiting(store: Store, config: Config): number {
+  try {
+    const last = JSON.parse(readFileSync(join(store.home, 'state', 'spaces-result.json'), 'utf8')) as { failed: number };
+    return last.failed ? unchecked(store, config).length : 0;
+  } catch {
+    return 0;
+  }
 }

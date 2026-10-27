@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type { Prompt } from '../src/capture.js';
 import { DEFAULT_CONFIG } from '../src/config.js';
 import { Store } from '../src/store.js';
-import { recheckSpaces, withoutPending } from '../src/spaces.js';
+import { recheckSpaces, stuckWaiting, withoutPending } from '../src/spaces.js';
 import { handleSync, parseClaudeChat, readState, runSync, syncStatus } from '../src/sync.js';
 import { handleWeb } from '../src/web.js';
 
@@ -148,7 +148,7 @@ describe('turning queued chats into notes', () => {
       { type: 'fact', body: 'Q4 OKR at Lumen: cut checkout drop-off from 15% to 10%', topics: ['okr'], space: 'work' },
       { type: 'fact', body: 'Training for a half marathon in November', topics: ['running'], space: 'personal' },
     ]);
-    await runSync(store, DEFAULT_CONFIG, async (p) => (p.system.includes('review') ? '{"keep":[0,1]}' : two));
+    await runSync(store, DEFAULT_CONFIG, async (p) => (p.system.startsWith('You review') ? '{"keep":[0,1]}' : two));
     expect(store.list().map((n) => [n.space, n.body.slice(0, 10)]).sort()).toEqual([['personal', 'Training f'], ['work', 'Q4 OKR at ']]);
   });
 
@@ -159,7 +159,7 @@ describe('turning queued chats into notes', () => {
       { type: 'fact', body: 'Leads the payments squad at Lumen', topics: ['role'] },
       { type: 'fact', body: 'Owns the checkout funnel dashboard', topics: ['dashboards'], space: 'both' },
     ]);
-    await runSync(store, DEFAULT_CONFIG, async (p) => (p.system.includes('review') ? '{"keep":[0,1]}' : unsure));
+    await runSync(store, DEFAULT_CONFIG, async (p) => (p.system.startsWith('You review') ? '{"keep":[0,1]}' : unsure));
     expect(store.list().map((n) => n.space)).toEqual(['work', 'work']);
   });
 
@@ -172,12 +172,14 @@ describe('turning queued chats into notes', () => {
     const okrFirst = (p: { user: string }) => p.user.split('\n').find((l) => l.includes('OKR'))!.startsWith('0');
     // An answer that leaves a note out is not taken: nothing moves, nothing is marked checked.
     expect(await recheckSpaces(store, DEFAULT_CONFIG, async () => (calls++, '{"work":[],"personal":[]}'))).toMatchObject({ moved: [], failed: 1 });
-    // Until then the web notes are left out wherever notes are read to be shared.
+    // Until then the web notes are left out wherever notes are read to be shared, and the popup says so.
     expect(withoutPending(store.list(), store.home, DEFAULT_CONFIG).map((n) => n.body)).toEqual(['Uses pnpm']);
+    expect(stuckWaiting(store, DEFAULT_CONFIG)).toBe(2);
     const r = await recheckSpaces(store, DEFAULT_CONFIG, async (p) => (calls++, okrFirst(p) ? '{"work":[0],"personal":[1]}' : '{"work":[1],"personal":[0]}'));
     expect(r.moved.map((n) => n.id)).toEqual([okr.id]);
     expect(store.list().find((n) => n.id === okr.id)!.space).toBe('work');
     expect(withoutPending(store.list(), store.home, DEFAULT_CONFIG)).toHaveLength(3); // all sorted now
+    expect(stuckWaiting(store, DEFAULT_CONFIG)).toBe(0);
     expect(await recheckSpaces(store, DEFAULT_CONFIG, async () => (calls++, '{"work":[],"personal":[]}'))).toMatchObject({ checked: 0 });
     expect(calls).toBe(2);
   });

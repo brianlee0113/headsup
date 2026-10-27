@@ -175,6 +175,14 @@ describe('an update to an existing note', () => {
     expect(store.list()).toHaveLength(2);
   });
 
+  it('leaves a change without a new figure to tidy', () => {
+    const store = new Store(mkdtempSync(join(tmpdir(), 'headsup-')));
+    const old = store.add({ type: 'fact', space: 'personal', source: 'chatgpt', body: 'Applying to product manager roles at AI startups' }).note!;
+    const found = parseNotes(JSON.stringify([{ type: 'fact', body: 'Accepted a product manager offer at an AI startup', replaces: old.id }]));
+    saveNotes(found, store.list(), store, { space: 'personal', source: 'chatgpt' });
+    expect(store.list()).toHaveLength(2);
+  });
+
   it('ignores an id that is not one of the notes it was shown', () => {
     const store = new Store(mkdtempSync(join(tmpdir(), 'headsup-')));
     store.add({ type: 'fact', space: 'personal', source: 'claude-code', body: 'Quorum has about 140 weekly users' });

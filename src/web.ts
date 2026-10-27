@@ -7,7 +7,7 @@ import { agentName } from './agents.js';
 import type { Config } from './config.js';
 import { detect } from './gap.js';
 import { learningOn, readBook, recordRemoved, recordShown, resting } from './learning.js';
-import { withoutPending } from './spaces.js';
+import { stuckWaiting, withoutPending } from './spaces.js';
 import type { Note } from './note.js';
 import type { WebNote } from './shared/block.js';
 import type { Store } from './store.js';
@@ -45,7 +45,8 @@ export function handleWeb(req: WebRequest, store: Store, config: Config, version
   switch (req.type) {
     case 'status': {
       const notes = store.list();
-      return { type: 'status', version, notes: notes.length, preset: config.preset, space: config.defaultSpace, sync: syncStatus(store) };
+      const waiting = stuckWaiting(store, config);
+      return { type: 'status', version, notes: notes.length, preset: config.preset, space: config.defaultSpace, sync: syncStatus(store), ...(waiting ? { waiting } : {}) };
     }
     case 'sync-start':
     case 'sync-chats':
