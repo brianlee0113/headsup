@@ -1,6 +1,6 @@
 // The development gate: one command that checks a change against everything that needs no model calls,
 // compares with the last accepted numbers, and fails if anything got worse.
-//   1. the eval set (test/eval.ts)
+//   1. the eval set (test/eval.ts), and conversations replayed turn by turn (sim/conversations.ts)
 //   2. the persona simulation, re-judged on saved memory (redetect + fast scoring)
 //   3. the person's labeled real decisions, re-judged on this computer (.local/real-labels.json)
 // pnpm gate            check
@@ -13,6 +13,7 @@ import { headsupHome, loadConfig } from '../src/config.js';
 import { projectOf } from '../src/context.js';
 import { detect } from '../src/gap.js';
 import { Store } from '../src/store.js';
+import { runConversations } from './conversations.js';
 
 const ROOT = join(new URL('.', import.meta.url).pathname, '..');
 const MEMORY_RUN = process.env.GATE_MEMORY_RUN ?? 'r15'; // saved memory the persona check replays (sam r15, jieun r13: current capture rules)
@@ -32,6 +33,12 @@ const evalOut = execFileSync(tsx, [join(ROOT, 'test', 'eval.ts')], { encoding: '
 const [tuned, holdout] = [...evalOut.matchAll(/recall (\d+)%\s+precision (\d+)%/g)].map((m) => ({ recall: Number(m[1]) / 100, precision: Number(m[2]) / 100 }));
 if (tuned) { put('eval: recall', tuned.recall, 'higher'); put('eval: precision', tuned.precision, 'higher'); }
 if (holdout) { put('eval holdout: recall', holdout.recall, 'higher'); put('eval holdout: precision', holdout.precision, 'higher'); }
+
+// 1b. conversations replayed turn by turn through the hook (sim/conversations.ts): every turn must do
+// what it says, so this is a hard limit like boundary violations.
+const conv = runConversations();
+for (const f of conv.failures) console.log(`  conversation "${f.conversation}" turn ${f.turn} (${f.prompt}): ${f.problem}`);
+put(`conversations: turns gone wrong (of ${conv.turns})`, conv.failures.length, 'lower', 'count', 0);
 
 // 2. persona simulation on saved memory
 if (PERSONAS.every((p) => existsSync(join(ROOT, 'sim', 'out', MEMORY_RUN, p, 'notes-w1.json')))) {
