@@ -61,6 +61,14 @@ export const identitiesIn = (prompt: string): Identity[] =>
   (Object.keys(IDENTITY_IN_PROMPT) as Identity[]).filter((k) => IDENTITY_IN_PROMPT[k].some((re) => re.test(prompt)));
 const IDENTITY_NOTES = 2; // per subject: the newest
 
+const SIDE_PROJECT = /\b(?:my\s+)?(?:side|personal|toy|hobby)\s+project\b|(?:사이드|개인|토이)\s*프로젝트/i;
+
+// The one project in the person's own space, named by their notes, other than the current one.
+function onlyOwnProject(notes: Note[], space: string, current: string | undefined): string | undefined {
+  const names = new Set(notes.filter((n) => n.space === space && n.project && !GENERIC_FOLDERS.has(n.project.toLowerCase()) && n.project !== current).map((n) => n.project!));
+  return names.size === 1 ? [...names][0] : undefined;
+}
+
 export interface Signals {
   references: string[];
   usageMismatch?: { topic: string; usualAgents: string[] };
@@ -199,8 +207,13 @@ export function detect(input: DetectInput): Decision {
   if (!others.length) return empty;
 
   const usual = new Set(signals.usageMismatch?.usualAgents ?? []);
+  // "my side project" names a project by kind; notes name it ("Quorum is…"). When the person's own
+  // space holds exactly one project other than the one they're in, the prompt is read as naming it.
+  // With two or more it stays as typed: guessing the wrong project would be worse than nothing.
+  const sideProject = SIDE_PROJECT.test(prompt) ? onlyOwnProject(input.notes, config.defaultSpace, inProject) : undefined;
+  const query = sideProject ? `${prompt} ${sideProject}` : prompt;
   const hits = new NoteIndex(others)
-    .search(prompt, 10)
+    .search(query, 10)
     .map((h) => ({ ...h, score: usual.has(h.note.source) ? h.score * 1.5 : h.score }))
     .sort((a, b) => b.score - a.score);
 
@@ -227,7 +240,7 @@ export function detect(input: DetectInput): Decision {
   // A fact comes in later only when the prompt reaches for something the conversation doesn't hold:
   // "my …", "the way we do it at work", or work usually done in another tool.
   const stillHelps = (h: Hit) => !later || hasSignal || (h.note.type === 'how' && sharesSpecificConcept(h.note, promptConceptSet));
-  const eligible = hits.filter((h) => stillHelps(h) && relevantEnough(h, hasSignal, foreign(h.note), promptConceptSet) && fitsGenre(h.note) && inScope(h.note, { prompt, project: inProject, notes: input.notes, aboutSelf, namesSelf: selfRefs.length > 0 || (!!signals.usageMismatch && sharesSpecificConcept(h.note, promptConceptSet)) }));
+  const eligible = hits.filter((h) => stillHelps(h) && relevantEnough(h, hasSignal, foreign(h.note), promptConceptSet) && fitsGenre(h.note) && inScope(h.note, { prompt: query, project: inProject, notes: input.notes, aboutSelf, namesSelf: selfRefs.length > 0 || (!!signals.usageMismatch && sharesSpecificConcept(h.note, promptConceptSet)) }));
   const top = eligible[0]?.score ?? 0;
   const relevant = eligible.filter((h) => h.score >= top * RELATIVE_CUTOFF).slice(0, MAX_NOTES);
   // Facts on the subject the prompt asks about ("my job", "내 부업"), found by subject, within the same

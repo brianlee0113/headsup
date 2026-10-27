@@ -141,6 +141,16 @@ describe('gap detector', () => {
     expect(d.inject.map((n) => n.id)).not.toContain(quorum[0]!.id);
   });
 
+  it('reads "my side project" as the one project of the person\'s own, and guesses nothing when there are two', () => {
+    const tide = note({ source: 'codex', project: 'tidepool', body: 'Tidepool stores photo metadata in SQLite', topics: ['tidepool'] });
+    const notes = [tide, note({ source: 'codex', space: 'work', project: 'halcyon', body: 'Halcyon runs on Postgres', topics: ['halcyon'] })];
+    const at = (ns: Note[]) => detect({ prompt: 'how should i store the photo metadata in my side project?', agent: 'chatgpt', space: 'personal', knownText: '', notes: ns, config }).inject.map((n) => n.id);
+    expect(at(notes)).toContain(tide.id);
+    const two = [...notes, note({ source: 'codex', project: 'quorum', body: 'Quorum stores club calendars in Supabase', topics: ['quorum'] })];
+    const d = detect({ prompt: 'what should my side project do next?', agent: 'chatgpt', space: 'personal', knownText: '', notes: two, config });
+    expect([...d.inject, ...d.ask].some((n) => n.project === 'quorum' || n.project === 'tidepool')).toBe(false);
+  });
+
   it('never surfaces notes the current agent wrote itself', () => {
     const d = run('my side project launch post', 'claude-code', quorum);
     expect(d.inject).toHaveLength(0);
