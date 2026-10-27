@@ -30,7 +30,7 @@ export const PLANTED: Record<string, string> = {
 };
 
 const expand = (p: string) => p.replace(/^~/, homedir());
-const projectPath = (p: Persona, s: { tool: string; project?: string }) => {
+export const projectPath = (p: Persona, s: { tool: string; project?: string }) => {
   const projects = p.tools[s.tool]?.projects ?? {};
   return expand(projects[s.project ?? ''] ?? Object.values(projects)[0] ?? '~');
 };

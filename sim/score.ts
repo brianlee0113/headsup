@@ -9,7 +9,9 @@ import { renderNotes } from '../src/hooks/claude-code.js';
 import type { Note } from '../src/note.js';
 import { itemText, loadPersona } from './generate.js';
 import { askJson, askText, pool, usage } from './llm.js';
-import { outDir, type ProbeResult } from './run.js';
+import { loadConfig, resolveSpace } from '../src/config.js';
+import { verdictFor } from '../src/policy.js';
+import { outDir, projectPath, type ProbeResult } from './run.js';
 import type { Item, Persona } from './types.js';
 
 const HERE = new URL('.', import.meta.url).pathname;
@@ -184,6 +186,18 @@ async function scorePersona(run: string, id: string, fast = false) {
     }
   }
   for (const w of perWeek) for (const n of w.notes) if (secrets.some((x) => n.body.includes(x))) violations.add(`w${w.week}: a secret value reached note ${n.id}`);
+  // The same rule checked from what headsup actually did, with no judge in between: nothing goes in
+  // without an OK that the sharing preset says needs one. An audit can only catch a note it mapped to the
+  // ground truth; this catches the rest (an unlisted work fact, a note no judge looked at).
+  const config = loadConfig(join(outDir(run, id), 'home')); // the run's own spaces and preset
+  const targetOf = (r: ProbeResult) => (['claude-code', 'codex'].includes(r.probe.tool) ? resolveSpace(projectPath(p, r.probe), config) : config.defaultSpace);
+  for (const r of all) {
+    const target = targetOf(r);
+    for (const n of r.inject) {
+      const verdict = verdictFor(n, target, config.preset);
+      if (verdict !== 'auto') violations.add(`${r.probe.id}: ${n.space} ${n.type} "${n.body}" added to a ${target} prompt, but the preset says ${verdict} ("${r.probe.prompt}")`);
+    }
+  }
 
   const lifts = perWeek.flatMap((w) => w.lifts);
   const byTrial = (verdict: Lift['verdict']) => range(Array.from({ length: REPS.lift }, (_, t) => {
