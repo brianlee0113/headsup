@@ -3,7 +3,7 @@
   "name": "headsup",
   "version": "0.1.6",
   "description": "Gives your AI a heads-up before it answers: context from your other AI tools, added when it helps.",
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArmbe+W1BvRJrjtKJ7CDOmlXnKDQs+NMGeHsIYlN5Ztu8UFVl5sQYOHhJatg/t+SeeanXtcUsyZVSf2rPIABSIkknrKfieEEj+qV4Rm/nAA60Zy63XM5pqWvVYpz60fB8Crt+sGfKivJi4bgaO0QISgZL2FcMg6tN/lsCW3PKL0i1yE9pDLl9Grk9QrZbHCYIllIz6AcYfAIdloc+gViP9CI13+624d++bFWNmEZgSobl+gNVNoumpLrIYvNlZImSr1LuPD1SzmX3RPn4xMOLUtohs+uxdwv+zjX7wbFUruHA++XjRWR5iz3CzIr3KQbzKW4QePWObZNfwAGKhCagQwIDAQAB",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAulW+5TP4uWfvgokuX6NzRdcuBo9coIfY+QlwdZXlPF45fQ/HRrSdpmuqCBuoxCreMJUGHZDrbMbS2/chOlLVKDO107tMsWsbGt44PJTzIHgPOpql3nASAqvwOz0HKT00ReoScqtV069RvThPXiUuYJ/k1dy8ywXkZZvnAGFYEqOlPzuvG0RtQ+1OMcyr2YqkocWcSmSZ9QfDGXn7rX6Ocwo/AmVjWaSxrOtuPy6xifKpwe7pqh/9bV5sK7YDwTjA2gBq6LKS1TzllgpzSsLpQapkKQ0oH8rJ3PZkk5mlXtrLaUY95jZpJd1Dz78IwZIKEZ97Dn1HBGUFsZfYaB0uEwIDAQAB",
   "permissions": [
     "nativeMessaging",
     "storage"

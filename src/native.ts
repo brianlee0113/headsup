@@ -11,10 +11,10 @@ import { shellQuote } from './config.js';
 
 export const HOST_NAME = 'ai.headsup.host';
 // Fixed by the public key in extension/manifest.json, so the host can trust exactly this extension.
-export const EXTENSION_ID = 'heomldlmknjaidfkfkdhjibppainocea';
+export const EXTENSION_ID = 'khpoiajpimicekhdejhjmfjaklbcgpkk'; // the Chrome Web Store's
 // IDs the extension had before, still trusted so an existing install keeps working after a key change
 // (the Chrome Web Store assigns its own key; see store/README.md).
-export const EARLIER_EXTENSION_IDS: string[] = [];
+export const EARLIER_EXTENSION_IDS: string[] = ['heomldlmknjaidfkfkdhjibppainocea']; // unpacked installs before the store
 
 export function encode(message: unknown): Buffer {
   const body = Buffer.from(JSON.stringify(message), 'utf8');

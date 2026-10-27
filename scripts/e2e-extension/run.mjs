@@ -26,7 +26,7 @@ add(['--type', 'fact', '--space', 'work', '--source', 'claude-code', '--topics',
 const script = HOME + '/native-host';
 writeFileSync(script, `#!/bin/sh\nexport HEADSUP_HOME="${HOME}"\nexec "${process.execPath}" "${REPO}/dist/cli.js" native-host "$@"\n`); chmodSync(script, 0o755);
 mkdirSync(UDD + '/NativeMessagingHosts', { recursive: true });
-writeFileSync(UDD + '/NativeMessagingHosts/ai.headsup.host.json', JSON.stringify({ name: 'ai.headsup.host', description: 'test', path: script, type: 'stdio', allowed_origins: ['chrome-extension://heomldlmknjaidfkfkdhjibppainocea/'] }));
+writeFileSync(UDD + '/NativeMessagingHosts/ai.headsup.host.json', JSON.stringify({ name: 'ai.headsup.host', description: 'test', path: script, type: 'stdio', allowed_origins: ['chrome-extension://khpoiajpimicekhdejhjmfjaklbcgpkk/'] }));
 
 const page = readFileSync(HERE + 'mock-chatgpt.html');
 const server = https.createServer({ key: readFileSync(H + 'key.pem'), cert: readFileSync(H + 'cert.pem') }, (_, res) => { res.writeHead(200, { 'content-type': 'text/html' }); res.end(page); }).listen(8443);
