@@ -35,6 +35,32 @@ const REFERENCE_PATTERNS: RegExp[] = [
   /(?:자기\s*소개|이력서|커버\s*레터|자소서)/,
 ];
 
+// A prompt about who the person is in one specific way: their job, their side business, the exam they
+// are taking. Narrower than the references above on purpose: it reaches only facts on that same subject,
+// and changes nothing else (how-you-work notes, project rules, the bar for asking stay as they are).
+// The note side is matched by subject, not by shared words: "지금 하는 일 기준으로" shares no word with
+// "오롯에서 퍼포먼스 마케팅을 담당한다", and search alone never brings that fact up.
+type Identity = 'role' | 'sideBusiness' | 'exam';
+const IDENTITY_IN_PROMPT: Record<Identity, RegExp[]> = {
+  role: [
+    /(?:내|제)\s*(?:직업|직무)|(?:지금|현재|요즘)\s*(?:내가\s*|제가\s*)?하(?:는|고\s*있는)\s*일|(?:내|제)가\s*하는\s*일/,
+    /\bmy\s+(?:job|role|day\s+job|current\s+job|position)\b|\bwhat\s+i\s+do\s+(?:now|for\s+work|for\s+a\s+living)\b/i,
+  ],
+  sideBusiness: [/(?:내|제)\s*(?:부업|가게)/, /\bmy\s+(?:side\s+(?:gig|business|hustle)|online\s+(?:shop|store))\b/i],
+  exam: [
+    /(?:내|제)\s*(?:시험|목표\s*(?:급수|점수))|(?:내가|제가)\s*준비\s*(?:하는|중인)\s*시험/,
+    /\bmy\s+(?:exam|certification)\b|\bthe\s+(?:exam|test|certification)\s+i(?:'m|\s+am)\s+(?:studying|preparing)\s+for\b/i,
+  ],
+};
+const IDENTITY_IN_NOTE: Record<Identity, RegExp> = {
+  role: /담당|맡고\s*있|맡은|직무|직업|재직|근무|에서\s*일하|\b(?:works?\s+(?:as|at)|interns?|internship|interning|role|job|engineer|developer|designer|manager|marketer|PM)\b/i,
+  sideBusiness: /부업|스마트스토어|개인\s*사업|쇼핑몰|가게|\b(?:side\s+(?:business|gig|hustle)|etsy|shopify|online\s+(?:shop|store))\b/i,
+  exam: /시험|급수|자격증|JLPT|IELTS|TOEIC|TOEFL|\b(?:exam|certification|GRE|GMAT)\b/i,
+};
+export const identitiesIn = (prompt: string): Identity[] =>
+  (Object.keys(IDENTITY_IN_PROMPT) as Identity[]).filter((k) => IDENTITY_IN_PROMPT[k].some((re) => re.test(prompt)));
+const IDENTITY_NOTES = 2; // per subject: the newest
+
 export interface Signals {
   references: string[];
   usageMismatch?: { topic: string; usualAgents: string[] };
@@ -204,6 +230,24 @@ export function detect(input: DetectInput): Decision {
   const eligible = hits.filter((h) => stillHelps(h) && relevantEnough(h, hasSignal, foreign(h.note), promptConceptSet) && fitsGenre(h.note) && inScope(h.note, { prompt, project: inProject, notes: input.notes, aboutSelf, namesSelf: selfRefs.length > 0 || (!!signals.usageMismatch && sharesSpecificConcept(h.note, promptConceptSet)) }));
   const top = eligible[0]?.score ?? 0;
   const relevant = eligible.filter((h) => h.score >= top * RELATIVE_CUTOFF).slice(0, MAX_NOTES);
+  // Facts on the subject the prompt asks about ("my job", "내 부업"), found by subject, within the same
+  // rules for spaces and project scope; they don't need to share words, and may be offered for an OK.
+  // They come first: the prompt asked about exactly this, so they don't wait behind looser matches.
+  const identity = new Set<string>();
+  for (const subject of identitiesIn(prompt)) {
+    const facts = others
+      .filter((n) => n.type === 'fact' && IDENTITY_IN_NOTE[subject].test(`${n.body} ${n.topics.join(' ')}`))
+      .filter((n) => inScope(n, { prompt, project: inProject, notes: input.notes, aboutSelf: !inProject, namesSelf: true }))
+      .sort((a, b) => b.created.localeCompare(a.created))
+      .slice(0, IDENTITY_NOTES);
+    for (const n of facts) identity.add(n.id);
+  }
+  if (identity.size) {
+    const byId = new Map(others.map((n) => [n.id, n]));
+    const first = [...identity].map((id) => relevant.find((h) => h.note.id === id) ?? { note: byId.get(id)!, score: 0, matched: 0, concepts: 0 });
+    relevant.splice(0, relevant.length, ...first, ...relevant.filter((h) => !identity.has(h.note.id)));
+    relevant.splice(MAX_NOTES);
+  }
 
   const known = new Set(tokenize(input.knownText));
   const decision = { ...empty };
@@ -215,7 +259,7 @@ export function detect(input: DetectInput): Decision {
     const verdict = verdictFor(note, targetSpace, config.preset);
     // Asking interrupts the answer and takes the person's attention, so it needs more than adding does:
     // a prompt plainly about the person ("cover letter", "my resume"), or two words of its own in common.
-    if (verdict === 'ask' && !selfRefs.length) {
+    if (verdict === 'ask' && !selfRefs.length && !identity.has(note.id)) {
       const h = relevant.find((x) => x.note.id === note.id)!;
       if (h.matched - h.concepts < 2) continue;
     }

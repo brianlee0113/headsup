@@ -123,6 +123,23 @@ export const conversations: Conversation[] = [
     turns: [{ prompt: 'write the release notes for v0.3 in my usual voice', adds: ['tone'], notAdds: ['vitest', 'pnpm', 'commits'] }],
   },
   {
+    // "내가 만든", "우리 회사" in coding work are about code, not about the person.
+    name: 'possessives in coding prompts don\'t pull in personal facts',
+    cwd: quorum,
+    turns: [
+      { prompt: '내가 만든 함수 이름 좀 더 명확하게 바꿔줘', quiet: true },
+      { prompt: '우리 회사 API 호출하는 코드에 재시도 넣어줘', notAdds: ['nw-intern', 'nw-payouts', 'school', 'jobsearch'] },
+      { prompt: 'refactor the function I wrote yesterday', quiet: true },
+    ],
+  },
+  {
+    // In Codex, so Claude Code's own facts are eligible.
+    name: 'a question about the person\'s job reaches their role, with an OK across spaces',
+    agent: 'codex',
+    cwd: quorum,
+    turns: [{ prompt: '면접에서 지금 하는 일 기준으로 1분 자기소개 해야 하는데 초안 써줘', asks: ['nw-intern'] }],
+  },
+  {
     name: 'a self-contained question is left alone from the start',
     cwd: quorum,
     turns: [
