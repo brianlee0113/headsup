@@ -11,7 +11,7 @@ headsup is an open-source tool that carries context between the AI tools you use
 - **The message you are writing** on chatgpt.com or claude.ai, while you type, to decide whether any of your notes would help.
 - **The conversation on screen**, to leave out notes the AI already has.
 - **Your own chats on chatgpt.com and claude.ai**, if you turn on chat sync. The extension reads new or changed chats when you open the site, using your signed-in session. Temporary chats and chats marked not to be remembered are skipped.
-- **Your Claude Code sessions** on your computer, when they end or go quiet.
+- **Your Claude Code and Codex sessions** on your computer, when they end or go quiet.
 - **Your ChatGPT data export**, only if you choose to import it.
 
 ## What headsup stores, and where
@@ -20,7 +20,7 @@ headsup is an open-source tool that carries context between the AI tools you use
 - **A log** of which notes were added to which messages, in the same folder, so you can review it with `headsup review`.
 - **Extension settings** (on/off per site, sync and "About me" choices), in your browser's extension storage.
 
-headsup does not keep the full text of your chats. API keys, tokens and similar secrets are removed before anything is written. When importing ChatGPT history, conversations about health, relationships, money, legal matters, religion and politics are skipped.
+headsup does not keep the full text of your chats. Synced chats wait in a queue in the same folder until they are turned into notes, then the queue entry is deleted; one that couldn't be summarized waits for the next try. API keys, tokens and similar secrets are removed before anything is written, the queue included. When importing ChatGPT history, conversations about health, relationships, money, legal matters, religion and politics are skipped.
 
 ## Who else sees your data
 
