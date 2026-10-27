@@ -1,0 +1,106 @@
+[
+  {
+    "id": "w2-s01",
+    "tool": "codex",
+    "project": "freightline-pipelines",
+    "day": 1,
+    "topic": "Refactor a dbt staging model for shipment events to remove a duplicated join and rewrite the query in a cleaner structure.",
+    "reveals": [
+      "sql-style"
+    ]
+  },
+  {
+    "id": "w2-s02",
+    "tool": "chatgpt",
+    "day": 1,
+    "topic": "Ask for ideas for a high-protein lentil and vegetable dish that reheats well for the week's lunches.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s03",
+    "tool": "claude-code",
+    "project": "pacebot",
+    "day": 2,
+    "topic": "Add a /pace command that converts a finish time and distance into min/mile pace for members, and wire it into the command router.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s04",
+    "tool": "codex",
+    "project": "freightline-pipelines",
+    "day": 2,
+    "topic": "Debug an Airflow DAG task that times out when backfilling a week of carrier scorecard data, and adjust retries and the timeout.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s05",
+    "tool": "chatgpt",
+    "day": 3,
+    "topic": "Draft a short email to a facilities contact asking for a quieter meeting room for a team workshop next Thursday.",
+    "reveals": [
+      "email-short"
+    ]
+  },
+  {
+    "id": "w2-s06",
+    "tool": "claude-code",
+    "project": "pacebot",
+    "day": 3,
+    "topic": "Fix a bug where the weekly mileage leaderboard double-counts runs logged twice. She asks for a failing test first, then the fix.",
+    "reveals": [
+      "tests-first"
+    ]
+  },
+  {
+    "id": "w2-s07",
+    "tool": "codex",
+    "project": "freightline-pipelines",
+    "day": 4,
+    "topic": "Write a dbt schema test and documentation for a new fact table of on-time delivery by route.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s08",
+    "tool": "claude-code",
+    "project": "pacebot",
+    "day": 5,
+    "topic": "Add per-club settings so each club can pick its own announcement channel and weekly recap day. Mention that Pacebot now serves three clubs and about 120 members, so the settings need to scale.",
+    "reveals": [
+      "pacebot"
+    ]
+  },
+  {
+    "id": "w2-s09",
+    "tool": "chatgpt",
+    "day": 5,
+    "topic": "Explain the difference between tempo runs and threshold intervals, and ask how to structure a Tuesday workout.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s10",
+    "tool": "codex",
+    "project": "freightline-pipelines",
+    "day": 6,
+    "topic": "Optimize a slow incremental model by adding a clustering key suggestion and rewriting a window function, keeping the query readable.",
+    "reveals": [
+      "sql-style"
+    ]
+  },
+  {
+    "id": "w2-s11",
+    "tool": "claude-code",
+    "project": "pacebot",
+    "day": 6,
+    "topic": "Add rate limiting and friendlier error messages to the bot's command handlers, with a small cleanup of duplicated helper code.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s12",
+    "tool": "chatgpt",
+    "day": 7,
+    "topic": "Help organize a Sunday plan: a shopping list and a prep order for the week, plus a short note to the running club about the next group run.",
+    "reveals": [
+      "email-short"
+    ]
+  }
+]

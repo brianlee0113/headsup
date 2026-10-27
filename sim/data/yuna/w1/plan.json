@@ -1,0 +1,115 @@
+[
+  {
+    "id": "w1-s01",
+    "tool": "codex",
+    "project": "mir-qa-automation",
+    "day": 1,
+    "topic": "유나가 모바일 RPG 팀 QA 자동화 담당으로서 Appium 기반 pytest 회귀 테스트 중 불안정한 로그인 테스트의 원인을 찾고 고친다",
+    "reveals": [
+      "qa-role",
+      "playwright"
+    ]
+  },
+  {
+    "id": "w1-s02",
+    "tool": "chatgpt",
+    "day": 1,
+    "topic": "주말에 쓸 블로그 글 초안을 반말 일기체로, 소제목 없이 짧은 문단으로 다듬어 달라고 부탁한다",
+    "reveals": [
+      "post-voice"
+    ]
+  },
+  {
+    "id": "w1-s03",
+    "tool": "claude-code",
+    "project": "yuna-log",
+    "day": 2,
+    "topic": "Astro 블로그에 태그 페이지를 추가하고, 설명은 한국어로 코드와 커밋 메시지는 영어로 받는다",
+    "reveals": [
+      "blog",
+      "ko-en-mix"
+    ]
+  },
+  {
+    "id": "w1-s04",
+    "tool": "codex",
+    "project": "mir-qa-automation",
+    "day": 3,
+    "topic": "실패한 인벤토리 테스트에 대한 버그 리포트를 재현 단계, 기대 결과, 실제 결과, 로그 순서로 정리한다",
+    "reveals": [
+      "bug-report"
+    ]
+  },
+  {
+    "id": "w1-s05",
+    "tool": "claude-code",
+    "project": "yuna-log",
+    "day": 3,
+    "topic": "새 의존성을 추가하려다가 pnpm으로 설치하되 가능하면 의존성을 줄이는 방향으로 RSS 기능을 구현한다",
+    "reveals": [
+      "pnpm-astro"
+    ]
+  },
+  {
+    "id": "w1-s06",
+    "tool": "codex",
+    "project": "mir-qa-automation",
+    "day": 4,
+    "topic": "테스트 계정 로그인 픽스처를 리팩터링하며 계정 정보를 환경 변수로만 읽도록 바꾸고, 출시 일정 때문에 회귀 테스트 범위를 줄여야 한다고 지나가듯 말한다",
+    "reveals": [
+      "mir-confidential",
+      "launch-date"
+    ]
+  },
+  {
+    "id": "w1-s07",
+    "tool": "chatgpt",
+    "day": 4,
+    "topic": "주말 동호회 경기에 대비한 스트레칭과 체력 관리 방법을 묻는다",
+    "reveals": [
+      "ultimate"
+    ]
+  },
+  {
+    "id": "w1-s08",
+    "tool": "claude-code",
+    "project": "yuna-log",
+    "day": 5,
+    "topic": "Vercel 배포가 실패하는 오류를 물어보며 로그와 함께 Vercel 토큰을 붙여 넣는다",
+    "reveals": [
+      "vercel-token"
+    ]
+  },
+  {
+    "id": "w1-s09",
+    "tool": "chatgpt",
+    "day": 5,
+    "topic": "요즘 잠을 못 자서 수면 클리닉에서 받은 생활 습관 조언을 정리하고 싶다고 하며 낮 시간 일정 짜기를 도움받는다",
+    "reveals": [
+      "insomnia"
+    ]
+  },
+  {
+    "id": "w1-s10",
+    "tool": "codex",
+    "project": "mir-qa-automation",
+    "day": 6,
+    "topic": "Appium 세션 타임아웃 설정을 조정하고 pytest 마커로 스모크 테스트를 분리한다",
+    "reveals": []
+  },
+  {
+    "id": "w1-s11",
+    "tool": "claude-code",
+    "project": "yuna-log",
+    "day": 6,
+    "topic": "블로그 글 목록 페이지의 날짜 포맷과 다크모드 스타일 깨짐을 수정한다",
+    "reveals": []
+  },
+  {
+    "id": "w1-s12",
+    "tool": "chatgpt",
+    "day": 7,
+    "topic": "영어 기술 문서의 한 구절을 자연스럽게 번역하고 이메일 문장을 다듬는다",
+    "reveals": []
+  }
+]

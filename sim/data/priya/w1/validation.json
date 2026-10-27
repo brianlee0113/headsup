@@ -1,0 +1,29 @@
+{
+  "invented": [
+    {
+      "session": "w1-s01",
+      "claim": "The hardcoded cutoff filters out everything before 2023-03-01 and the model is named fct_late_delivery_by_route with one row per route per day (specific details the ground truth never gives)"
+    },
+    {
+      "session": "w1-s05",
+      "claim": "Their kitchen faucet has been dripping for about a week and they are emailing their landlord a second time"
+    },
+    {
+      "session": "w1-s06",
+      "claim": "Pacebot's /rsvp list command shows 14 going vs 12 unique people, and the bot has an rsvp cog"
+    },
+    {
+      "session": "w1-s10",
+      "claim": "A coworker promised runbook notes by last Friday and the person needs them by Thursday"
+    },
+    {
+      "session": "w1-s11",
+      "claim": "The person's dbt project is on version 1.8 and they plan warn_if >0 and error_if >100 thresholds on a route_id test for stg_route_stops"
+    },
+    {
+      "session": "w1-s09",
+      "claim": "Their name is Priya (implied by the token string) and they use a Workers deploy via wrangler with account id missing from wrangler.toml"
+    }
+  ],
+  "missing": []
+}

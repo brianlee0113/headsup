@@ -1,0 +1,26 @@
+{
+  "invented": [
+    {
+      "session": "w1-s04",
+      "claim": "CI is configured with a default of 6 inventory slots while local uses 20 slots (specific numbers not in ground truth)"
+    },
+    {
+      "session": "w1-s09",
+      "claim": "Person plans to set wake-up time at 7:00 and says clinic advised cutting caffeine after lunch and naps under 20 minutes (specific figures not in ground truth)"
+    },
+    {
+      "session": "w1-s02",
+      "claim": "Person describes a Saturday walk along a stream, a cafe latte, and buying two bungeoppang (specific personal events not in ground truth)"
+    },
+    {
+      "session": "w1-s01",
+      "claim": "Login regression test fails intermittently 2-3 out of 10 runs, more often on real devices than emulators (specific figures not in ground truth)"
+    }
+  ],
+  "missing": [
+    {
+      "session": "w1-s07",
+      "item": "ultimate"
+    }
+  ]
+}

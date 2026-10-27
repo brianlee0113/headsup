@@ -1,0 +1,103 @@
+[
+  {
+    "id": "w2-s01",
+    "tool": "codex",
+    "project": "mir-qa-automation",
+    "day": 1,
+    "topic": "Fix a flaky Appium test where the login screen element locator times out on Android emulators.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s02",
+    "tool": "chatgpt",
+    "day": 1,
+    "topic": "Ask for ideas on how to phrase a polite follow-up message to a teammate about a late review.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s03",
+    "tool": "claude-code",
+    "project": "yuna-log",
+    "day": 2,
+    "topic": "Add an RSS feed and a newsletter signup section to the Astro blog, mentioning that subscribers passed 300 and the newsletter has just started.",
+    "reveals": [
+      "blog"
+    ]
+  },
+  {
+    "id": "w2-s04",
+    "tool": "codex",
+    "project": "mir-qa-automation",
+    "day": 2,
+    "topic": "Write a pytest fixture that retries device connection and add a bug report draft for a crash found in the inventory screen, written in the order of steps, expected, actual, logs.",
+    "reveals": [
+      "bug-report"
+    ]
+  },
+  {
+    "id": "w2-s05",
+    "tool": "chatgpt",
+    "day": 3,
+    "topic": "Brainstorm weekend meal prep ideas and a simple grocery list.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s06",
+    "tool": "codex",
+    "project": "mir-qa-automation",
+    "day": 3,
+    "topic": "Refactor the parametrized regression tests for the shop purchase flow to reduce duplicated setup code.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s07",
+    "tool": "claude-code",
+    "project": "yuna-log",
+    "day": 4,
+    "topic": "Fix a layout bug in the post list page on mobile widths and tidy the CSS; she asks to avoid adding a new dependency and uses pnpm only.",
+    "reveals": [
+      "pnpm-astro"
+    ]
+  },
+  {
+    "id": "w2-s08",
+    "tool": "chatgpt",
+    "day": 4,
+    "topic": "Get help editing a blog post draft about a week of debugging, keeping her own tone and asking for short paragraphs written as a casual diary without subheadings.",
+    "reveals": [
+      "post-voice"
+    ]
+  },
+  {
+    "id": "w2-s09",
+    "tool": "codex",
+    "project": "mir-qa-automation",
+    "day": 5,
+    "topic": "Review a CI log where the nightly pytest run failed and summarize which tests are timing out.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s10",
+    "tool": "claude-code",
+    "project": "yuna-log",
+    "day": 5,
+    "topic": "Generate a tag page for blog posts and update the sitemap configuration.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s11",
+    "tool": "codex",
+    "project": "mir-qa-automation",
+    "day": 6,
+    "topic": "Add a helper to parse Appium logs and attach screenshots to pytest failure reports.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s12",
+    "tool": "claude-code",
+    "project": "yuna-log",
+    "day": 7,
+    "topic": "Improve image loading performance on the blog home page and update the README with the new build notes.",
+    "reveals": []
+  }
+]

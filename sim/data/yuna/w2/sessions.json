@@ -1,0 +1,623 @@
+[
+  {
+    "id": "w2-s01",
+    "tool": "codex",
+    "project": "mir-qa-automation",
+    "day": 1,
+    "topic": "Fix a flaky Appium test where the login screen element locator times out on Android emulators.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "appium 테스트 하나가 계속 flaky해서 그런데 봐줄 수 있어? 안드로이드 에뮬레이터에서만 로그인 화면 element locator가 가끔 timeout 나"
+      },
+      {
+        "role": "assistant",
+        "text": "가능해요. 에뮬레이터에서만 가끔 터지면 앱 콜드 스타트나 스플래시 때문에 로그인 화면이 늦게 뜨는 경우가 많아요. 먼저 에러 메시지와 locator 코드를 보여주세요. 어떤 locator 전략을 쓰는지(id, xpath 등)와 wait 설정도 알려주시면 좋아요."
+      },
+      {
+        "role": "user",
+        "text": "에러는 TimeoutException이고 `//android.widget.EditText[@text='아이디']` 이거로 찾고 있어. wait은 WebDriverWait 10초 걸어놨어"
+      },
+      {
+        "role": "assistant",
+        "text": "원인 후보가 두 가지 보여요.\n1. xpath가 text에 의존해서 느리고, 로케일이나 힌트 렌더링에 따라 깨질 수 있어요.\n2. 10초는 콜드 스타트 직후 에뮬레이터에서는 빠듯할 수 있어요.\n\n`resource-id`나 accessibility id로 바꾸는 게 우선이에요. 앱에 테스트용 id가 있나요?"
+      },
+      {
+        "role": "user",
+        "text": "resource-id 있어. com.mirsoft.game:id/et_login_id 이거야. 근데 스플래시에서 약관 팝업 뜰 때도 있어서 그게 영향 줄 수도 있을 것 같아"
+      },
+      {
+        "role": "assistant",
+        "text": "그 팝업이 확실히 원인일 수 있어요. 팝업이 로그인 화면을 가리거나 로딩을 늦추면 간헐적으로 실패하거든요. 이렇게 바꿔보세요.\n\npython\nfrom selenium.webdriver.support.ui import WebDriverWait\nfrom selenium.webdriver.support import expected_conditions as EC\nfrom appium.webdriver.common.appiumby import AppiumBy\n\ndef dismiss_terms_if_present(driver):\n    els = driver.find_elements(AppiumBy.ID, \"com.mirsoft.game:id/btn_agree\")\n    if els:\n        els[0].click()\n\ndef wait_login_id(driver, timeout=30):\n    dismiss_terms_if_present(driver)\n    return WebDriverWait(driver, timeout, poll_frequency=0.5).until(\n        EC.visibility_of_element_located(\n            (AppiumBy.ID, \"com.mirsoft.game:id/et_login_id\")\n        )\n    )\n\n\n`btn_agree` id는 실제 값으로 바꿔주세요."
+      },
+      {
+        "role": "user",
+        "text": "오 좋다. 근데 timeout 30초로 늘리면 실패할 때 너무 오래 걸리지 않아?"
+      },
+      {
+        "role": "assistant",
+        "text": "맞아요, 실패 시 대기 시간이 늘긴 해요. 대신 polling이라 정상일 때는 요소가 뜨는 즉시 넘어가서 평균 시간은 거의 그대로예요. 부담되면 CI는 20초, 로컬 에뮬레이터는 30초처럼 환경변수로 나눠도 돼요. 또 `newCommandTimeout`과 `appWaitActivity`가 caps에 설정돼 있는지도 확인해보세요."
+      },
+      {
+        "role": "user",
+        "text": "appWaitActivity는 안 걸어놨네. 스플래시 액티비티 이름 넣으면 되는 거지?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 다만 스플래시가 아니라 로그인 화면을 띄우는 액티비티를 넣는 게 더 안전해요. 스플래시를 넣으면 이미 지나간 뒤에 대기하다가 오히려 실패할 수 있거든요. 여러 개일 가능성이 있으면 `appWaitActivity: \"*\"`로 두고 위의 explicit wait에 맡기는 방법도 있어요. 수정하고 에뮬레이터에서 20~30번 반복 돌려서 재현율을 확인해보세요."
+      },
+      {
+        "role": "user",
+        "text": "ㅇㅋ 그렇게 해볼게. 반복 돌릴 때 pytest 옵션 뭐 쓰면 돼?"
+      },
+      {
+        "role": "assistant",
+        "text": "`pytest-repeat` 플러그인을 설치하고 `pytest tests/test_login.py --count=30 -x`로 돌리면 돼요. `-x`는 첫 실패에서 멈춰서 그때 로그와 스크린샷을 바로 볼 수 있어요. 실패 시점에 `driver.page_source`도 같이 저장하면 팝업이 원인이었는지 바로 확인할 수 있어요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s02",
+    "tool": "chatgpt",
+    "day": 1,
+    "topic": "Ask for ideas on how to phrase a polite follow-up message to a teammate about a late review.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "팀원한테 리뷰 늦어지는 거 팔로업 메시지 보내야 하는데 너무 재촉하는 느낌 안 나게 쓰고 싶어. 어떻게 쓰면 좋을까?"
+      },
+      {
+        "role": "assistant",
+        "text": "상황을 조금만 알려주세요. 급한 일정이 있는지, 그리고 상대가 평소 바쁜 편인지에 따라 톤이 달라져요. 일단 기본형은 이렇게 쓸 수 있어요.\n\n\"안녕하세요 OO님, 지난번에 요청드린 PR 리뷰 혹시 확인 가능하실까요? 바쁘신 거 알아서 부담 드리고 싶진 않은데, 제 쪽 일정 때문에 한 번 여쭤봅니다 🙏\""
+      },
+      {
+        "role": "user",
+        "text": "오 괜찮다. 근데 사실 이번 주 금요일까지 머지해야 해서 좀 급하긴 해. 그 얘기도 넣어야 할까?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 기한을 넣는 게 오히려 더 정중해요. 상대가 우선순위를 판단하기 쉬워지거든요.\n\n\"OO님, PR 리뷰 건 팔로업드려요. 금요일까지 머지가 필요해서, 이번 주 중에 한 번 봐주실 수 있을까요? 혹시 일정이 어려우시면 말씀해 주세요, 다른 분께 요청드려볼게요.\""
+      },
+      {
+        "role": "user",
+        "text": "마지막에 다른 분께 요청한다는 거 약간 압박처럼 들리지 않을까?"
+      },
+      {
+        "role": "assistant",
+        "text": "그럴 수 있어요. 그 부분을 부드럽게 바꿔볼게요.\n\n\"혹시 이번 주에 시간이 어려우시면 편하게 말씀해 주세요. 일정 조율해볼게요.\"\n\n이렇게 하면 '대안을 찾겠다'가 아니라 '같이 맞춰보자'는 느낌이라 덜 부담스러워요."
+      },
+      {
+        "role": "user",
+        "text": "좋아 그게 낫다. 영어 섞어서 슬랙에서 쓰는 캐주얼한 버전도 있어?"
+      },
+      {
+        "role": "assistant",
+        "text": "슬랙용 캐주얼 버전이에요.\n\n\"OO님 안녕하세요! 지난번 PR review 건 quick follow-up이에요. 금요일까지 merge해야 해서 이번 주 안에 봐주실 수 있을까요? 어려우면 편하게 말씀 주세요, 일정 같이 맞춰볼게요 🙏\"\n\n너무 가볍다 싶으면 'quick follow-up' 대신 '확인차 여쭤봐요' 정도로 바꾸셔도 돼요."
+      },
+      {
+        "role": "user",
+        "text": "ㅋㅋ 이모지는 빼고 'PR 링크'도 같이 붙이는 게 좋겠지?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 링크는 꼭 같이 붙이세요. 상대가 PR을 찾는 수고를 덜어주면 답이 훨씬 빨리 와요. 이모지는 팀 분위기에 맞게 빼셔도 충분히 정중해요.\n\n\"OO님 안녕하세요, PR review 건 확인차 여쭤봐요. 금요일까지 merge해야 해서 이번 주 안에 봐주실 수 있을까요? 링크: [PR URL]. 어려우시면 편하게 말씀 주세요, 일정 같이 맞춰볼게요.\""
+      }
+    ]
+  },
+  {
+    "id": "w2-s03",
+    "tool": "claude-code",
+    "project": "yuna-log",
+    "day": 2,
+    "topic": "Add an RSS feed and a newsletter signup section to the Astro blog, mentioning that subscribers passed 300 and the newsletter has just started.",
+    "reveals": [
+      "blog"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "yuna.log에 RSS 피드랑 뉴스레터 구독 섹션 좀 추가하고 싶어. 구독자가 300명 넘었고 뉴스레터도 이제 막 시작했거든"
+      },
+      {
+        "role": "assistant",
+        "text": "좋아요, 300명 넘은 거 축하해요! 먼저 `@astrojs/rss`를 설치하고 `src/pages/rss.xml.js`를 만들면 돼요. 글은 content collection의 `blog`에서 가져오는 걸로 가정할게요. 컬렉션 이름이 다르면 알려주세요."
+      },
+      {
+        "role": "user",
+        "text": "ㅇㅋ 컬렉션 이름은 posts야. 그걸로 해줘"
+      },
+      {
+        "role": "assistant",
+        "text": "그럼 이렇게 하면 됩니다.\n\njs\n// src/pages/rss.xml.js\nimport rss from '@astrojs/rss';\nimport { getCollection } from 'astro:content';\n\nexport async function GET(context) {\n  const posts = (await getCollection('posts'))\n    .filter((p) => !p.data.draft)\n    .sort((a, b) => b.data.pubDate - a.data.pubDate);\n  return rss({\n    title: 'yuna.log',\n    description: 'yuna.log의 새 글',\n    site: context.site,\n    items: posts.map((p) => ({\n      title: p.data.title,\n      pubDate: p.data.pubDate,\n      description: p.data.description,\n      link: `/posts/${p.id}/`,\n    })),\n  });\n}\n\n\n`astro.config.mjs`에 `site`가 설정돼 있어야 해요. 그리고 레이아웃 `<head>`에 `<link rel=\"alternate\" type=\"application/rss+xml\" title=\"yuna.log\" href=\"/rss.xml\" />`도 넣을게요."
+      },
+      {
+        "role": "user",
+        "text": "site 설정은 이미 있어. 그럼 뉴스레터 폼은 어떻게 해? 서비스는 아직 안 정해서 일단 자리만 잡아두고 싶어"
+      },
+      {
+        "role": "assistant",
+        "text": "그럼 `Newsletter.astro` 컴포넌트를 만들고 form action은 placeholder로 두죠. 나중에 서비스만 정해지면 URL 한 줄만 바꾸면 돼요.\n\nastro\n---\nconst action = import.meta.env.PUBLIC_NEWSLETTER_ACTION ?? '#';\n---\n<section class=\"newsletter\">\n  <h2>뉴스레터 시작했어요</h2>\n  <p>300명이 넘는 분들이 yuna.log를 구독하고 있어요. 새 글을 메일로도 받아보세요.</p>\n  <form method=\"post\" action={action}>\n    <input type=\"email\" name=\"email\" placeholder=\"you@example.com\" required />\n    <button type=\"submit\">구독하기</button>\n  </form>\n  <a href=\"/rss.xml\">RSS로 구독하기</a>\n</section>\n"
+      },
+      {
+        "role": "user",
+        "text": "오 좋다. 근데 '300명 넘는 분들이' 문구는 숫자가 계속 바뀔 텐데 괜찮을까?"
+      },
+      {
+        "role": "assistant",
+        "text": "숫자를 박아두면 금방 낡아 보일 수 있어요. 지금은 \"300명 넘게 구독 중\"처럼 느슨하게 쓰고, 나중에 늘면 문구만 고치면 돼요. 아니면 숫자를 빼고 \"뉴스레터를 막 시작했어요\"만 남겨도 충분히 자연스러워요."
+      },
+      {
+        "role": "user",
+        "text": "그럼 '300명 넘게 구독 중'으로 하자. 컴포넌트는 포스트 하단이랑 푸터 위에 넣어줘"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 문구를 \"300명 넘게 구독 중이에요\"로 바꾸고 `PostLayout.astro`의 본문 아래와 `BaseLayout.astro`의 푸터 위에 `<Newsletter />`를 넣을게요. 같은 페이지에서 두 번 겹쳐 보이지 않게, 포스트 페이지에서는 푸터 쪽 것을 숨기는 prop도 하나 둘게요. 적용하고 나면 `npm run build`로 `/rss.xml`이 생성되는지 확인해 보세요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s04",
+    "tool": "codex",
+    "project": "mir-qa-automation",
+    "day": 2,
+    "topic": "Write a pytest fixture that retries device connection and add a bug report draft for a crash found in the inventory screen, written in the order of steps, expected, actual, logs.",
+    "reveals": [
+      "bug-report"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "야 codex, 테스트 시작할 때 디바이스 연결이 자꾸 한 번씩 실패해서 CI가 빨갛게 뜨거든. pytest fixture로 연결 재시도하는 거 하나 짜줄 수 있어?"
+      },
+      {
+        "role": "assistant",
+        "text": "가능해요. 재시도 횟수와 대기 시간을 두고, 마지막까지 실패하면 원래 예외를 그대로 올리는 방식으로 짜볼게요. 연결 객체는 지금 어떻게 만들고 있어요? `Device.connect()` 같은 형태면 거기에 맞춰 쓸게요."
+      },
+      {
+        "role": "user",
+        "text": "응 `Device(serial).connect()` 이렇게 쓰고 실패하면 ConnectionError 나와. 3번 정도 재시도하고 간격은 2초 정도?"
+      },
+      {
+        "role": "assistant",
+        "text": "python\nimport time\nimport pytest\nfrom mir_qa.device import Device\n\nMAX_RETRIES = 3\nRETRY_DELAY = 2\n\n@pytest.fixture(scope=\"session\")\ndef device(request):\n    serial = request.config.getoption(\"--serial\")\n    dev = Device(serial)\n    last_err = None\n    for attempt in range(1, MAX_RETRIES + 1):\n        try:\n            dev.connect()\n            break\n        except ConnectionError as e:\n            last_err = e\n            print(f\"[device] connect failed ({attempt}/{MAX_RETRIES}): {e}\")\n            time.sleep(RETRY_DELAY)\n    else:\n        raise last_err\n    yield dev\n    dev.disconnect()\n\n`--serial` 옵션은 conftest의 `pytest_addoption`에 등록돼 있어야 해요."
+      },
+      {
+        "role": "user",
+        "text": "오 굿. 근데 마지막에 else raise 하는 거 for-else 맞지? 헷갈려서 ㅋㅋ 그리고 이어서 버그 리포트 초안도 써줘. 인벤토리 화면에서 크래시 나는 거 발견했거든"
+      },
+      {
+        "role": "assistant",
+        "text": "네, for-else는 break 없이 루프가 끝났을 때만 else가 실행돼서, 3번 다 실패했을 때만 raise 돼요. 버그 리포트는 어떤 상황에서 크래시가 났는지 알려주세요. 재현 조건이랑 로그 있으면 같이 붙여서 정리할게요."
+      },
+      {
+        "role": "user",
+        "text": "인벤토리 열고 아이템 슬롯 50개 꽉 찬 상태에서 아이템 하나 더 획득하면 앱이 튕겨. 기대는 '가방이 가득 찼습니다' 팝업 뜨는 거고. 로그에는 IndexOutOfRangeException이 InventoryView.AddSlot에서 났어. 나는 버그 리포트를 항상 재현 단계, 기대 결과, 실제 결과, 로그 순으로 써서 그 순서로 부탁해"
+      },
+      {
+        "role": "assistant",
+        "text": "그 순서대로 정리했어요.\n\n**[Inventory] 슬롯 50개 가득 찬 상태에서 아이템 획득 시 크래시**\n\n**재현 단계**\n1. 게임 실행 후 로그인\n2. 인벤토리 슬롯을 50개 모두 채움\n3. 인벤토리 화면을 연 상태에서 아이템 1개 추가 획득\n\n**기대 결과**\n- \"가방이 가득 찼습니다\" 팝업이 표시되고 앱은 정상 유지된다.\n\n**실제 결과**\n- 앱이 강제 종료된다.\n\n**로그**\n\nIndexOutOfRangeException at InventoryView.AddSlot\n\n\n빌드 버전, 기기 모델, 재현율은 아직 비어 있어서 알려주시면 환경 항목으로 추가할게요."
+      },
+      {
+        "role": "user",
+        "text": "재현율은 3/3이야. 빌드랑 기기는 나중에 내가 채울게. 스택트레이스 전체는 첨부 파일로 올릴 거라 일단 이대로 둬도 되지?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 그대로 둬도 괜찮아요. 재현율은 \"재현율: 3/3\"으로 재현 단계 아래에 한 줄 넣어두면 보기 편해요. 로그 항목에는 \"전체 스택트레이스는 첨부 파일 참고\"라는 문구만 추가해둘게요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s05",
+    "tool": "chatgpt",
+    "day": 3,
+    "topic": "Brainstorm weekend meal prep ideas and a simple grocery list.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "주말에 밀프렙 하려는데 뭐 해두면 좋을지 아이디어 좀 줘. 너무 복잡한 건 싫고 간단한 걸로"
+      },
+      {
+        "role": "assistant",
+        "text": "간단한 조합으로 추천해볼게요. 단백질은 닭가슴살 간장구이나 제육볶음, 채소는 데친 브로콜리랑 볶은 야채, 탄수화물은 밥을 한 번에 지어 소분해 냉동하는 거예요. 여기에 삶은 달걀이나 계란말이를 더하면 아침, 점심 다 돌려 먹기 좋아요."
+      },
+      {
+        "role": "user",
+        "text": "오 좋다. 근데 매일 똑같은 맛이면 질릴 것 같은데 소스로 변주 줄 수 있나?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 소스만 바꿔도 느낌이 많이 달라져요. 같은 닭가슴살이라도 데리야키, 마늘 간장, 스리라차 마요 이렇게 세 가지로 나눠 먹을 수 있어요. 소스는 작은 통에 따로 담아두면 눅눅해지지 않아요."
+      },
+      {
+        "role": "user",
+        "text": "그럼 닭가슴살 + 볶음야채 + 밥 이 조합으로 갈게. 장보기 리스트 간단하게 만들어줘"
+      },
+      {
+        "role": "assistant",
+        "text": "장보기 리스트예요.\n\n- 단백질: 닭가슴살, 달걀\n- 채소: 브로콜리, 양파, 파프리카, 애호박, 대파, 마늘\n- 탄수화물: 쌀(또는 햇반)\n- 소스/양념: 간장, 올리브유, 데리야키 소스, 스리라차, 마요네즈\n- 기타: 밀프렙 용기, 지퍼백\n\n집에 이미 있는 건 빼고 사시면 돼요."
+      },
+      {
+        "role": "user",
+        "text": "용기는 있어. 근데 채소 오래 두면 물러지지 않아?"
+      },
+      {
+        "role": "assistant",
+        "text": "맞아요, 그래서 먹는 시기를 나눠서 보관하는 게 좋아요. 볶음야채는 3~4일 안에 먹을 분량만 냉장하고, 나머지는 손질만 해서 생채소 상태로 두었다가 중간에 한 번 더 볶으면 훨씬 덜 물러요. 용기에 키친타월을 한 장 깔아주면 물기도 잡아줘요."
+      },
+      {
+        "role": "user",
+        "text": "굿 팁이다 ㅋㅋ 그대로 해볼게. 고마워!"
+      },
+      {
+        "role": "assistant",
+        "text": "좋아요, 맛있게 준비하세요! 하다가 양념 비율이나 보관 기간 궁금하면 또 물어보세요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s06",
+    "tool": "codex",
+    "project": "mir-qa-automation",
+    "day": 3,
+    "topic": "Refactor the parametrized regression tests for the shop purchase flow to reduce duplicated setup code.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "상점 구매 플로우 회귀 테스트 parametrize 해놓은 거 있는데 setup 코드가 케이스마다 계속 중복돼서 정리하고 싶어. 어떻게 접근하면 좋을까?"
+      },
+      {
+        "role": "assistant",
+        "text": "보통은 공통 setup을 fixture로 빼고, 케이스별로 달라지는 부분만 parametrize로 남기는 방식이 깔끔해요. 예를 들어 로그인, 재화 지급, 상점 진입은 `purchase_session` fixture로 묶고, 아이템/가격/기대 결과만 파라미터로 두는 거죠. 지금 테스트 코드 일부 보여줄 수 있어요?"
+      },
+      {
+        "role": "user",
+        "text": "ㅇㅋ 대충 이래\n\npython\n@pytest.mark.parametrize('item_id,price,currency', [\n    ('sword_01', 100, 'gold'),\n    ('potion_02', 50, 'gold'),\n    ('skin_09', 300, 'gem'),\n])\ndef test_purchase_success(api, item_id, price, currency):\n    user = api.create_user()\n    api.login(user)\n    api.grant_currency(user, currency, price)\n    api.open_shop(user)\n    res = api.purchase(user, item_id)\n    assert res.status == 'ok'\n    assert api.get_balance(user, currency) == 0\n\n\n다른 테스트(잔액 부족, 중복 구매)도 앞부분 다섯 줄이 거의 똑같아"
+      },
+      {
+        "role": "assistant",
+        "text": "앞의 다섯 줄을 factory-style fixture로 빼면 돼요. 잔액 부족 케이스처럼 지급 금액이 달라지는 경우를 위해 함수를 돌려주는 형태가 편해요.\n\npython\n@pytest.fixture\ndef shop_user(api):\n    def _make(currency='gold', amount=0):\n        user = api.create_user()\n        api.login(user)\n        if amount:\n            api.grant_currency(user, currency, amount)\n        api.open_shop(user)\n        return user\n    return _make\n\n\n@pytest.mark.parametrize('item_id,price,currency', [\n    ('sword_01', 100, 'gold'),\n    ('potion_02', 50, 'gold'),\n    ('skin_09', 300, 'gem'),\n])\ndef test_purchase_success(api, shop_user, item_id, price, currency):\n    user = shop_user(currency, price)\n    res = api.purchase(user, item_id)\n    assert res.status == 'ok'\n    assert api.get_balance(user, currency) == 0\n"
+      },
+      {
+        "role": "user",
+        "text": "오 깔끔하다. 근데 잔액 부족이랑 중복 구매도 같은 파일에 있으니까 conftest.py로 옮기는 게 나아? 아니면 파일 안에 두는 게 나아?"
+      },
+      {
+        "role": "assistant",
+        "text": "다른 파일에서도 쓸 가능성이 있으면 conftest.py, 이 파일에서만 쓰면 파일 안에 두는 게 좋아요. 상점 관련 테스트가 여러 파일로 나뉘어 있거나 앞으로 늘어날 것 같으면 `tests/shop/conftest.py`처럼 디렉토리 범위로 두면 적당해요. 너무 위쪽 conftest에 넣으면 무관한 테스트에서도 fixture가 보여서 나중에 추적하기 어려워져요."
+      },
+      {
+        "role": "user",
+        "text": "상점 쪽 테스트는 이미 tests/shop/ 아래 파일 세 개로 나뉘어 있어. 그럼 거기 conftest.py 만들어서 넣을게. 중복 구매는 이렇게 하면 되나?\n\npython\ndef test_duplicate_purchase(api, shop_user):\n    user = shop_user('gold', 200)\n    api.purchase(user, 'sword_01')\n    res = api.purchase(user, 'sword_01')\n    assert res.status == 'already_owned'\n"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 그대로 좋아요. 다만 첫 구매 결과를 확인하지 않아서, 첫 구매가 실패해도 두 번째 assert가 우연히 통과하거나 원인 파악이 어려울 수 있어요. `first = api.purchase(...)` 후에 `assert first.status == 'ok'`를 한 줄 추가해 두면 실패했을 때 어디서 깨졌는지 바로 보여요. 잔액 부족 케이스는 `shop_user('gold', 10)`처럼 가격보다 적게 지급하면 같은 패턴으로 쓸 수 있어요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s07",
+    "tool": "claude-code",
+    "project": "yuna-log",
+    "day": 4,
+    "topic": "Fix a layout bug in the post list page on mobile widths and tidy the CSS; she asks to avoid adding a new dependency and uses pnpm only.",
+    "reveals": [
+      "pnpm-astro"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "모바일에서 포스트 리스트 페이지 레이아웃이 깨져요. 폭 400px 아래로 가면 카드가 오른쪽으로 삐져나와서 가로 스크롤이 생김. 고쳐주고 CSS도 좀 정리해줄 수 있어?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 먼저 포스트 리스트 페이지와 관련 스타일 파일을 확인해볼게요. 보통 이런 증상은 카드에 고정 폭(`width`, `min-width`)이 있거나 grid 컬럼이 `minmax(0, 1fr)` 없이 설정돼서 생겨요. 혹시 해당 페이지 파일 경로 알고 계시면 알려주세요. 없으면 `src/pages` 쪽에서 직접 찾아볼게요."
+      },
+      {
+        "role": "user",
+        "text": "src/pages/posts/index.astro 이고 스타일은 그 안에 <style>로 들어있어. 아 그리고 새 라이브러리 추가하는 건 하지 말아줘. 개인 프로젝트에서는 pnpm만 쓰고 의존성은 최소로 둔다"
+      },
+      {
+        "role": "assistant",
+        "text": "알겠어요, 의존성 추가 없이 CSS만으로 해결할게요. 패키지 설치가 필요한 경우가 생겨도 pnpm 기준으로만 안내하고, 기본적으로는 건드리지 않을게요. 파일 열어서 확인해보고 원인부터 말씀드릴게요."
+      },
+      {
+        "role": "user",
+        "text": "응 부탁해. 참고로 카드 안에 썸네일이랑 제목, 날짜가 들어가 있어"
+      },
+      {
+        "role": "assistant",
+        "text": "확인해보니 원인은 두 가지로 보여요.\n\n1. `.post-list`가 `grid-template-columns: repeat(2, 320px)`로 고정돼 있어서 좁은 화면에서 넘쳐요.\n2. 썸네일 `img`에 `width: 360px`가 박혀 있어요.\n\n이렇게 바꿀게요:\n\ncss\n.post-list {\n  display: grid;\n  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));\n  gap: 1rem;\n}\n\n.post-card img {\n  width: 100%;\n  height: auto;\n  aspect-ratio: 16 / 9;\n  object-fit: cover;\n}\n\n.post-card h2 {\n  overflow-wrap: anywhere;\n}\n\n\n`min(100%, 260px)` 덕분에 아주 좁은 화면에서도 한 칸으로 줄어들어요."
+      },
+      {
+        "role": "user",
+        "text": "오 깔끔하네. 근데 제목이 긴 영어 단어면 여전히 넘칠 것 같은데?"
+      },
+      {
+        "role": "assistant",
+        "text": "맞아요, 그래서 `overflow-wrap: anywhere`를 넣어뒀어요. 다만 grid 아이템은 기본 `min-width: auto`라서 내용이 길면 칸이 늘어날 수 있어요. 안전하게 `.post-card { min-width: 0; }`도 같이 추가할게요. 이러면 긴 URL이나 영어 단어도 카드 안에서 줄바꿈돼요."
+      },
+      {
+        "role": "user",
+        "text": "좋아. CSS 정리는 어떻게 할 거야? 중복된 거 많거든"
+      },
+      {
+        "role": "assistant",
+        "text": "세 가지만 할게요.\n\n- 반복되는 색상과 간격은 `:root`의 CSS 변수(`--color-muted`, `--space-md` 등)로 모으기\n- 같은 속성을 쓰는 미디어쿼리 블록은 하나로 합치고, 이제 grid가 알아서 줄어드니 불필요한 `@media (max-width: 400px)` 오버라이드는 삭제\n- 선택자 중첩을 줄이고 `.post-card__title`처럼 일관된 클래스명으로 정리\n\n전부 순수 CSS라 의존성은 그대로예요. 적용하고 나서 diff 요약해드릴게요."
+      },
+      {
+        "role": "user",
+        "text": "ㅇㅋ 진행해줘. 끝나면 pnpm dev로 확인할 수 있게 알려줘"
+      },
+      {
+        "role": "assistant",
+        "text": "적용 완료했어요. `src/pages/posts/index.astro`의 `<style>`만 수정했고 `package.json`과 lockfile은 그대로예요.\n\n확인은 `pnpm dev` 실행 후 브라우저 개발자도구에서 폭을 360px, 320px로 줄여서 가로 스크롤이 없는지 봐주세요. 긴 영어 제목이 있는 포스트가 있으면 그걸로 한 번 더 확인하면 좋아요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s08",
+    "tool": "chatgpt",
+    "day": 4,
+    "topic": "Get help editing a blog post draft about a week of debugging, keeping her own tone and asking for short paragraphs written as a casual diary without subheadings.",
+    "reveals": [
+      "post-voice"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "블로그 글 초안 좀 봐줄 수 있어? 일주일 내내 디버깅한 얘기인데, 내 말투는 그대로 두고 어색한 데만 다듬고 싶어"
+      },
+      {
+        "role": "assistant",
+        "text": "좋아, 초안 붙여줘. 말투는 그대로 두고 어색한 문장이랑 흐름만 손볼게. 따로 원하는 분위기가 있으면 같이 알려줘."
+      },
+      {
+        "role": "user",
+        "text": "나 블로그 글은 반말 일기체로 쓰고 소제목 없이 짧은 문단으로 써. 초안은 이거야\n\n월요일. 테스트가 가끔씩만 실패한다. 어제까지 멀쩡했는데 갑자기. 다시 돌리면 통과해서 일단 넘어갔다.\n\n화요일에 또 터졌다. 이번엔 진짜 원인을 찾아야겠다 싶어서 로그를 뒤지기 시작했는데 아무것도 안 보였다 ㅋㅋ\n\n수요일 목요일은 그냥 삽질의 연속이었음. 캐시도 의심하고 네트워크도 의심하고 나중엔 내 컴퓨터도 의심했다.\n\n금요일에야 알았다. 서버는 UTC인데 테스트는 로컬 시간으로 돌고 있었다. 허무해서 웃음만 나왔다."
+      },
+      {
+        "role": "assistant",
+        "text": "흐름이 이미 좋아서 많이 안 건드렸어.\n\n월요일. 테스트가 가끔씩만 실패한다. 어제까지 멀쩡했는데 갑자기. 다시 돌리면 통과해서 일단 넘어갔다.\n\n화요일에 또 터졌다. 이번엔 진짜 원인을 찾아야겠다 싶어서 로그를 뒤졌는데 아무것도 안 보였다 ㅋㅋ\n\n수요일, 목요일은 그냥 삽질의 연속. 캐시도 의심하고 네트워크도 의심하고, 나중엔 내 컴퓨터까지 의심했다.\n\n금요일에야 알았다. 서버는 UTC인데 테스트는 로컬 시간으로 돌고 있었다. 허무해서 웃음만 나왔다.\n\n바꾼 건 '뒤지기 시작했는데'를 '뒤졌는데'로 줄인 것, 수요일 목요일 사이에 쉼표 넣은 것 정도야."
+      },
+      {
+        "role": "user",
+        "text": "오 좋다. 근데 금요일 부분이 너무 짧은 것 같아서 좀 더 늘리고 싶은데, 감정을 좀 더 넣어서 써줄 수 있어?"
+      },
+      {
+        "role": "assistant",
+        "text": "이런 느낌은 어때?\n\n금요일에야 알았다. 서버는 UTC인데 테스트는 로컬 시간으로 돌고 있었다. 하루 아홉 시간 차이가 일주일을 통째로 날려먹은 거다.\n\n화도 안 났다. 그냥 모니터 앞에서 한참 웃었다. 이런 건 너무 허무하면 화가 안 나는 법이다."
+      },
+      {
+        "role": "user",
+        "text": "'하루 아홉 시간 차이가 일주일을' 이 부분은 약간 설명 같아서 빼고 싶어. 그리고 마지막 문장이 교훈 주려는 느낌이라 좀 오글거림"
+      },
+      {
+        "role": "assistant",
+        "text": "그럼 둘 다 덜어낼게.\n\n금요일에야 알았다. 서버는 UTC인데 테스트는 로컬 시간으로 돌고 있었다.\n\n화도 안 났다. 그냥 모니터 앞에서 한참 웃었다. 일주일이 이렇게 끝났다.\n\n교훈 없이 담백하게 끝나도록 했어."
+      },
+      {
+        "role": "user",
+        "text": "딱 좋다. 제목도 몇 개만 뽑아줄래? 이것도 일기 느낌으로"
+      },
+      {
+        "role": "assistant",
+        "text": "일기 느낌으로 몇 개 뽑아봤어.\n\n- 일주일을 UTC한테 털린 날들\n- 가끔만 실패하는 테스트와 나\n- 의심 목록에 내 컴퓨터까지 올렸다\n- 범인은 시간대였다"
+      }
+    ]
+  },
+  {
+    "id": "w2-s09",
+    "tool": "codex",
+    "project": "mir-qa-automation",
+    "day": 5,
+    "topic": "Review a CI log where the nightly pytest run failed and summarize which tests are timing out.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "nightly pytest 또 터졌네 ㅠㅠ 로그 일부 붙여볼게. 타임아웃 나는 테스트만 정리해줘\n\n\nFAILED tests/api/test_login.py::test_login_token_refresh - Failed: Timeout >60.0s\nFAILED tests/e2e/test_inventory.py::test_equip_item_sync - Failed: Timeout >60.0s\nFAILED tests/e2e/test_matchmaking.py::test_queue_timeout - Failed: Timeout >60.0s\nFAILED tests/api/test_shop.py::test_purchase_rollback - AssertionError: expected 200, got 500\nERROR tests/e2e/test_guild.py::test_guild_create - ConnectionError: game-server:7777\n=== 3 failed, 1 error, 412 passed in 1843.22s ===\n"
+      },
+      {
+        "role": "assistant",
+        "text": "pytest-timeout 60초 초과로 죽은 건 3개예요.\n- tests/api/test_login.py::test_login_token_refresh\n- tests/e2e/test_inventory.py::test_equip_item_sync\n- tests/e2e/test_matchmaking.py::test_queue_timeout\n\ntest_purchase_rollback은 500 응답 assertion 실패고, test_guild_create는 game-server:7777 연결 에러라서 타임아웃은 아니에요. 다만 연결 에러가 e2e 타임아웃이랑 같은 원인일 수도 있어서, 서버 쪽 로그가 더 있으면 같이 보면 좋겠어요."
+      },
+      {
+        "role": "user",
+        "text": "test_queue_timeout은 이름에 timeout 들어가서 헷갈리네 ㅋㅋ 이거 진짜 harness timeout 맞아? 아니면 테스트가 의도한 timeout이야?"
+      },
+      {
+        "role": "assistant",
+        "text": "로그에 `Failed: Timeout >60.0s` 로 찍혔으니 pytest-timeout이 강제로 끊은 거라 의도한 타임아웃은 아니에요. 이름이 같은 건 우연이고요. 다만 테스트가 내부에서 매칭 큐를 45초쯤 기다리게 짜여 있다면 setup 시간이 조금만 길어도 60초를 넘길 수 있어요. setup/call 중 어디서 걸렸는지 확인해보면 좋아요."
+      },
+      {
+        "role": "user",
+        "text": "아 맞다 durations랑 e2e 앞부분 로그도 있어\n\n\n[gw2] 03:13:09 waiting for game_server healthcheck... (attempt 27/30)\n[gw2] 03:13:39 waiting for game_server healthcheck... (attempt 28/30)\n[gw3] 03:13:41 waiting for game_server healthcheck... (attempt 28/30)\n\n58.12s setup    tests/e2e/test_inventory.py::test_equip_item_sync\n57.90s setup    tests/e2e/test_matchmaking.py::test_queue_timeout\n 0.84s call     tests/e2e/test_inventory.py::test_equip_item_sync\n60.01s call     tests/api/test_login.py::test_login_token_refresh\n"
+      },
+      {
+        "role": "assistant",
+        "text": "패턴이 갈려요. e2e 두 개는 테스트 본문이 아니라 setup에서 58초 가까이 쓰고 있고, game_server healthcheck가 28/30번째 시도까지 간 걸 보면 fixture가 서버 기동을 기다리다 시간이 다 간 거예요. 그래서 test_guild_create의 ConnectionError도 같은 서버 문제일 가능성이 커요.\n\ntest_login_token_refresh는 call 단계에서 60.01초를 꽉 채웠으니 별개 이슈예요. 토큰 갱신 호출이 응답을 못 받고 대기 중인 것(mock 또는 외부 인증 서버 의존)일 수 있어요."
+      },
+      {
+        "role": "user",
+        "text": "오 그럼 정리해서 팀 슬랙에 올릴 요약으로 만들어줘. 짧게"
+      },
+      {
+        "role": "assistant",
+        "text": "\n[Nightly pytest] 3 failed, 1 error (타임아웃 3건)\n\n■ Timeout (60s)\n1) e2e/test_inventory::test_equip_item_sync — setup 58s, game_server healthcheck 대기\n2) e2e/test_matchmaking::test_queue_timeout — setup 58s, 동일 원인\n3) api/test_login::test_login_token_refresh — call 단계 60s, 토큰 갱신 응답 대기 의심\n\n■ 타임아웃 아님\n- api/test_shop::test_purchase_rollback — 500 응답\n- e2e/test_guild::test_guild_create — game-server:7777 ConnectionError (서버 기동 이슈와 연관 가능)\n\n■ 다음 확인\n- nightly 시점 game_server 기동 로그\n- login 테스트의 인증 의존성\n"
+      },
+      {
+        "role": "user",
+        "text": "굿굿. 근데 healthcheck 쪽은 fixture timeout을 늘리는 게 나아, 아니면 retry 붙이는 게 나아?"
+      },
+      {
+        "role": "assistant",
+        "text": "먼저 서버가 왜 느리게 뜨는지 로그로 원인을 보는 게 우선이고, 임시로는 healthcheck 대기 한도를 늘리는 쪽이 안전해요. 지금은 fixture가 30번 시도하는 동안 테스트 전체 timeout 60초에 같이 묶여 있을 가능성이 있어서, setup은 별도 timeout(예: 120초)으로 분리하면 좋아요. retry는 실제로 서버가 뜨지 않은 경우를 가려버릴 수 있어서 마지막 수단으로 두는 걸 추천해요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s10",
+    "tool": "claude-code",
+    "project": "yuna-log",
+    "day": 5,
+    "topic": "Generate a tag page for blog posts and update the sitemap configuration.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "블로그 글 태그별 페이지 만들어줘. /tags/[tag] 이런 식으로. Astro고 content collection 이름은 blog야"
+      },
+      {
+        "role": "assistant",
+        "text": "`src/pages/tags/[tag].astro`를 이렇게 만들면 돼요.\n\nastro\n---\nimport { getCollection } from 'astro:content';\nimport Layout from '../../layouts/Layout.astro';\n\nexport async function getStaticPaths() {\n  const posts = await getCollection('blog', ({ data }) => !data.draft);\n  const tags = [...new Set(posts.flatMap((p) => p.data.tags ?? []))];\n  return tags.map((tag) => ({\n    params: { tag },\n    props: { posts: posts.filter((p) => p.data.tags?.includes(tag)) },\n  }));\n}\n\nconst { tag } = Astro.params;\nconst { posts } = Astro.props;\n---\n<Layout title={`#${tag}`}>\n  <h1>#{tag}</h1>\n  <ul>\n    {posts.map((p) => <li><a href={`/blog/${p.id}/`}>{p.data.title}</a></li>)}\n  </ul>\n</Layout>\n\n\nfrontmatter에 `tags`가 문자열 배열이고 `draft` 필드가 있다고 가정했어요. 맞나요?"
+      },
+      {
+        "role": "user",
+        "text": "tags 배열 맞고 draft도 있어. 근데 태그 대소문자 섞여 있어. Astro, astro 이런 식으로"
+      },
+      {
+        "role": "assistant",
+        "text": "그러면 소문자로 정규화해서 같은 태그로 묶어요. getStaticPaths 부분만 바꾸면 됩니다.\n\njs\nconst norm = (t) => t.trim().toLowerCase().replace(/\\s+/g, '-');\n\nexport async function getStaticPaths() {\n  const posts = await getCollection('blog', ({ data }) => !data.draft);\n  const tags = [...new Set(posts.flatMap((p) => (p.data.tags ?? []).map(norm)))];\n  return tags.map((tag) => ({\n    params: { tag },\n    props: { posts: posts.filter((p) => (p.data.tags ?? []).map(norm).includes(tag)) },\n  }));\n}\n\n\n`norm`을 별도 util로 빼서 글 상세 페이지의 태그 링크에도 같이 쓰는 게 좋아요. 안 그러면 링크가 404가 날 수 있어요."
+      },
+      {
+        "role": "user",
+        "text": "ㅇㅋ. 이제 sitemap 설정도 업데이트해줘. 태그 페이지 들어가고 draft는 빠져야 돼"
+      },
+      {
+        "role": "assistant",
+        "text": "`@astrojs/sitemap`은 getStaticPaths로 생성된 페이지를 자동으로 포함해요. 태그 페이지는 따로 추가할 필요 없고, `site`만 있으면 됩니다. draft는 위에서 필터링해서 페이지 자체가 안 만들어지니 sitemap에도 안 들어가요. 그래도 안전하게 필터와 우선순위를 넣어두면 이렇습니다.\n\njs\n// astro.config.mjs\nimport { defineConfig } from 'astro/config';\nimport sitemap from '@astrojs/sitemap';\n\nexport default defineConfig({\n  site: 'https://yuna.log',\n  integrations: [\n    sitemap({\n      filter: (page) => !page.includes('/draft/'),\n      serialize(item) {\n        if (item.url.includes('/tags/')) {\n          item.changefreq = 'weekly';\n          item.priority = 0.4;\n        }\n        return item;\n      },\n    }),\n  ],\n});\n"
+      },
+      {
+        "role": "user",
+        "text": "tags 목록 페이지도 있어야 할 듯. 태그 전체 보여주고 글 개수도 같이"
+      },
+      {
+        "role": "assistant",
+        "text": "`src/pages/tags/index.astro`를 추가하면 됩니다.\n\nastro\n---\nimport { getCollection } from 'astro:content';\nimport Layout from '../../layouts/Layout.astro';\nimport { norm } from '../../utils/tags';\n\nconst posts = await getCollection('blog', ({ data }) => !data.draft);\nconst counts = new Map();\nfor (const p of posts) {\n  for (const t of (p.data.tags ?? []).map(norm)) {\n    counts.set(t, (counts.get(t) ?? 0) + 1);\n  }\n}\nconst tags = [...counts].sort((a, b) => b[1] - a[1]);\n---\n<Layout title=\"Tags\">\n  <h1>Tags</h1>\n  <ul>\n    {tags.map(([t, n]) => <li><a href={`/tags/${t}/`}>#{t} ({n})</a></li>)}\n  </ul>\n</Layout>\n\n\n글 개수 많은 순으로 정렬했어요. 이름순을 원하면 sort만 바꾸면 됩니다."
+      },
+      {
+        "role": "user",
+        "text": "좋다. 이제 빌드 돌려서 확인하면 되나?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, `npm run build` 후에 `dist/sitemap-0.xml`을 열어서 `/tags/` URL이 들어갔는지, draft 글 URL이 빠졌는지 확인해 보세요. `grep tags dist/sitemap-0.xml`로 보면 빨라요. 태그가 한글이면 URL 인코딩이 어떻게 나오는지도 한번 봐두세요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s11",
+    "tool": "codex",
+    "project": "mir-qa-automation",
+    "day": 6,
+    "topic": "Add a helper to parse Appium logs and attach screenshots to pytest failure reports.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "mir-qa-automation에 appium 로그 파싱하는 helper 하나 추가하고 싶어. 그리고 pytest 실패하면 스크린샷도 리포트에 자동으로 붙게 하고 싶은데 어디서부터 하면 좋을까?"
+      },
+      {
+        "role": "assistant",
+        "text": "구조는 두 군데로 나누면 깔끔해요. 파서는 `utils/appium_log.py`에 두고, 스크린샷 첨부는 `conftest.py`의 `pytest_runtest_makereport` hook에서 처리하는 방식이에요. 리포트는 pytest-html이에요, allure예요? 그에 따라 첨부 방식이 달라져요."
+      },
+      {
+        "role": "user",
+        "text": "pytest-html 써. 로그는 appium server log 파일이고, session id로 필터링해야 돼. 에러 라인만 뽑고 싶음"
+      },
+      {
+        "role": "assistant",
+        "text": "그럼 이런 식으로 시작해볼게요:\npython\nimport re\nfrom pathlib import Path\n\nERROR_RE = re.compile(r\"\\b(error|exception|failed)\\b\", re.I)\n\ndef extract_errors(log_path, session_id=None, limit=20):\n    lines = Path(log_path).read_text(encoding=\"utf-8\", errors=\"replace\").splitlines()\n    if session_id:\n        lines = [l for l in lines if session_id[:8] in l]\n    errors = [l.strip() for l in lines if ERROR_RE.search(l)]\n    return errors[-limit:]\n\n마지막 N줄만 반환하게 해서 리포트가 너무 길어지는 건 막았어요."
+      },
+      {
+        "role": "user",
+        "text": "오 괜찮네. 근데 session id 앞 8자리만 비교하면 다른 세션이랑 섞일 수도 있지 않아?"
+      },
+      {
+        "role": "assistant",
+        "text": "맞아요, 병렬로 돌리면 앞 8자리가 겹칠 가능성은 낮아도 0은 아니에요. 그냥 풀 session id로 비교하는 게 안전해요. `driver.session_id`가 그대로 로그에 찍히니까 `session_id in l`로 바꾸면 돼요."
+      },
+      {
+        "role": "user",
+        "text": "ㅇㅋ 풀 id로 바꿀게. 스크린샷은 fixture로 만든 driver를 hook에서 어떻게 가져와?"
+      },
+      {
+        "role": "assistant",
+        "text": "`item.funcargs`에서 꺼내면 돼요. driver가 없는 테스트도 있으니까 guard는 꼭 넣어주세요:\npython\n@pytest.hookimpl(hookwrapper=True)\ndef pytest_runtest_makereport(item, call):\n    outcome = yield\n    report = outcome.get_result()\n    if report.when != \"call\" or not report.failed:\n        return\n    driver = item.funcargs.get(\"driver\")\n    if driver is None:\n        return\n    extras = getattr(report, \"extras\", [])\n    extras.append(pytest_html.extras.png(driver.get_screenshot_as_base64()))\n    errors = extract_errors(APPIUM_LOG_PATH, driver.session_id)\n    extras.append(pytest_html.extras.text(\"\\n\".join(errors), name=\"appium errors\"))\n    report.extras = extras\n\n`report.extras`는 pytest-html 4 기준이고, 3 이하면 `report.extra`예요."
+      },
+      {
+        "role": "user",
+        "text": "버전 4 쓰고 있어서 그대로 가도 될 듯. 세션이 이미 죽어서 screenshot 찍다가 예외 나면 어떡해?"
+      },
+      {
+        "role": "assistant",
+        "text": "그 경우엔 스크린샷 부분을 try/except로 감싸서, 실패하면 \"screenshot failed: <사유>\"를 텍스트로 대신 붙이는 걸 추천해요. 안 그러면 원래 테스트 실패 원인이 hook 에러에 묻혀요. 로그 에러 첨부는 스크린샷과 독립적으로 실행되게 분리해둘게요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s12",
+    "tool": "claude-code",
+    "project": "yuna-log",
+    "day": 7,
+    "topic": "Improve image loading performance on the blog home page and update the README with the new build notes.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "홈페이지에서 이미지 로딩이 너무 느려. 포스트 썸네일이 한꺼번에 로드되는 것 같은데 어디부터 손봐야 해?"
+      },
+      {
+        "role": "assistant",
+        "text": "Astro라면 보통 세 가지부터 봅니다. 첫째, `<img>` 대신 `astro:assets`의 `<Image />`로 바꿔서 webp/avif 변환과 리사이징을 맡기기. 둘째, 화면 밖 썸네일에 `loading=\"lazy\"`와 `decoding=\"async\"` 적용하기. 셋째, width/height를 명시해서 레이아웃 흔들림(CLS)을 막기. 썸네일을 렌더링하는 컴포넌트(PostCard 같은 것)를 붙여주면 그대로 고쳐드릴게요."
+      },
+      {
+        "role": "user",
+        "text": "PostCard.astro에서 그냥 <img src={post.data.cover} alt={post.data.title} /> 이렇게 쓰고 있어. cover는 public/images 안에 있는 원본 png야"
+      },
+      {
+        "role": "assistant",
+        "text": "그게 원인일 가능성이 높아요. public 폴더의 원본 png는 Astro가 최적화를 안 해줘서 큰 파일이 그대로 내려갑니다. 이미지를 `src/assets/`로 옮기고 frontmatter에서 `image()` 스키마로 받으면 됩니다.\n\nts\n// src/content/config.ts\nimport { defineCollection, z } from 'astro:content';\n\nconst posts = defineCollection({\n  schema: ({ image }) => z.object({\n    title: z.string(),\n    cover: image(),\n  }),\n});\n\n\nastro\n---\nimport { Image } from 'astro:assets';\nconst { post, priority = false } = Astro.props;\n---\n<Image\n  src={post.data.cover}\n  alt={post.data.title}\n  widths={[320, 640]}\n  sizes=\"(max-width: 640px) 100vw, 320px\"\n  format=\"webp\"\n  loading={priority ? 'eager' : 'lazy'}\n  decoding=\"async\"\n  fetchpriority={priority ? 'high' : 'auto'}\n/>\n"
+      },
+      {
+        "role": "user",
+        "text": "priority는 어디서 넘겨줘?"
+      },
+      {
+        "role": "assistant",
+        "text": "홈 목록을 map 도는 곳에서 첫 번째 카드만 true로 주면 됩니다. 첫 화면에 보이는 이미지가 LCP 후보라서 이것만 eager로 두고 나머지는 lazy로 두는 게 좋아요.\n\nastro\n{posts.map((post, i) => (\n  <PostCard post={post} priority={i === 0} />\n))}\n\n\n화면 크기에 따라 첫 줄에 카드가 여러 개 보이면 `i < 2`처럼 조금 늘려도 됩니다."
+      },
+      {
+        "role": "user",
+        "text": "오 좋다. 그럼 기존 포스트들 cover 경로는 어떻게 바꿔야 돼?"
+      },
+      {
+        "role": "assistant",
+        "text": "public/images의 파일을 `src/assets/images/`로 옮기고, 각 포스트 frontmatter를 상대 경로로 바꾸면 됩니다.\n\nyaml\n# before\ncover: /images/my-post.png\n# after\ncover: ../../assets/images/my-post.png\n\n\n포스트가 많으면 `git mv`로 옮긴 뒤 sed로 일괄 치환하는 게 빠릅니다. 치환 후 `astro build`를 돌려서 경로 오류가 없는지 꼭 확인하세요."
+      },
+      {
+        "role": "user",
+        "text": "알겠어. 이제 README에 새 빌드 노트 추가해줘. 이미지가 빌드 때 최적화된다는 거랑 이미지 넣는 위치 바뀐 거 위주로"
+      },
+      {
+        "role": "assistant",
+        "text": "README에 이런 섹션을 추가하면 됩니다.\n\nmd\n## Build notes\n\n### Image optimization\n- 포스트 커버 이미지는 `src/assets/images/`에 둡니다. (`public/images/`는 더 이상 사용하지 않음)\n- frontmatter에서는 상대 경로로 지정합니다: `cover: ../../assets/images/example.png`\n- 빌드 시 `astro:assets`가 webp로 변환하고 320/640px 크기로 리사이징합니다.\n- 홈 목록의 첫 번째 카드만 `eager` + `fetchpriority=\"high\"`, 나머지는 lazy 로딩입니다.\n- 이미지가 늘면 `npm run build` 시간이 길어질 수 있으니, 원본은 2000px 이하로 올려주세요.\n\n\n실제 빌드 명령어가 `npm run build`가 아니면 알려주세요. 거기에 맞춰 수정할게요."
+      },
+      {
+        "role": "user",
+        "text": "pnpm 써. pnpm build로 바꿔줘"
+      },
+      {
+        "role": "assistant",
+        "text": "마지막 줄만 `pnpm build`로 바꿔서 반영하면 됩니다.\n\nmd\n- 이미지가 늘면 `pnpm build` 시간이 길어질 수 있으니, 원본은 2000px 이하로 올려주세요.\n\n\n수정 후 `pnpm build`와 `pnpm preview`로 홈에서 네트워크 탭의 이미지 크기와 lazy 로딩이 의도대로 동작하는지 한 번 확인해보세요."
+      }
+    ]
+  }
+]

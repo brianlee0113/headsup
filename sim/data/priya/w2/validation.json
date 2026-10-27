@@ -1,0 +1,9 @@
+{
+  "invented": [
+    {
+      "session": "w2-s03",
+      "claim": "Pacebot is built with discord.js v14, with commands in src/commands/*.js and a router in src/router.js. The ground truth says it runs on Cloudflare Workers with D1 and gives no such stack, and other sessions describe it as Python (discord.py)."
+    }
+  ],
+  "missing": []
+}
