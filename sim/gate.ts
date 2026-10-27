@@ -19,6 +19,8 @@ const ROOT = join(new URL('.', import.meta.url).pathname, '..');
 const MEMORY_RUN = process.env.GATE_MEMORY_RUN ?? 'r15'; // saved memory the persona check replays (sam r15, jieun r13: current capture rules)
 const PERSONAS = ['sam', 'jieun'];
 const BASELINE = join(ROOT, '.local', 'gate-baseline.json'); // includes real-label numbers, so it stays local
+const PROBES = join(ROOT, '.local', 'gate-probes.json'); // each probe's decision at the last accepted run
+const decisions: Record<string, { kind: string; prompt: string; added: string[]; asked: string[] }> = {};
 const TOLERANCE = { rate: 0.02, count: 1 };
 const tsx = join(ROOT, 'node_modules', '.bin', 'tsx');
 
@@ -46,6 +48,28 @@ if (PERSONAS.every((p) => existsSync(join(ROOT, 'sim', 'out', MEMORY_RUN, p, 'no
   execFileSync(tsx, [join(ROOT, 'sim', 'score.ts'), 'gate', ...PERSONAS, '--fast'], { stdio: 'ignore' });
   const scores = JSON.parse(readFileSync(join(ROOT, 'sim', 'out', 'gate', 'scores.json'), 'utf8')) as Array<{ persona: string; unnecessary: number; neededRecall: { mean: number }; outcome: { noteKinds: Record<string, number> }; violations: string[] }>;
   for (const p of PERSONAS) if (!scores.some((s) => s.persona === p)) throw new Error(`no score for ${p}: the boundary check didn't run`);
+  // Paired, probe by probe, against the last accepted run: a mean can hide one lost needed moment
+  // (one of 24 needed probes is 4pp), so every probe whose decision changed is listed.
+  for (const p of PERSONAS) {
+    for (const w of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      const file = join(ROOT, 'sim', 'out', 'gate', p, `probes-w${w}.json`);
+      if (!existsSync(file)) continue;
+      for (const r of JSON.parse(readFileSync(file, 'utf8')) as Array<{ probe: { id: string; kind: string; prompt: string }; inject: Array<{ body: string }>; ask: Array<{ body: string }> }>) {
+        decisions[`${p}:${r.probe.id}`] = { kind: r.probe.kind, prompt: r.probe.prompt.slice(0, 60), added: r.inject.map((n) => n.body.slice(0, 50)).sort(), asked: r.ask.map((n) => n.body.slice(0, 50)).sort() };
+      }
+    }
+  }
+  const before = existsSync(PROBES) ? (JSON.parse(readFileSync(PROBES, 'utf8')) as typeof decisions) : {};
+  const changed = Object.entries(decisions).filter(([k, d]) => before[k] && JSON.stringify(before[k]) !== JSON.stringify(d));
+  if (changed.length) {
+    console.log(`probes whose decision changed since the last accepted run (${changed.length}):`);
+    for (const [k, d] of changed.slice(0, 20)) {
+      const b = before[k]!;
+      const gone = [...b.added, ...b.asked].filter((x) => ![...d.added, ...d.asked].includes(x));
+      const came = [...d.added, ...d.asked].filter((x) => ![...b.added, ...b.asked].includes(x));
+      console.log(`  ${k} [${d.kind}] "${d.prompt}"${gone.length ? `  − ${gone.join(' | ')}` : ''}${came.length ? `  + ${came.join(' | ')}` : ''}`);
+    }
+  }
   for (const s of scores) {
     // A work note crossing into personal without an OK is never acceptable, whatever the baseline says.
     put(`sim ${s.persona}: boundary violations`, s.violations.length, 'lower', 'count', 0);
@@ -127,6 +151,7 @@ if (accept && broken) {
   process.exit(1);
 } else if (accept) {
   writeFileSync(BASELINE, JSON.stringify(Object.fromEntries(Object.entries(metrics).map(([k, m]) => [k, m.value])), null, 2));
+  writeFileSync(PROBES, JSON.stringify(decisions));
   console.log(`\nbaseline saved to ${BASELINE}`);
 } else if (failed) {
   console.log(`\n${failed} got worse than the baseline or broke a hard limit. Fix it, or accept a baseline change on purpose with: pnpm gate --accept`);

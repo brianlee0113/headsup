@@ -149,6 +149,7 @@ async function scorePersona(run: string, id: string, fast = false) {
       duplicate: ratio(a.notes.filter((n) => n.duplicateOf).length, a.notes.length),
       keyCoverage: ratio(a.covered.filter((c) => revealedKeys.includes(c)).length, revealedKeys.length),
       sensitive: a.notes.filter((n) => n.items.some((iid) => item(iid)?.sensitive)).length,
+      unlisted: ratio(v('unlisted'), a.notes.length), // not checked for accuracy: report alongside it
     };
   };
   const lastMemory = last.audits.map(memoryOf);
@@ -165,13 +166,16 @@ async function scorePersona(run: string, id: string, fast = false) {
     const mapping = new Map(perWeek.flatMap((w) => (w.audits[i] ?? w.audits[0]!).notes.filter((n) => n.verdict === 'accurate').map((n) => [`${w.week}:${n.id}`, n.items] as const)));
     const judged = new Map(perWeek.flatMap((w) => (w.useful[i % Math.max(1, w.useful.length)]?.probes ?? []).map((x) => [x.id, x.useful] as const)));
     const items = (r: ProbeResult, n: Note) => mapping.get(`${r.week}:${n.id}`) ?? [];
+    // Offered for an OK counts as caught: the moment was found, the person decides. Added counts only
+    // what went in without asking.
     const covers = (r: ProbeResult) => r.probe.needs.length > 0 && r.probe.needs.every((iid) => [...r.inject, ...r.ask].some((n) => items(r, n).includes(iid)));
+    const coversAdded = (r: ProbeResult) => r.probe.needs.length > 0 && r.probe.needs.every((iid) => r.inject.some((n) => items(r, n).includes(iid)));
     const helped = (r: ProbeResult, n: Note) => items(r, n).some((iid) => r.probe.needs.includes(iid)) || (judged.get(r.probe.id) ?? []).includes(n.id);
     const precisionOf = (rs: ProbeResult[]) => {
       const added = rs.flatMap((r) => r.inject.filter((n) => !planted.has(n.id)).map((n) => ({ r, n })));
       return ratio(added.filter(({ r, n }) => helped(r, n)).length, added.length);
     };
-    return { covers, helped, precision: precisionOf(all), recall: ratio(needed.filter(covers).length, needed.length), byWeek: perWeek.map((w) => precisionOf(w.results)) };
+    return { covers, helped, precision: precisionOf(all), recall: ratio(needed.filter(covers).length, needed.length), recallAdded: ratio(needed.filter(coversAdded).length, needed.length), byWeek: perWeek.map((w) => precisionOf(w.results)) };
   };
   const readings = Array.from({ length: Math.max(...perWeek.map((w) => w.audits.length)) }, (_, i) => reading(i));
 
@@ -256,6 +260,9 @@ async function scorePersona(run: string, id: string, fast = false) {
     unnecessaryCases: quiet.filter(steppedIn).map((r) => `${r.probe.id} [${r.probe.kind}] "${r.probe.prompt}" ← ${[...r.inject, ...r.ask].map((n) => n.body).join(' | ')}`),
     notePrecision: range(readings.map((x) => x.precision)),
     neededRecall: range(readings.map((x) => x.recall)),
+    neededAdded: range(readings.map((x) => x.recallAdded)),
+    neededCount: needed.length, // one probe is 1/neededCount of recall
+    unlisted: memoryRange('unlisted'),
     missedCases: needed.filter((r) => !readings[0]!.covers(r)).map((r) => `${r.probe.id} "${r.probe.prompt}" needs ${r.probe.needs.join(', ')}`),
     better: byTrial('with'), worse: byTrial('without'), tie: byTrial('tie'), liftProbes: lifts.length / Math.max(1, REPS.lift),
     violations: [...violations],
@@ -283,15 +290,18 @@ function report(run: string, scores: Score[], fast: boolean): string {
     `Repeats: audit ×${REPS.audit}, usefulness ×${REPS.useful}, answer comparison ×${REPS.lift}, planted note ×${REPS.planted}. Ranges show min–max across repeats; ⚠️ means the range crosses the pass line.`, ''];
   lines.push(`| Criterion | Pass line | ${scores.map((s) => s.persona).join(' | ')} |`, `|---|---|${scores.map(() => '---').join('|')}|`);
   const row = (label: string, target: string, get: (s: Score) => Range, line: number, higher: boolean, fmt: (r: Range) => string = show) =>
-    lines.push(`| ${label} | ${target} | ${scores.map((s) => `${fmt(get(s))} ${judge(get(s), line, higher)}`).join(' | ')} |`);
+    lines.push(`| ${label} | ${target} | ${scores.map((s) => `${fmt(get(s))}${target === 'shown' ? '' : ` ${judge(get(s), line, higher)}`}`).join(' | ')} |`);
   row('1 Memory: accurate', `≥ ${pct(T.accurate)}`, (s) => s.accurate, T.accurate, true);
   row('1 Memory: stale', `≤ ${pct(T.stale)}`, (s) => s.stale, T.stale, false);
   row('1 Memory: duplicate', `≤ ${pct(T.duplicate)}`, (s) => s.duplicate, T.duplicate, false);
   row('1 Memory: junk', `≤ ${pct(T.junk)}`, (s) => s.junk, T.junk, false);
   row('1 Memory: key coverage', `≥ ${pct(T.keyCoverage)}`, (s) => s.keyCoverage, T.keyCoverage, true);
+  row('1 Memory: unlisted (not checked for accuracy)', 'shown', (s) => s.unlisted, 1, false);
   row('2 Unnecessary step-ins', `≤ ${pct(T.unnecessary)}`, (s) => one(s.unnecessary), T.unnecessary, false);
-  row('2 Added notes that helped', `≥ ${pct(T.notePrecision)}`, (s) => s.notePrecision, T.notePrecision, true);
-  row('3 Needed moments caught', `≥ ${pct(T.neededRecall)}`, (s) => s.neededRecall, T.neededRecall, true);
+  row(fast ? '2 Added notes that helped (fast: only notes carrying a listed need)' : '2 Added notes that helped', `≥ ${pct(T.notePrecision)}`, (s) => s.notePrecision, T.notePrecision, true);
+  row('3 Needed moments caught (added or offered)', `≥ ${pct(T.neededRecall)}`, (s) => s.neededRecall, T.neededRecall, true, (r) => show(r));
+  row('3 … of those, added without asking', 'shown', (s) => s.neededAdded, 0, true);
+  lines.push(`| … needed probes (one = this many points) | | ${scores.map((s) => `${s.neededCount} (${(100 / s.neededCount).toFixed(1)}pp)`).join(' | ')} |`);
   row('4 Answer better with notes', `≥ ${pct(T.better)}`, (s) => s.better, T.better, true, (r) => `${show(r)}`);
   row('4 Answer worse with notes', `≤ ${pct(T.worse)}`, (s) => s.worse, T.worse, false);
   row('5 Boundary violations', '0', (s) => one(s.violations.length), 0, false, (r) => String(r.mean));
