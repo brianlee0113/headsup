@@ -1,0 +1,120 @@
+[
+  {
+    "id": "w2-s01",
+    "tool": "claude-code",
+    "project": "halcyon-routing",
+    "day": 1,
+    "topic": "Add a new route-cost calculation function to the Go routing service, with tests for edge cases like zero-distance legs.",
+    "reveals": [
+      "table-tests",
+      "halcyon-role"
+    ]
+  },
+  {
+    "id": "w2-s02",
+    "tool": "chatgpt",
+    "day": 1,
+    "topic": "Ask for a quick comparison of fixed-rate mortgage terms and what questions to ask a lender, while mentioning the refinance in passing.",
+    "reveals": [
+      "refinance"
+    ]
+  },
+  {
+    "id": "w2-s03",
+    "tool": "codex",
+    "project": "tidepool",
+    "day": 2,
+    "topic": "Implement a photo metadata indexing module in Rust that stores records in SQLite using hand-written queries.",
+    "reveals": [
+      "raw-sql",
+      "tidepool"
+    ]
+  },
+  {
+    "id": "w2-s04",
+    "tool": "claude-code",
+    "project": "halcyon-routing",
+    "day": 2,
+    "topic": "Debug a failing CI job for the routing service and paste in a GitHub token to test API access to the workflow runs.",
+    "reveals": [
+      "gh-token"
+    ]
+  },
+  {
+    "id": "w2-s05",
+    "tool": "chatgpt",
+    "day": 3,
+    "topic": "Get feedback on a draft intro paragraph for a blog post, asking for blunt critique with no softening.",
+    "reveals": [
+      "blunt-review",
+      "blog"
+    ]
+  },
+  {
+    "id": "w2-s06",
+    "tool": "codex",
+    "project": "tidepool",
+    "day": 3,
+    "topic": "Fix a bug in the Tidepool upload resume logic and prepare the change for commit, reviewing the diff first.",
+    "reveals": [
+      "conventional",
+      "commit-flow"
+    ]
+  },
+  {
+    "id": "w2-s07",
+    "tool": "claude-code",
+    "project": "halcyon-routing",
+    "day": 4,
+    "topic": "Refactor the shipment lookup handler to return wrapped errors, and update the repository layer's queries while the Postgres-to-CockroachDB migration is underway.",
+    "reveals": [
+      "errors",
+      "cockroach"
+    ]
+  },
+  {
+    "id": "w2-s08",
+    "tool": "chatgpt",
+    "day": 4,
+    "topic": "Ask for practical strategies to structure a focused work week and break tasks into smaller steps, mentioning a recent ADHD diagnosis in passing.",
+    "reveals": [
+      "adhd"
+    ]
+  },
+  {
+    "id": "w2-s09",
+    "tool": "codex",
+    "project": "tidepool",
+    "day": 5,
+    "topic": "Tune Tidepool's background sync job and discuss memory limits and deployment on the Raspberry Pi 5 home server.",
+    "reveals": [
+      "homeserver"
+    ]
+  },
+  {
+    "id": "w2-s10",
+    "tool": "claude-code",
+    "project": "halcyon-routing",
+    "day": 5,
+    "topic": "Prepare for the on-call rotation by reviewing alert runbooks and tweaking a deployment config in staging, making clear production config is never changed without explicit approval.",
+    "reveals": [
+      "oncall",
+      "prod-config"
+    ]
+  },
+  {
+    "id": "w2-s11",
+    "tool": "chatgpt",
+    "day": 6,
+    "topic": "Ask for help converting a recipe's measurements and scaling it for six people.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s12",
+    "tool": "codex",
+    "project": "tidepool",
+    "day": 7,
+    "topic": "Add integration tests and a thumbnail generation option to Tidepool's CLI.",
+    "reveals": []
+  }
+]

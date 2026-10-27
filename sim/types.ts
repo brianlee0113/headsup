@@ -14,7 +14,7 @@ export interface Item {
 
 export interface Persona {
   id: string;
-  split: 'tune' | 'holdout';
+  split: 'tune' | 'holdout' | 'seen'; // seen: was a holdout, then its results guided a change (2026-10-27)
   language: 'en' | 'ko';
   who: string;
   tools: Record<string, { projects?: Record<string, string> }>;

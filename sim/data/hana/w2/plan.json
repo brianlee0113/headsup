@@ -1,0 +1,100 @@
+[
+  {
+    "id": "w2-s01",
+    "tool": "chatgpt",
+    "day": 1,
+    "topic": "사용자 인터뷰 12건의 녹취록에서 반복되는 주제를 뽑아 테마별로 묶는 작업을 한다.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s02",
+    "tool": "claude-code",
+    "project": "sora-notes",
+    "day": 1,
+    "topic": "Sora Notes의 노트 목록 화면에서 스크롤할 때 생기는 끊김을 고치고, 설명은 한국어로 받되 코드 주석과 커밋 메시지는 영어로 쓴다고 말한다.",
+    "reveals": [
+      "ko-explain-en-code"
+    ]
+  },
+  {
+    "id": "w2-s03",
+    "tool": "claude-ai",
+    "day": 2,
+    "topic": "주말에 갈 근교 당일치기 여행지 후보를 추천받는다.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s04",
+    "tool": "chatgpt",
+    "day": 2,
+    "topic": "모바일 뱅킹 앱 온보딩 UX에 관한 논문과 아티클을 조사하고, 결과를 인용 한 줄과 시사점 한 줄씩으로 정리해 달라고 한다.",
+    "reveals": [
+      "research-plain"
+    ]
+  },
+  {
+    "id": "w2-s05",
+    "tool": "claude-code",
+    "project": "sora-notes",
+    "day": 3,
+    "topic": "노트 검색 기능에 태그 필터를 추가하고 위젯 테스트를 작성한다.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s06",
+    "tool": "chatgpt",
+    "day": 3,
+    "topic": "다음 주 이해관계자 미팅에서 쓸 리서치 발표 개요를 잡고 슬라이드 순서를 다듬는다.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s07",
+    "tool": "claude-ai",
+    "day": 4,
+    "topic": "새 노트북 두 가지를 고민하며 비교를 요청하고, 비용과 위험 열이 있는 표로 정리해 달라고 한다.",
+    "reveals": [
+      "options-table"
+    ]
+  },
+  {
+    "id": "w2-s08",
+    "tool": "claude-code",
+    "project": "sora-notes",
+    "day": 4,
+    "topic": "다크 모드에서 노트 카드의 색 대비가 낮은 문제를 수정한다.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s09",
+    "tool": "chatgpt",
+    "day": 5,
+    "topic": "설문 응답의 자유 서술 문항을 요약하고 영어 이메일 초안의 어색한 표현을 다듬는다.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s10",
+    "tool": "claude-code",
+    "project": "sora-notes",
+    "day": 6,
+    "topic": "노트 내보내기(export) 기능의 에러 처리를 리팩터링하고, 한국어로 설명해 달라고 하며 커밋 메시지는 영어로 쓴다.",
+    "reveals": [
+      "ko-explain-en-code"
+    ]
+  },
+  {
+    "id": "w2-s11",
+    "tool": "claude-ai",
+    "day": 6,
+    "topic": "집에서 할 수 있는 간단한 저녁 요리 레시피와 일주일 장보기 목록을 짠다.",
+    "reveals": []
+  },
+  {
+    "id": "w2-s12",
+    "tool": "chatgpt",
+    "day": 7,
+    "topic": "경쟁사 핀테크 앱 세 곳의 결제 플로우를 조사하고, 인용 한 줄과 시사점 한 줄 형식으로 정리한다.",
+    "reveals": [
+      "research-plain"
+    ]
+  }
+]

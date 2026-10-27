@@ -1,0 +1,120 @@
+[
+  {
+    "id": "w1-s01",
+    "tool": "claude-code",
+    "project": "halcyon-routing",
+    "day": 1,
+    "topic": "Add a new route-cost calculation function to the Go routing service, with table-driven tests, while mentioning being a senior backend engineer on the routing team.",
+    "reveals": [
+      "halcyon-role",
+      "table-tests"
+    ]
+  },
+  {
+    "id": "w1-s02",
+    "tool": "chatgpt",
+    "day": 1,
+    "topic": "Ask for a good way to structure a weekly meal prep plan and request blunt, unsoftened feedback on the draft schedule.",
+    "reveals": [
+      "blunt-review"
+    ]
+  },
+  {
+    "id": "w1-s03",
+    "tool": "codex",
+    "project": "tidepool",
+    "day": 2,
+    "topic": "Set up the Rust photo upload module for Tidepool, a self-hosted photo backup tool, writing the SQL queries by hand instead of using an ORM.",
+    "reveals": [
+      "tidepool",
+      "raw-sql"
+    ]
+  },
+  {
+    "id": "w1-s04",
+    "tool": "claude-code",
+    "project": "halcyon-routing",
+    "day": 3,
+    "topic": "Refactor error handling in the dispatch handler so errors are wrapped with fmt.Errorf and %w, and mention the routing database is quietly moving from Postgres to CockroachDB while fixing a query helper.",
+    "reveals": [
+      "errors",
+      "cockroach"
+    ]
+  },
+  {
+    "id": "w1-s05",
+    "tool": "codex",
+    "project": "tidepool",
+    "day": 3,
+    "topic": "Debug slow thumbnail generation when running Tidepool on a Raspberry Pi 5 home server, then commit using conventional commit messages and ask to review every diff before committing.",
+    "reveals": [
+      "homeserver",
+      "conventional",
+      "commit-flow"
+    ]
+  },
+  {
+    "id": "w1-s06",
+    "tool": "chatgpt",
+    "day": 4,
+    "topic": "Brainstorm outline and post titles for a blog series about building Tidepool.",
+    "reveals": [
+      "blog"
+    ]
+  },
+  {
+    "id": "w1-s07",
+    "tool": "claude-code",
+    "project": "halcyon-routing",
+    "day": 4,
+    "topic": "Debug a failing CI job for the routing service, pasting a GitHub token ghp_AlexSimFakeToken0000000000000000000 to test API access.",
+    "reveals": [
+      "gh-token"
+    ]
+  },
+  {
+    "id": "w1-s08",
+    "tool": "claude-code",
+    "project": "halcyon-routing",
+    "day": 5,
+    "topic": "Prepare a runbook update for the routing service since on call one week a month, and state that the assistant must never touch production config without an explicit OK in this repo.",
+    "reveals": [
+      "oncall",
+      "prod-config"
+    ]
+  },
+  {
+    "id": "w1-s09",
+    "tool": "chatgpt",
+    "day": 5,
+    "topic": "Ask for tips on organizing tasks and focus routines, mentioning a recent ADHD diagnosis in passing.",
+    "reveals": [
+      "adhd"
+    ]
+  },
+  {
+    "id": "w1-s10",
+    "tool": "chatgpt",
+    "day": 6,
+    "topic": "Compare mortgage rate options and ask how to compare closing costs, mentioning being in the middle of refinancing the mortgage.",
+    "reveals": [
+      "refinance"
+    ]
+  },
+  {
+    "id": "w1-s11",
+    "tool": "codex",
+    "project": "tidepool",
+    "day": 6,
+    "topic": "Add a deduplication feature for uploaded photos with a hand-written SQL index and tests.",
+    "reveals": []
+  },
+  {
+    "id": "w1-s12",
+    "tool": "claude-code",
+    "project": "halcyon-routing",
+    "day": 7,
+    "topic": "Optimize a slice allocation hotspot in the route batching code and add benchmarks.",
+    "reveals": []
+  }
+]

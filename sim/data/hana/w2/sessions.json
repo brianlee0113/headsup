@@ -1,0 +1,608 @@
+[
+  {
+    "id": "w2-s01",
+    "tool": "chatgpt",
+    "day": 1,
+    "topic": "사용자 인터뷰 12건의 녹취록에서 반복되는 주제를 뽑아 테마별로 묶는 작업을 한다.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "인터뷰 녹취록 12개 있는데 반복되는 주제 뽑아서 테마별로 묶고 싶어. 한 번에 다 붙여넣으면 되나?"
+      },
+      {
+        "role": "assistant",
+        "text": "12개를 한 번에 넣으면 길이 때문에 뒷부분이 약해질 수 있어요. 3~4개씩 나눠서 넣는 게 좋아요. 먼저 각 녹취록에서 코드(짧은 라벨)와 근거 인용문을 뽑고, 그다음 코드들을 테마로 묶는 2단계로 가면 정확해요. 첫 배치부터 시작할까요?"
+      },
+      {
+        "role": "user",
+        "text": "ㅇㅋ. 근데 코드 뽑을 때 quote도 participant ID랑 같이 달아줬으면 좋겠어. P01, P02 이런 식으로"
+      },
+      {
+        "role": "assistant",
+        "text": "좋아요. 출력 형식은 이렇게 할게요.\n\n| 코드 | 요약 | 인용문 | 참가자 |\n\n인용문은 원문 그대로 가져오고, 번역이나 요약은 따로 열에 넣을게요. 이 형식이면 나중에 affinity map으로 옮기기도 쉬워요."
+      },
+      {
+        "role": "user",
+        "text": "1~4번 붙여넣었어. 일단 결과 봐줘\n\n(녹취록 P01~P04)"
+      },
+      {
+        "role": "assistant",
+        "text": "실제 텍스트는 아직 안 보여요. 붙여넣기가 비어 있는 것 같아요. 다시 붙여넣어 주시면 바로 코딩할게요. 파일이 길면 P01, P02만 먼저 보내셔도 돼요."
+      },
+      {
+        "role": "user",
+        "text": "아 미안 빠졌네. 그럼 일단 지금까지 내가 메모해둔 걸로 테마 초안만 잡아줄래? 메모는 '앱 알림이 너무 많다', '송금 수수료 불투명', '예산 기능 안 씀', '고객센터 연결 어려움' 이 정도야"
+      },
+      {
+        "role": "assistant",
+        "text": "메모 기준으로 잠정 테마를 이렇게 묶어볼게요.\n\n1. 정보 과부하와 알림 피로: 알림이 너무 많다\n2. 비용 투명성과 신뢰: 송금 수수료 불투명\n3. 기능 발견성과 활용도: 예산 기능 안 씀\n4. 지원 접근성: 고객센터 연결 어려움\n\n2번과 4번은 '신뢰'라는 상위 테마로 합칠 수도 있어요. 녹취록을 코딩한 뒤에 확정하는 게 좋아요."
+      },
+      {
+        "role": "user",
+        "text": "오 신뢰로 묶는 거 괜찮네. 근데 예산 기능 안 쓴다는 건 발견성 문제인지 그냥 필요가 없는 건지 모르겠어"
+      },
+      {
+        "role": "assistant",
+        "text": "녹취록에서 이유를 확인해야 해요. 다음 세 가지로 코드를 나눠보세요.\n\n- 존재를 몰랐다 (발견성)\n- 알지만 쓰기 번거롭다 (사용성)\n- 필요성을 못 느낀다 (니즈 부재)\n\n12명 중 몇 명이 어디에 해당하는지 세면 테마의 비중도 말할 수 있어요. 녹취록 붙여주시면 이 기준으로 먼저 분류할게요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s02",
+    "tool": "claude-code",
+    "project": "sora-notes",
+    "day": 1,
+    "topic": "Sora Notes의 노트 목록 화면에서 스크롤할 때 생기는 끊김을 고치고, 설명은 한국어로 받되 코드 주석과 커밋 메시지는 영어로 쓴다고 말한다.",
+    "reveals": [
+      "ko-explain-en-code"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "Sora Notes 노트 목록 화면에서 스크롤하면 좀 끊겨. 특히 빠르게 내릴 때 프레임 드랍이 심함. 일단 원인부터 같이 찾아줄 수 있어?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 먼저 목록 화면 코드를 볼게요. 보통 ListView 아이템의 build 안에서 무거운 작업을 하거나, 이미지/마크다운 파싱을 매번 다시 하면 이런 현상이 생겨요. lib/features/notes 쪽 파일부터 확인해 볼게요."
+      },
+      {
+        "role": "user",
+        "text": "ㅇㅋ. 아 그리고 하나 먼저 말해둘게. 설명은 한국어로 해주고, 코드 주석이랑 커밋 메시지는 영어로 써줘."
+      },
+      {
+        "role": "assistant",
+        "text": "알겠어요. 설명은 한국어로, 코드 주석과 커밋 메시지는 영어로 쓸게요. 확인해 보니 note_list_page.dart의 itemBuilder 안에서 매 빌드마다 본문 미리보기를 위해 마크다운을 파싱하고 있고, ListView가 `shrinkWrap: true`로 되어 있어요. 이 둘이 가장 유력한 원인이에요."
+      },
+      {
+        "role": "user",
+        "text": "헐 shrinkWrap 쓰고 있었구나. 그거 왜 문제야?"
+      },
+      {
+        "role": "assistant",
+        "text": "shrinkWrap: true면 리스트가 모든 자식의 크기를 먼저 계산해야 해서, 아이템이 많을수록 레이아웃 비용이 커져요. 지연 로딩 이점도 많이 사라지고요. 그래서 shrinkWrap을 빼고 Expanded 안에 넣는 방식으로 바꾸고, 미리보기 텍스트는 노트가 바뀔 때만 한 번 계산해서 캐싱하는 걸 제안해요."
+      },
+      {
+        "role": "user",
+        "text": "좋아 그렇게 해줘."
+      },
+      {
+        "role": "assistant",
+        "text": "수정했어요. 핵심 부분은 이래요.\n\ndart\nExpanded(\n  child: ListView.builder(\n    // Use a fixed extent so Flutter can skip per-item layout measurement\n    itemExtent: 88,\n    itemCount: notes.length,\n    itemBuilder: (context, index) {\n      final note = notes[index];\n      // Preview is precomputed in the model, not parsed during build\n      return RepaintBoundary(child: NoteTile(note: note));\n    },\n  ),\n)\n\n\nNote 모델에는 `previewText`를 lazy getter로 추가해서 한 번만 계산되게 했어요."
+      },
+      {
+        "role": "user",
+        "text": "오 깔끔하다. 근데 itemExtent 고정하면 제목이 길 때 잘리지 않아?"
+      },
+      {
+        "role": "assistant",
+        "text": "좋은 지적이에요. 제목은 `maxLines: 1`과 `TextOverflow.ellipsis`로 처리해서 높이가 늘어나지 않게 해뒀어요. 만약 가변 높이가 꼭 필요하면 itemExtent 대신 `prototypeItem`을 쓰는 방법도 있어요. 지금은 고정 높이로 가는 게 성능상 가장 안정적이에요."
+      },
+      {
+        "role": "user",
+        "text": "오케이 그대로 가자. 커밋도 해줘."
+      },
+      {
+        "role": "assistant",
+        "text": "커밋했어요.\n\n`perf(notes): fix list scroll jank by removing shrinkWrap and caching previews`\n\n실제 기기에서 프로파일 모드로 한 번 스크롤해 보고, DevTools의 Performance 탭에서 프레임 드랍이 줄었는지 확인해 보세요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s03",
+    "tool": "claude-ai",
+    "day": 2,
+    "topic": "주말에 갈 근교 당일치기 여행지 후보를 추천받는다.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "이번 주말에 런던에서 당일치기로 갈만한 데 추천해줘. 기차로 1시간 반 안쪽이면 좋겠어"
+      },
+      {
+        "role": "assistant",
+        "text": "좋아요! 후보 몇 개만 꼽아볼게요. 1) 브라이튼: 기차로 약 1시간, 바다와 피어, 골목 카페 구경하기 좋아요. 2) 캔터베리: 약 1시간, 대성당과 구시가지가 예뻐요. 3) 옥스퍼드: 약 1시간, 대학 건물 산책하기 좋고요. 4) 세븐 시스터즈 절벽: 시포드까지 가서 걷는 코스예요. 어떤 분위기를 원하세요?"
+      },
+      {
+        "role": "user",
+        "text": "음 너무 관광객 많은 데는 별로고 좀 걷는 거 좋아해. 근데 지금 11월 다가와서 날씨 어떨지 모르겠네"
+      },
+      {
+        "role": "assistant",
+        "text": "그럼 세븐 시스터즈와 캔터베리가 잘 맞을 것 같아요. 세븐 시스터즈는 해안 절벽 트레킹이라 걷기 좋은 반면, 11월 초엔 바람이 세고 비 올 확률이 높아요. 방수 재킷이랑 편한 운동화는 필수예요. 캔터베리는 실내외를 섞어 다닐 수 있어서 날씨가 나빠도 부담이 덜해요."
+      },
+      {
+        "role": "user",
+        "text": "세븐 시스터즈 쪽 좀 더 자세히 알려줘. 어떻게 가고 몇 시간 정도 걸려?"
+      },
+      {
+        "role": "assistant",
+        "text": "빅토리아역에서 시포드(Seaford)행 기차를 타면 환승 포함 약 1시간 30분 정도 걸려요. 시포드에서 버스 12번을 타고 세븐 시스터즈 컨트리 파크에서 내리거나, 시포드 해변에서 시작해 절벽길을 걸어 올라가도 돼요. 비행기 모양 말고 풍경 위주로 보면 코스는 5~8km 정도로 잡으면 되고, 걷는 시간은 3~4시간 예상하세요."
+      },
+      {
+        "role": "user",
+        "text": "아 맞다 이번에 시간 바뀌어서 해 일찍 지잖아. 그것도 고려해야겠다"
+      },
+      {
+        "role": "assistant",
+        "text": "맞아요, 지난 일요일에 서머타임이 끝나서 이번 주말 일몰이 오후 4시 30분쯤이에요. 절벽길은 조명이 없으니 오전 10시 전에 도착해서 3시 전후로 걷기를 마치는 일정이 안전해요. 돌아오는 기차 시간도 미리 확인해 두세요. 날씨가 흐리면 캔터베리로 바꾸는 플랜B도 괜찮아요."
+      },
+      {
+        "role": "user",
+        "text": "오 좋다. 그럼 토요일에 날씨 보고 정해야겠네. 고마워!"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 토요일 아침 예보 보고 결정하세요. 맑으면 세븐 시스터즈, 비가 오면 캔터베리로 가면 돼요. 즐거운 여행 되세요!"
+      }
+    ]
+  },
+  {
+    "id": "w2-s04",
+    "tool": "chatgpt",
+    "day": 2,
+    "topic": "모바일 뱅킹 앱 온보딩 UX에 관한 논문과 아티클을 조사하고, 결과를 인용 한 줄과 시사점 한 줄씩으로 정리해 달라고 한다.",
+    "reveals": [
+      "research-plain"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "안녕, 나 런던 핀테크 회사에서 UX 리서처로 일하는데 모바일 뱅킹 앱 온보딩 UX 관련 논문이랑 아티클 좀 조사해 줄 수 있어?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 도와드릴게요. 다만 저는 지금 실시간 검색을 할 수 없어서, 제가 아는 범위의 연구 흐름과 검색 키워드를 정리해 드리고 구체적인 서지 정보는 직접 확인하실 수 있게 표시해 둘게요. 어떤 쪽에 초점을 둘까요? 본인인증(KYC) 단계 이탈, 첫 화면 가치 제안, 생체인증 설정 등이 있어요."
+      },
+      {
+        "role": "user",
+        "text": "KYC 단계 이탈이랑 신뢰 형성 쪽이 제일 궁금해. 참고로 나는 리서치 결과를 항상 인용 한 줄이랑 시사점 한 줄씩으로 정리하거든, 그 포맷으로 해줘"
+      },
+      {
+        "role": "assistant",
+        "text": "좋아요, 그 포맷으로 맞출게요. 한 가지 주의할 점이 있어요. 제가 원문 문장을 글자 그대로 정확히 재현한다고 보장할 수 없어서, 인용 칸은 '[원문 확인 필요]'로 표시하고 내용은 요약 수준으로 적을게요.\n\n1. 인용: [원문 확인 필요] 신원 확인처럼 노력이 큰 단계는 이유를 먼저 설명할 때 이탈이 줄어드는 경향이 있다는 취지(핀테크 온보딩 관련 UX 아티클들에서 반복되는 주장)\n   시사점: KYC 직전에 '왜 필요한지'를 한 화면으로 설명하는 걸 테스트해 볼 만해요.\n\n2. 인용: [원문 확인 필요] 금융 앱 신뢰는 보안 문구보다 진행 상태와 예측 가능성에서 형성된다는 취지\n   시사점: 진행 바와 예상 소요 시간 표시를 신뢰 장치로 같이 검토하세요."
+      },
+      {
+        "role": "user",
+        "text": "오 괜찮다. 근데 이거 실제 논문 맞아? 출처가 없으면 회사 문서에 못 쓰는데"
+      },
+      {
+        "role": "assistant",
+        "text": "좋은 지적이에요. 위 두 항목은 특정 논문 하나를 가리키는 게 아니라 여러 아티클에서 반복되는 주장을 제가 요약한 거라서, 그대로 인용하시면 안 돼요. 출처를 찾으실 때는 Google Scholar에서 'mobile banking onboarding', 'KYC drop-off', 'trust in mobile banking apps' 같은 키워드로 검색해 보세요. 그리고 Nielsen Norman Group, Baymard Institute 같은 곳의 아티클도 확인해 보시길 권해요. 원문을 찾으셔서 붙여 주시면 인용 한 줄과 시사점 한 줄로 다듬어 드릴게요."
+      },
+      {
+        "role": "user",
+        "text": "ㅇㅋ 그럼 내가 찾은 거 붙여 줄 테니까 그걸로 정리해 줘. 시사점은 너무 일반적이지 않게 해주고"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 붙여 주시면 그대로 정리할게요. 시사점은 '더 좋은 UX를 만들자' 같은 일반론 대신, 어떤 화면이나 단계에 무엇을 바꿔 볼지가 드러나게 쓸게요. 연구 대상 국가와 표본, 방법(설문, 실험, 인터뷰 등)도 같이 알려 주시면 한계점을 시사점에 반영할 수 있어요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s05",
+    "tool": "claude-code",
+    "project": "sora-notes",
+    "day": 3,
+    "topic": "노트 검색 기능에 태그 필터를 추가하고 위젯 테스트를 작성한다.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "sora notes 검색에 태그 필터 붙이려고 하는데, 지금 SearchScreen이 그냥 TextField 하나로 쿼리만 받거든. 태그 칩 같은 걸 위에 올리는 게 나을까?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 검색창 아래에 가로 스크롤되는 FilterChip 줄을 두는 게 가장 무난해요. 태그는 여러 개 선택할 수 있게 `Set<String> selectedTags`를 상태로 들고, 쿼리 텍스트와 AND 조건으로 묶으면 됩니다. 현재 검색 로직이 어디 있는지(Provider/Bloc/그냥 setState) 알려주시면 거기에 맞춰서 코드를 짜드릴게요."
+      },
+      {
+        "role": "user",
+        "text": "Riverpod 쓰고 있어. notesSearchProvider가 query String만 받는 FutureProvider.family야"
+      },
+      {
+        "role": "assistant",
+        "text": "그럼 family 파라미터를 String에서 작은 불변 클래스로 바꾸는 게 깔끔해요.\n\ndart\n@immutable\nclass SearchParams {\n  final String query;\n  final Set<String> tags;\n  const SearchParams({this.query = '', this.tags = const {}});\n\n  @override\n  bool operator ==(Object o) =>\n      o is SearchParams && o.query == query && setEquals(o.tags, tags);\n  @override\n  int get hashCode => Object.hash(query, Object.hashAllUnordered(tags));\n}\n\n\n==와 hashCode를 꼭 오버라이드해야 family가 같은 조건에서 캐시를 제대로 재사용해요."
+      },
+      {
+        "role": "user",
+        "text": "오 ㅇㅋ. 그럼 provider는 이렇게 바꾸면 돼? 태그는 노트 모델에 List<String> tags로 이미 있어"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 이런 식이면 돼요.\n\ndart\nfinal notesSearchProvider =\n    FutureProvider.family<List<Note>, SearchParams>((ref, params) async {\n  final repo = ref.watch(noteRepositoryProvider);\n  final notes = await repo.search(params.query);\n  if (params.tags.isEmpty) return notes;\n  return notes\n      .where((n) => params.tags.every(n.tags.contains))\n      .toList();\n});\n\n\n태그가 많아지면 repo 쿼리 단계에서 필터링하는 게 낫지만, 지금 규모면 메모리에서 거르는 걸로 충분해요. `every`를 쓰면 선택한 태그를 모두 가진 노트만 나오고, 하나라도 맞으면 보이게 하려면 `any`로 바꾸면 돼요."
+      },
+      {
+        "role": "user",
+        "text": "every로 갈래. 이제 위젯 테스트 써야 하는데 칩 눌렀을 때 리스트가 줄어드는 걸 확인하고 싶어. provider override 어떻게 해?"
+      },
+      {
+        "role": "assistant",
+        "text": "noteRepositoryProvider를 fake로 override하면 돼요. 이런 식으로요.\n\ndart\nclass FakeNoteRepository implements NoteRepository {\n  @override\n  Future<List<Note>> search(String q) async => [\n        Note(id: '1', title: '장보기', tags: ['생활']),\n        Note(id: '2', title: 'Flutter 메모', tags: ['개발', '공부']),\n        Note(id: '3', title: '독서 노트', tags: ['공부']),\n      ];\n  // 나머지 메서드는 noSuchMethod나 빈 구현으로\n}\n\ntestWidgets('태그 칩을 누르면 목록이 필터링된다', (tester) async {\n  await tester.pumpWidget(\n    ProviderScope(\n      overrides: [\n        noteRepositoryProvider.overrideWithValue(FakeNoteRepository()),\n      ],\n      child: const MaterialApp(home: SearchScreen()),\n    ),\n  );\n  await tester.pumpAndSettle();\n  expect(find.byType(ListTile), findsNWidgets(3));\n\n  await tester.tap(find.widgetWithText(FilterChip, '공부'));\n  await tester.pumpAndSettle();\n  expect(find.byType(ListTile), findsNWidgets(2));\n\n  await tester.tap(find.widgetWithText(FilterChip, '개발'));\n  await tester.pumpAndSettle();\n  expect(find.byType(ListTile), findsOneWidget);\n  expect(find.text('Flutter 메모'), findsOneWidget);\n});\n\n\n두 번째 탭에서 every 조건이 제대로 동작하는지도 같이 검증돼요."
+      },
+      {
+        "role": "user",
+        "text": "됐다 테스트 통과함 ㅋㅋ 근데 칩 줄이 태그 많으면 화면 넘치는데 이건 어떻게 처리하지?"
+      },
+      {
+        "role": "assistant",
+        "text": "가로 스크롤로 처리하면 돼요. 칩 줄을 `SizedBox(height: 48)`로 감싸고 안에 `ListView.separated(scrollDirection: Axis.horizontal, ...)`를 넣으면 넘치지 않아요. 태그가 정말 많아질 것 같으면 `Wrap`으로 두 줄까지 보여주고 \"더보기\"를 붙이는 방법도 있어요.\n\n테스트에서 스크롤 밖의 칩을 누를 땐 `await tester.ensureVisible(finder)`를 먼저 호출해야 탭이 실패하지 않아요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s06",
+    "tool": "chatgpt",
+    "day": 3,
+    "topic": "다음 주 이해관계자 미팅에서 쓸 리서치 발표 개요를 잡고 슬라이드 순서를 다듬는다.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "다음 주 stakeholder 미팅에서 리서치 발표해야 하는데 개요 좀 같이 잡아줄래? 30분 슬롯이고 질문 시간 포함이야"
+      },
+      {
+        "role": "assistant",
+        "text": "좋아요. 30분이면 발표 20분, Q&A 10분 정도로 잡는 게 안전해요. 기본 흐름은 1) 배경과 리서치 질문, 2) 방법 요약, 3) 핵심 인사이트 3개, 4) 추천 사항, 5) 다음 단계 순서예요. 청중이 주로 어떤 분들인지(프로덕트, 엔지니어링, 경영진)에 따라 비중이 달라지니 알려주시면 더 맞춰볼게요."
+      },
+      {
+        "role": "user",
+        "text": "프로덕트 매니저랑 디자인 리드, 그리고 임원 한두 명 와. 임원은 디테일보다 so what이 궁금한 타입이야"
+      },
+      {
+        "role": "assistant",
+        "text": "그럼 결론을 앞으로 당기는 게 좋아요. 2번 슬라이드에 'Key takeaways' 요약을 먼저 보여주고, 이후에 근거를 풀어가는 구조요. 방법론은 1장으로 압축하고 상세는 appendix로 빼면 임원분들 집중도를 유지할 수 있어요."
+      },
+      {
+        "role": "user",
+        "text": "오 그거 좋다. 그럼 슬라이드 순서 이렇게 하려고 했거든: 타이틀 → 배경 → 방법 → 인사이트 1,2,3 → 추천 → 요약 → Q&A. 요약이 맨 뒤에 있는 건데 앞으로 옮기는 게 나을까?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 요약은 앞으로 옮기고 뒤에도 짧게 한 번 더 반복하는 걸 추천해요. 수정안은 타이틀 → Executive summary → 배경/리서치 질문 → 방법(1장) → 인사이트 1,2,3 → 추천 사항 → 다음 단계 → Q&A → Appendix예요. 마지막에 요약을 한 장으로 다시 보여주면 기억에 남기 좋아요."
+      },
+      {
+        "role": "user",
+        "text": "인사이트 3개 순서는 어떻게 하는 게 좋아? 중요도순? 아니면 스토리 흐름순?"
+      },
+      {
+        "role": "assistant",
+        "text": "이번 청중이면 영향도가 큰 순서로 먼저 가되, 인사이트들이 서로 이어진다면 그 흐름을 살려도 돼요. 보통은 가장 임팩트가 큰 것을 1번에 두고, 각 인사이트마다 '발견 → 근거(인용이나 데이터 1개) → 시사점' 구조로 통일하면 읽기 편해요. 슬라이드마다 제목을 결론형 문장으로 쓰는 것도 도움이 돼요."
+      },
+      {
+        "role": "user",
+        "text": "결론형 제목 좋네. 추천 사항은 우선순위 표로 보여줄까 하는데 어때?"
+      },
+      {
+        "role": "assistant",
+        "text": "좋은 방법이에요. 열은 '추천 사항 / 기대 효과 / 난이도 / 제안 시점' 정도로 단순하게 하고, 상위 3개만 하이라이트하세요. 다 보여주면 논의가 분산되니, 나머지는 appendix에 두고 필요하면 Q&A에서 꺼내는 게 좋아요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s07",
+    "tool": "claude-ai",
+    "day": 4,
+    "topic": "새 노트북 두 가지를 고민하며 비교를 요청하고, 비용과 위험 열이 있는 표로 정리해 달라고 한다.",
+    "reveals": [
+      "options-table"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "새 노트북 사려고 하는데 고민 중이야ㅠ MacBook Air 15인치랑 MacBook Pro 14인치 사이에서 계속 왔다갔다 해. 나 런던에서 UX 리서처로 일하고 있고, 퇴근 후엔 Flutter로 Sora Notes 사이드 프로젝트 하거든"
+      },
+      {
+        "role": "assistant",
+        "text": "둘 다 좋은 선택지라 고민될 만해요. Flutter로 iOS 빌드까지 하신다면 Mac이 맞는 방향이고, 갈리는 지점은 주로 지속 성능, 화면, 포트, 가격이에요. 리서치 업무에서 영상이나 인터뷰 녹음 작업을 얼마나 무겁게 하는지도 영향이 커요."
+      },
+      {
+        "role": "user",
+        "text": "회사 일은 Figma 쓰고 인터뷰 녹음 정리하는 정도라 엄청 무겁진 않아. Sora Notes는 iOS 시뮬레이터랑 Android 에뮬레이터 같이 돌릴 거고. 아 근데 비교를 표로 해줄 수 있어? 비용이랑 위험 열 있는 걸로!"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 가격은 대략적인 UK 기준이라 구매 전에 Apple 사이트에서 꼭 확인해 주세요.\n\n| 옵션 | 비용 | 위험 |\n|---|---|---|\n| MacBook Air 15\" | 약 £1,400~1,800 (RAM·SSD 업그레이드에 따라) | 장시간 고부하 작업 시 발열로 성능이 떨어질 수 있음, 포트가 적음 |\n| MacBook Pro 14\" | 약 £1,700~2,200 | 가격 부담, 지금 용도엔 과투자일 수 있음, 상대적으로 무거움 |\n\n말씀하신 용도면 Air 쪽이 가성비가 좋아 보여요."
+      },
+      {
+        "role": "user",
+        "text": "Air로 샀다가 나중에 후회할 가능성은 얼마나 돼? 에뮬레이터 두 개 켜놓고 빌드하면 느려지려나"
+      },
+      {
+        "role": "assistant",
+        "text": "RAM만 넉넉하면 후회할 가능성은 낮은 편이에요. 에뮬레이터 두 개에 Figma, 브라우저까지 켜면 CPU보다 메모리가 먼저 병목이 되기 쉬워서요. Air는 팬이 없어서 오래 풀로드를 걸면 클럭이 내려가긴 하지만, 앱 빌드처럼 짧게 몰리는 작업은 대체로 괜찮아요."
+      },
+      {
+        "role": "user",
+        "text": "오 그럼 RAM이 제일 중요하다는 거네. 16GB로 충분해 아니면 올려야 해?"
+      },
+      {
+        "role": "assistant",
+        "text": "Flutter에 에뮬레이터 두 개를 같이 돌리고 업무 앱도 켜 두신다면 24GB로 올리는 걸 추천해요. 16GB도 돌아가긴 하지만 스왑이 잦아질 수 있고, RAM은 나중에 못 늘리니까요. Pro 가격을 내는 것보다 Air에 RAM을 올리는 쪽이 비용 대비 효과가 커요."
+      },
+      {
+        "role": "user",
+        "text": "좋아 그럼 Air 15 + 24GB로 가야겠다. 고민 끝났다 고마워!"
+      },
+      {
+        "role": "assistant",
+        "text": "좋은 결정이에요! SSD는 512GB 이상으로 잡으시면 시뮬레이터 이미지나 Xcode 캐시로 금방 차는 걸 피할 수 있어요. 새 노트북에서 Sora Notes 작업 잘 이어가세요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s08",
+    "tool": "claude-code",
+    "project": "sora-notes",
+    "day": 4,
+    "topic": "다크 모드에서 노트 카드의 색 대비가 낮은 문제를 수정한다.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "다크 모드에서 노트 카드 색 대비가 너무 낮아서 글씨가 잘 안 보여. 카드 배경이랑 텍스트가 거의 비슷한 회색이야 ㅠ 어디부터 보면 될까?"
+      },
+      {
+        "role": "assistant",
+        "text": "먼저 카드 위젯이 색을 어떻게 가져오는지 확인해볼게요. 보통 `NoteCard`에서 하드코딩된 `Colors.grey[800]` 같은 값을 쓰거나, `ThemeData`의 `cardColor`와 `textTheme`가 같이 안 맞는 경우가 많아요. `lib/` 아래에서 `NoteCard`랑 다크 테마 정의 파일을 찾아볼게요."
+      },
+      {
+        "role": "user",
+        "text": "응 찾아봐. 테마는 lib/theme/app_theme.dart에 있을 거야"
+      },
+      {
+        "role": "assistant",
+        "text": "찾았어요. 원인은 두 가지예요.\n\n1. `app_theme.dart`의 다크 테마에서 `cardColor`가 `Color(0xFF2A2A2A)`인데\n2. `NoteCard`가 본문 텍스트에 `Colors.grey[600]`을 직접 지정하고 있어서 대비가 약 2.3:1밖에 안 나와요.\n\nWCAG AA 기준은 본문 4.5:1이라 많이 부족해요."
+      },
+      {
+        "role": "user",
+        "text": "헐 2.3이면 진짜 낮네. 그냥 텍스트를 흰색으로 바꾸면 되나?"
+      },
+      {
+        "role": "assistant",
+        "text": "순백은 다크 배경에서 눈이 부시고 위계도 사라져서, 테마 색을 쓰는 쪽을 추천해요. 하드코딩을 지우고 `colorScheme.onSurface`와 `onSurfaceVariant`를 쓰도록 바꿀게요.\n\ndart\nfinal cs = Theme.of(context).colorScheme;\nText(note.title, style: TextStyle(color: cs.onSurface));\nText(note.body, style: TextStyle(color: cs.onSurfaceVariant));\n\n\n다크 테마에는 `onSurface: Color(0xFFE6E6E6)`, `onSurfaceVariant: Color(0xFFB8B8B8)`을 넣을게요. 카드 배경 대비 각각 약 10:1, 6.5:1 정도 나와요."
+      },
+      {
+        "role": "user",
+        "text": "좋다. 근데 카드 테두리도 거의 안 보이는데 그것도 같이 건드릴 수 있어?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 같이 고칠게요. 다크 모드에서는 `outlineVariant`를 `Color(0xFF454545)`로 올리고, 카드에 `side: BorderSide(color: cs.outlineVariant)`를 넣을게요. 배경과 확실히 구분되면서도 튀지는 않는 정도예요."
+      },
+      {
+        "role": "user",
+        "text": "ㅇㅋ 적용해줘. 나중에 또 깨지면 안 되니까 테스트도 하나 있으면 좋겠다"
+      },
+      {
+        "role": "assistant",
+        "text": "적용했고, `test/theme/contrast_test.dart`도 추가했어요. 다크 테마에서 `onSurface`와 `onSurfaceVariant`가 카드 배경 대비 4.5:1 이상인지 계산해서 검증해요. 누가 색을 바꿔서 기준 아래로 내려가면 테스트가 실패해요. `flutter test` 돌려보니 전부 통과했어요."
+      },
+      {
+        "role": "user",
+        "text": "완벽, 고마워! 이제 시뮬레이터로 눈으로 한번 확인해볼게"
+      }
+    ]
+  },
+  {
+    "id": "w2-s09",
+    "tool": "chatgpt",
+    "day": 5,
+    "topic": "설문 응답의 자유 서술 문항을 요약하고 영어 이메일 초안의 어색한 표현을 다듬는다.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "자유서술 문항 응답 몇 개 붙여넣을게. 카드 연동 온보딩에 대한 거야. 테마별로 요약해줘\n\n1. \"card linking took forever, kept asking me to re-enter the CVV\"\n2. \"본인인증 단계가 너무 많음\"\n3. \"I liked the progress bar but didn't know why you need my address\"\n4. \"Verification email never arrived, had to retry 3 times\"\n5. \"주소 왜 필요한지 설명이 없어서 불안했어요\"\n6. \"Setup was smooth overall, the budget categories were helpful\""
+      },
+      {
+        "role": "assistant",
+        "text": "크게 네 가지 테마로 볼 수 있어요.\n\n1. 마찰/반복 입력: CVV 재입력, 인증 단계가 많다는 불만 (1, 2번)\n2. 인증 이메일 문제: 메일이 도착하지 않아 여러 번 재시도 (4번)\n3. 정보 요청 이유 설명 부족: 주소를 왜 받는지 몰라서 불안 (3, 5번)\n4. 긍정 피드백: 진행 바와 예산 카테고리가 유용 (3, 6번)\n\n3번과 5번은 같은 이슈를 다른 언어로 말한 거라 하나로 묶었어요."
+      },
+      {
+        "role": "user",
+        "text": "좋다. 그럼 이거 product team한테 보낼 영어 이메일 초안인데 어색한 데 좀 고쳐줘\n\n\"Hi team, I want to share the result of the open-ended answers from the onboarding survey. Mainly users are feeling anxious about why we ask the address, and also the verification email is not arriving sometimes. I think we should to consider adding a short explanation text. Please let me know your thought.\""
+      },
+      {
+        "role": "assistant",
+        "text": "이렇게 다듬어 봤어요.\n\n\"Hi team,\n\nI'd like to share the findings from the open-ended responses in the onboarding survey. The main themes were that users feel uneasy about why we ask for their address, and that the verification email sometimes doesn't arrive. I think we should consider adding a short explanation next to the address field.\n\nLet me know your thoughts.\"\n\n고친 부분은 \"should to consider\"에서 to를 뺀 것, \"result of\"를 \"findings from\"으로 바꾼 것, \"thought\"를 복수형으로 바꾼 것이에요."
+      },
+      {
+        "role": "user",
+        "text": "오 훨씬 자연스럽네. 근데 \"uneasy\"가 좀 약한 느낌인가? 응답에서는 불안하다고 했거든"
+      },
+      {
+        "role": "assistant",
+        "text": "\"uneasy\"도 괜찮지만 더 분명하게 쓰고 싶다면 \"uncomfortable\"이나 \"concerned\"가 좋아요. \"anxious\"는 감정이 너무 강해서 업무 메일에서는 과해 보일 수 있어요. 예를 들어 \"users feel concerned about why we ask for their address\"처럼 쓰면 적당해요."
+      },
+      {
+        "role": "user",
+        "text": "concerned로 갈게. 마지막에 \"Let me know your thoughts\"는 너무 퉁명스러워? 좀 부드럽게 하고 싶어"
+      },
+      {
+        "role": "assistant",
+        "text": "퉁명스럽다기보다 짧고 평범한 편이에요. 부드럽게 하려면 \"Happy to hear your thoughts, and I can walk you through the full responses if that would be useful.\"처럼 쓰면 좋아요. 제안하는 느낌이 들어서 팀이 답하기도 편해져요."
+      },
+      {
+        "role": "user",
+        "text": "완벽. 그걸로 보낼게 고마워!"
+      },
+      {
+        "role": "assistant",
+        "text": "좋아요! 보내기 전에 첨부할 전체 응답 파일이 있으면 메일에 같이 언급해 두세요. 필요하면 테마별 대표 인용문도 골라 드릴게요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s10",
+    "tool": "claude-code",
+    "project": "sora-notes",
+    "day": 6,
+    "topic": "노트 내보내기(export) 기능의 에러 처리를 리팩터링하고, 한국어로 설명해 달라고 하며 커밋 메시지는 영어로 쓴다.",
+    "reveals": [
+      "ko-explain-en-code"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "sora-notes에서 노트 내보내기 쪽 에러 처리 좀 리팩터링하려고. 지금 export_service.dart에서 그냥 catch (e) 로 다 잡고 print만 찍고 있거든. 어떻게 바꾸는 게 좋을까?"
+      },
+      {
+        "role": "assistant",
+        "text": "지금 구조에서는 어떤 이유로 실패했는지 호출하는 쪽에서 알 수 없어서 UI가 항상 같은 메시지만 보여줄 수밖에 없어요. 내보내기 전용 예외 타입(sealed class)을 만들고, 서비스에서는 원인별로 그 타입을 던지게 하는 방식을 추천해요. 예를 들면 파일 쓰기 실패, 권한 거부, 직렬화 실패 정도로 나눌 수 있어요. 원하시면 바로 코드로 보여드릴게요."
+      },
+      {
+        "role": "user",
+        "text": "ㅇㅇ 보여줘. 아 그리고 설명은 한국어로 해주고, 코드 주석이랑 커밋 메시지는 영어로 써줘."
+      },
+      {
+        "role": "assistant",
+        "text": "알겠어요. 설명은 한국어로, 주석과 커밋 메시지는 영어로 쓸게요.\n\ndart\n/// Base type for all failures raised during note export.\nsealed class ExportException implements Exception {\n  const ExportException(this.message, {this.cause});\n  final String message;\n  final Object? cause;\n}\n\nclass ExportPermissionException extends ExportException {\n  const ExportPermissionException(super.message, {super.cause});\n}\n\nclass ExportWriteException extends ExportException {\n  const ExportWriteException(super.message, {super.cause});\n}\n\nclass ExportSerializationException extends ExportException {\n  const ExportSerializationException(super.message, {super.cause});\n}\n\n\n이렇게 하면 서비스에서 `on FileSystemException` 같은 저수준 예외를 잡아서 위 타입으로 감싸 던질 수 있어요. 원래 예외는 `cause`에 보존해서 로깅할 때 쓰면 돼요."
+      },
+      {
+        "role": "user",
+        "text": "오 괜찮네. 그럼 export 함수 자체는 어떻게 바뀌어? 파일 쓰기 실패랑 권한 에러는 UI에서 다르게 보여주고 싶어"
+      },
+      {
+        "role": "assistant",
+        "text": "서비스 쪽은 이렇게 바꾸면 돼요.\n\ndart\nFuture<File> exportNote(Note note) async {\n  final String content;\n  try {\n    content = jsonEncode(note.toJson());\n  } catch (e) {\n    // Serialization problems are bugs in our model, not user errors.\n    throw ExportSerializationException('Failed to encode note', cause: e);\n  }\n\n  try {\n    final file = File(await _resolvePath(note));\n    return await file.writeAsString(content);\n  } on FileSystemException catch (e) {\n    // Permission errors on Android/iOS surface as errno 13 or 1.\n    if (e.osError?.errorCode == 13 || e.osError?.errorCode == 1) {\n      throw ExportPermissionException('Storage permission denied', cause: e);\n    }\n    throw ExportWriteException('Could not write export file', cause: e);\n  }\n}\n\n\nUI에서는 `switch (error)`로 타입별 분기하면 되고, sealed class라서 케이스를 빠뜨리면 컴파일러가 알려줘요. 권한 에러는 설정 화면으로 가는 버튼이 있는 스낵바, 쓰기 실패는 재시도 버튼으로 나눠 보여주는 식이 자연스러워요."
+      },
+      {
+        "role": "user",
+        "text": "굿굿. 그 switch 부분도 짧게 써줄 수 있어?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 이런 식이에요.\n\ndart\nString messageFor(ExportException e) => switch (e) {\n  ExportPermissionException() => '저장소 권한이 필요해요. 설정에서 허용해 주세요.',\n  ExportWriteException() => '파일을 저장하지 못했어요. 다시 시도해 주세요.',\n  ExportSerializationException() => '노트를 변환하는 중 문제가 생겼어요.',\n};\n\n\n사용자에게 보이는 문구라 한국어로 뒀고, 나중에 다국어 지원을 하게 되면 이 부분만 l10n 키로 바꾸면 돼요."
+      },
+      {
+        "role": "user",
+        "text": "좋다. 이제 커밋 메시지 써줘"
+      },
+      {
+        "role": "assistant",
+        "text": "이렇게 쓰면 될 것 같아요.\n\n\nrefactor(export): introduce typed export exceptions\n\nReplace the catch-all handler in ExportService with a sealed\nExportException hierarchy (permission, write, serialization).\nLow-level errors are wrapped with the original cause preserved,\nso the UI can show a specific message and action per failure type.\n\n\n변경 범위가 서비스와 UI 양쪽이라 원하시면 두 커밋으로 나눌 수도 있어요. 예외 타입과 서비스 변경을 먼저 커밋하고, UI 분기는 따로 커밋하는 방식이에요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s11",
+    "tool": "claude-ai",
+    "day": 6,
+    "topic": "집에서 할 수 있는 간단한 저녁 요리 레시피와 일주일 장보기 목록을 짠다.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "평일 저녁에 집에서 해먹을 수 있는 간단한 요리 좀 추천해줘. 30분 안에 끝나는 걸로!"
+      },
+      {
+        "role": "assistant",
+        "text": "30분 안에 되는 걸로 다섯 가지 골라봤어요. 1) 간장 계란볶음밥 2) 닭가슴살 파프리카 볶음 3) 토마토 계란볶음 + 밥 4) 참치 김치찌개 5) 버섯 크림 파스타예요. 양은 일단 2인분 기준으로 잡을게요. 먹고 싶은 스타일(매콤한 거, 담백한 거 등)이 있으면 말해줘요."
+      },
+      {
+        "role": "user",
+        "text": "오 좋다. 근데 요즘 좀 가볍게 먹고 싶어서 크림 파스타는 빼고, 대신 두부 들어간 걸로 바꿔줘"
+      },
+      {
+        "role": "assistant",
+        "text": "그럼 5번을 두부 간장조림 + 현미밥으로 바꿀게요. 두부를 노릇하게 부친 다음 간장 2큰술, 물 3큰술, 다진 마늘, 약간의 설탕을 넣고 졸이면 10분 만에 끝나요. 대파랑 깨 올리면 훨씬 맛있어요."
+      },
+      {
+        "role": "user",
+        "text": "좋아. 그럼 이 다섯 개 기준으로 일주일 장보기 목록 짜줄 수 있어?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 겹치는 재료를 묶어서 정리했어요.\n\n**채소**: 대파 2단, 양파 3개, 파프리카 2개, 방울토마토 1팩, 김치 1통, 마늘 1봉\n**단백질**: 계란 10개, 닭가슴살 400g, 참치캔 2개, 두부 2모\n**곡물**: 쌀(또는 현미) 1kg\n**양념**: 간장, 설탕, 참기름, 깨, 식용유 (집에 없는 것만)\n\n빠진 거 있으면 알려줘요."
+      },
+      {
+        "role": "user",
+        "text": "버섯이 좀 있었으면 좋겠는데, 어디에 넣으면 좋을까?"
+      },
+      {
+        "role": "assistant",
+        "text": "닭가슴살 파프리카 볶음에 표고나 양송이를 넣으면 잘 어울려요. 두부조림에 같이 졸여도 맛이 깊어지고요. 장보기 목록에 양송이버섯 1팩(약 200g)을 추가하면 두 요리에 나눠 쓰기 좋아요."
+      },
+      {
+        "role": "user",
+        "text": "완벽해. 마지막으로 요일별로 배치해주면 좋을 듯!"
+      },
+      {
+        "role": "assistant",
+        "text": "재료 신선도 기준으로 이렇게 배치해봤어요.\n\n- **월**: 토마토 계란볶음 + 밥 (토마토 먼저 소진)\n- **화**: 닭가슴살 파프리카 버섯 볶음\n- **수**: 간장 계란볶음밥\n- **목**: 참치 김치찌개\n- **금**: 두부 간장조림 + 현미밥\n\n두부와 버섯은 구매 후 4~5일 안에 쓰는 게 좋아서 화요일과 금요일에 넣었어요. 주말에는 남은 재료로 자유롭게 드시면 돼요."
+      }
+    ]
+  },
+  {
+    "id": "w2-s12",
+    "tool": "chatgpt",
+    "day": 7,
+    "topic": "경쟁사 핀테크 앱 세 곳의 결제 플로우를 조사하고, 인용 한 줄과 시사점 한 줄 형식으로 정리한다.",
+    "reveals": [
+      "research-plain"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "경쟁사 핀테크 앱 세 곳 결제 플로우 조사하려고 하는데 Monzo, Wise, Revolut으로 할까 해. 정리하는 거 좀 도와줘"
+      },
+      {
+        "role": "assistant",
+        "text": "좋아요. 다만 저는 앱을 직접 써보거나 실시간 리뷰를 볼 수 없어서, 직접 확인하신 화면 메모나 리뷰 문구를 붙여주시면 그걸로 정리할게요. 비교 축은 결제 시작 → 인증 → 확인 → 완료 피드백, 이렇게 4단계로 잡으면 어떨까요?"
+      },
+      {
+        "role": "user",
+        "text": "응 그 4단계 좋다. 나는 리서치 결과를 항상 인용 한 줄이랑 시사점 한 줄씩으로 정리하거든. 그 형식으로 가자"
+      },
+      {
+        "role": "assistant",
+        "text": "알겠어요. 앱별, 단계별로 '인용 한 줄 / 시사점 한 줄' 두 줄씩 쓰면 되겠네요. 인용은 실제 리뷰나 인터뷰 발언을 붙여주시면 그대로 쓰고, 시사점은 제가 초안을 만들게요."
+      },
+      {
+        "role": "user",
+        "text": "일단 Monzo부터. 리뷰에 \"Face ID 한 번 찍으면 끝이라 카드 꺼낼 필요가 없다\" 이런 말 있었어. 인증 단계 얘기야"
+      },
+      {
+        "role": "assistant",
+        "text": "**Monzo · 인증**\n인용: \"Face ID 한 번 찍으면 끝이라 카드 꺼낼 필요가 없다\"\n시사점: 생체인증 한 번으로 인증을 끝내는 구조가 결제 마찰 체감을 크게 줄이므로, 우리도 추가 확인 단계를 최소화할 필요가 있다."
+      },
+      {
+        "role": "user",
+        "text": "오 괜찮은데 시사점이 좀 길다. 더 짧게 가능?"
+      },
+      {
+        "role": "assistant",
+        "text": "**Monzo · 인증**\n인용: \"Face ID 한 번 찍으면 끝이라 카드 꺼낼 필요가 없다\"\n시사점: 생체인증 한 번으로 끝내는 흐름이 마찰 체감을 줄인다."
+      },
+      {
+        "role": "user",
+        "text": "좋아. 다음 Wise, 확인 단계. \"수수료랑 환율이 결제 전에 한 화면에 다 나와서 안심됐다\""
+      },
+      {
+        "role": "assistant",
+        "text": "**Wise · 확인**\n인용: \"수수료랑 환율이 결제 전에 한 화면에 다 나와서 안심됐다\"\n시사점: 결제 직전에 총비용을 한 화면에 보여주면 신뢰가 올라간다.\n\nRevolut 인용도 붙여주시면 같은 형식으로 이어서 정리할게요."
+      }
+    ]
+  }
+]

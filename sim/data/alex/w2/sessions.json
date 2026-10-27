@@ -1,0 +1,640 @@
+[
+  {
+    "id": "w2-s01",
+    "tool": "claude-code",
+    "project": "halcyon-routing",
+    "day": 1,
+    "topic": "Add a new route-cost calculation function to the Go routing service, with tests for edge cases like zero-distance legs.",
+    "reveals": [
+      "table-tests",
+      "halcyon-role"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, need to add a route-cost calc function to the routing service. something like CalculateRouteCost(legs []Leg, rates RateTable) (float64, error). cost = distance * per-km rate + fixed per-leg fee. I'm a senior backend eng on the routing team so you can skip the basics, just want it clean"
+      },
+      {
+        "role": "assistant",
+        "text": "Sounds good. Here's a first pass:\n\ngo\nfunc CalculateRouteCost(legs []Leg, rates RateTable) (float64, error) {\n\tif len(legs) == 0 {\n\t\treturn 0, ErrNoLegs\n\t}\n\tvar total float64\n\tfor i, l := range legs {\n\t\tif l.DistanceKm < 0 {\n\t\t\treturn 0, fmt.Errorf(\"leg %d: negative distance\", i)\n\t\t}\n\t\trate, ok := rates.PerKm[l.Mode]\n\t\tif !ok {\n\t\t\treturn 0, fmt.Errorf(\"leg %d: no rate for mode %q\", i, l.Mode)\n\t\t}\n\t\ttotal += l.DistanceKm*rate + rates.FixedFee\n\t}\n\treturn total, nil\n}\n\n\nOne question: should a zero-distance leg still incur the fixed fee, or be free?"
+      },
+      {
+        "role": "user",
+        "text": "good question. zero-distance legs should still pay the fixed fee, they're usually handoffs at a depot and we still bill for those. but a leg with NaN distance should error"
+      },
+      {
+        "role": "assistant",
+        "text": "Got it. I'll add a NaN/Inf check and keep the fixed fee on zero-distance legs:\n\ngo\nif math.IsNaN(l.DistanceKm) || math.IsInf(l.DistanceKm, 0) {\n\treturn 0, fmt.Errorf(\"leg %d: invalid distance\", i)\n}\n\n\nThis goes before the negative check. The zero case needs no special handling, since 0*rate + fee already gives the right result."
+      },
+      {
+        "role": "user",
+        "text": "nice. now tests. I always write table-driven tests in Go so please do it that way, and cover the edge cases"
+      },
+      {
+        "role": "assistant",
+        "text": "go\nfunc TestCalculateRouteCost(t *testing.T) {\n\trates := RateTable{\n\t\tPerKm:    map[string]float64{\"road\": 2.0, \"rail\": 1.0},\n\t\tFixedFee: 5.0,\n\t}\n\ttests := []struct {\n\t\tname    string\n\t\tlegs    []Leg\n\t\twant    float64\n\t\twantErr bool\n\t}{\n\t\t{\"single leg\", []Leg{{DistanceKm: 10, Mode: \"road\"}}, 25, false},\n\t\t{\"zero distance still pays fee\", []Leg{{DistanceKm: 0, Mode: \"road\"}}, 5, false},\n\t\t{\"mixed zero and nonzero\", []Leg{{DistanceKm: 0, Mode: \"rail\"}, {DistanceKm: 4, Mode: \"rail\"}}, 14, false},\n\t\t{\"no legs\", nil, 0, true},\n\t\t{\"negative distance\", []Leg{{DistanceKm: -1, Mode: \"road\"}}, 0, true},\n\t\t{\"NaN distance\", []Leg{{DistanceKm: math.NaN(), Mode: \"road\"}}, 0, true},\n\t\t{\"Inf distance\", []Leg{{DistanceKm: math.Inf(1), Mode: \"road\"}}, 0, true},\n\t\t{\"unknown mode\", []Leg{{DistanceKm: 3, Mode: \"air\"}}, 0, true},\n\t}\n\tfor _, tt := range tests {\n\t\tt.Run(tt.name, func(t *testing.T) {\n\t\t\tgot, err := CalculateRouteCost(tt.legs, rates)\n\t\t\tif (err != nil) != tt.wantErr {\n\t\t\t\tt.Fatalf(\"err = %v, wantErr %v\", err, tt.wantErr)\n\t\t\t}\n\t\t\tif !tt.wantErr && math.Abs(got-tt.want) > 1e-9 {\n\t\t\t\tt.Errorf(\"got %v, want %v\", got, tt.want)\n\t\t\t}\n\t\t})\n\t}\n}\n\n\nI used a tolerance compare for the float result. Want a case for a very large leg count too?"
+      },
+      {
+        "role": "user",
+        "text": "nah that's fine. one thing though, what if rates.FixedFee is negative? should that be validated"
+      },
+      {
+        "role": "assistant",
+        "text": "Yes, I'd validate it once up front rather than per leg, since it's a property of the RateTable and not the legs:\n\ngo\nif rates.FixedFee < 0 || math.IsNaN(rates.FixedFee) {\n\treturn 0, ErrInvalidRates\n}\n\n\nAnd add a matching row to the table, e.g. `{\"negative fixed fee\", ...}`. Since `rates` is currently shared across all cases, you'd want to move it into the struct as a per-case field for that row."
+      },
+      {
+        "role": "user",
+        "text": "makes sense, go ahead and restructure the table so rates is a per-case field, with a defaultRates helper for the normal ones"
+      },
+      {
+        "role": "assistant",
+        "text": "go\nfunc defaultRates() RateTable {\n\treturn RateTable{\n\t\tPerKm:    map[string]float64{\"road\": 2.0, \"rail\": 1.0},\n\t\tFixedFee: 5.0,\n\t}\n}\n\nfunc TestCalculateRouteCost(t *testing.T) {\n\tbadFee := defaultRates()\n\tbadFee.FixedFee = -5\n\tnanFee := defaultRates()\n\tnanFee.FixedFee = math.NaN()\n\n\ttests := []struct {\n\t\tname    string\n\t\tlegs    []Leg\n\t\trates   RateTable\n\t\twant    float64\n\t\twantErr bool\n\t}{\n\t\t{\"single leg\", []Leg{{DistanceKm: 10, Mode: \"road\"}}, defaultRates(), 25, false},\n\t\t{\"zero distance still pays fee\", []Leg{{DistanceKm: 0, Mode: \"road\"}}, defaultRates(), 5, false},\n\t\t{\"mixed zero and nonzero\", []Leg{{DistanceKm: 0, Mode: \"rail\"}, {DistanceKm: 4, Mode: \"rail\"}}, defaultRates(), 14, false},\n\t\t{\"no legs\", nil, defaultRates(), 0, true},\n\t\t{\"negative distance\", []Leg{{DistanceKm: -1, Mode: \"road\"}}, defaultRates(), 0, true},\n\t\t{\"NaN distance\", []Leg{{DistanceKm: math.NaN(), Mode: \"road\"}}, defaultRates(), 0, true},\n\t\t{\"Inf distance\", []Leg{{DistanceKm: math.Inf(1), Mode: \"road\"}}, defaultRates(), 0, true},\n\t\t{\"unknown mode\", []Leg{{DistanceKm: 3, Mode: \"air\"}}, defaultRates(), 0, true},\n\t\t{\"negative fixed fee\", []Leg{{DistanceKm: 3, Mode: \"road\"}}, badFee, 0, true},\n\t\t{\"NaN fixed fee\", []Leg{{DistanceKm: 3, Mode: \"road\"}}, nanFee, 0, true},\n\t}\n\tfor _, tt := range tests {\n\t\tt.Run(tt.name, func(t *testing.T) {\n\t\t\tgot, err := CalculateRouteCost(tt.legs, tt.rates)\n\t\t\tif (err != nil) != tt.wantErr {\n\t\t\t\tt.Fatalf(\"err = %v, wantErr %v\", err, tt.wantErr)\n\t\t\t}\n\t\t\tif !tt.wantErr && math.Abs(got-tt.want) > 1e-9 {\n\t\t\t\tt.Errorf(\"got %v, want %v\", got, tt.want)\n\t\t\t}\n\t\t})\n\t}\n}\n\n\nThe two bad-fee rates are built outside the table so the rows stay readable. Make sure `ErrInvalidRates` is defined next to `ErrNoLegs` in the package."
+      }
+    ]
+  },
+  {
+    "id": "w2-s02",
+    "tool": "chatgpt",
+    "day": 1,
+    "topic": "Ask for a quick comparison of fixed-rate mortgage terms and what questions to ask a lender, while mentioning the refinance in passing.",
+    "reveals": [
+      "refinance"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, can you give me a quick comparison of fixed-rate mortgage terms? like 15 vs 20 vs 30 year. I'm refinancing so trying to get my head around it"
+      },
+      {
+        "role": "assistant",
+        "text": "Sure. A 15-year fixed usually has the lowest rate and the least total interest, but the highest monthly payment. A 30-year has the lowest payment and the most flexibility, but you pay much more interest over time and the rate is typically a bit higher. A 20-year sits in the middle on all three. The right pick mostly depends on how comfortable the monthly payment is for you."
+      },
+      {
+        "role": "user",
+        "text": "makes sense. is it dumb to take the 30 and just pay extra when I can?"
+      },
+      {
+        "role": "assistant",
+        "text": "Not dumb at all, it's a common strategy. You get the lower required payment as a safety net, and extra principal payments shorten the loan and cut interest. The tradeoff is that the 30-year rate is usually a little higher than the 15's, so you'll pay somewhat more than if you'd locked the shorter term. Just check that the loan has no prepayment penalty."
+      },
+      {
+        "role": "user",
+        "text": "ok what should I actually ask a lender then"
+      },
+      {
+        "role": "assistant",
+        "text": "Here are the key ones:\n- What's the interest rate and the APR? (APR includes fees, so it's better for comparing.)\n- What are the total closing costs, and can I see a Loan Estimate?\n- Are there any points, and how long to break even on them?\n- Is there a prepayment penalty?\n- How long is the rate lock, and what does it cost to extend?\n- Will the loan be sold or serviced by someone else?"
+      },
+      {
+        "role": "user",
+        "text": "break even on points, how do I figure that out"
+      },
+      {
+        "role": "assistant",
+        "text": "Divide the upfront cost of the points by the monthly savings they give you. For example, if points cost $3,000 and save $50 a month, you break even in 60 months. If you expect to keep the loan longer than that, the points can be worth it. If you might sell or refinance sooner, they usually aren't."
+      },
+      {
+        "role": "user",
+        "text": "nice, that's helpful. I'll get a few Loan Estimates and compare them side by side"
+      },
+      {
+        "role": "assistant",
+        "text": "Good plan. Try to request them all around the same day so the rates are comparable, and compare the same loan term and the same points across lenders. Look at the APR and the closing cost section line by line, since that's where lenders often differ. Good luck with the refinance!"
+      }
+    ]
+  },
+  {
+    "id": "w2-s03",
+    "tool": "codex",
+    "project": "tidepool",
+    "day": 2,
+    "topic": "Implement a photo metadata indexing module in Rust that stores records in SQLite using hand-written queries.",
+    "reveals": [
+      "raw-sql",
+      "tidepool"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, working on Tidepool, it's a self-hosted photo backup tool I'm writing in Rust. need a metadata indexing module that stores records in SQLite. I don't use ORMs, I like writing the SQL by hand, so I'm thinking plain rusqlite"
+      },
+      {
+        "role": "assistant",
+        "text": "rusqlite fits well for hand-written SQL. A good starting point is a `PhotoMeta` struct plus a schema constant that runs on startup. What fields do you want to index?"
+      },
+      {
+        "role": "user",
+        "text": "path, sha256 hash, taken_at, camera make/model, width, height, and optional gps lat/lon. I want to dedupe by hash"
+      },
+      {
+        "role": "assistant",
+        "text": "Make `sha256` UNIQUE and upsert on it, so re-scanning a moved file just updates the path:\n\nrust\nconst SCHEMA: &str = \"\nCREATE TABLE IF NOT EXISTS photos (\n  id INTEGER PRIMARY KEY,\n  sha256 TEXT NOT NULL UNIQUE,\n  path TEXT NOT NULL,\n  taken_at INTEGER,\n  make TEXT, model TEXT,\n  width INTEGER, height INTEGER,\n  lat REAL, lon REAL\n);\nCREATE INDEX IF NOT EXISTS idx_photos_taken_at ON photos(taken_at);\";\n\npub fn upsert(conn: &Connection, p: &PhotoMeta) -> rusqlite::Result<usize> {\n    conn.prepare_cached(\n        \"INSERT INTO photos (sha256, path, taken_at, make, model, width, height, lat, lon)\n         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)\n         ON CONFLICT(sha256) DO UPDATE SET path = excluded.path\"\n    )?.execute(params![p.sha256, p.path, p.taken_at, p.make, p.model, p.width, p.height, p.lat, p.lon])\n}\n"
+      },
+      {
+        "role": "user",
+        "text": "nice. how would I query by date range? I already added the taken_at index like you did"
+      },
+      {
+        "role": "assistant",
+        "text": "Use a half-open range so the index is used and boundaries don't double count:\n\nrust\npub fn in_range(conn: &Connection, from: i64, to: i64) -> rusqlite::Result<Vec<PhotoMeta>> {\n    let mut stmt = conn.prepare_cached(\n        \"SELECT sha256, path, taken_at, make, model, width, height, lat, lon\n         FROM photos WHERE taken_at >= ?1 AND taken_at < ?2 ORDER BY taken_at\"\n    )?;\n    let rows = stmt.query_map(params![from, to], |r| Ok(PhotoMeta {\n        sha256: r.get(0)?, path: r.get(1)?, taken_at: r.get(2)?,\n        make: r.get(3)?, model: r.get(4)?, width: r.get(5)?,\n        height: r.get(6)?, lat: r.get(7)?, lon: r.get(8)?,\n    }))?;\n    rows.collect()\n}\n"
+      },
+      {
+        "role": "user",
+        "text": "works. but bulk importing a big folder is slow, any tips?"
+      },
+      {
+        "role": "assistant",
+        "text": "Almost certainly it's one implicit transaction per insert. Wrap the whole batch in a single transaction and turn on WAL:\n\nrust\nconn.pragma_update(None, \"journal_mode\", \"WAL\")?;\nconn.pragma_update(None, \"synchronous\", \"NORMAL\")?;\n\nlet tx = conn.transaction()?;\nfor p in batch { upsert(&tx, p)?; }\ntx.commit()?;\n\n\nBecause `upsert` uses `prepare_cached`, the statement is reused across the loop. That usually gives a big speedup."
+      },
+      {
+        "role": "user",
+        "text": "perfect. last thing, how should I test this? don't want to touch a real db file"
+      },
+      {
+        "role": "assistant",
+        "text": "Use an in-memory database and run the schema at the start of each test:\n\nrust\n#[test]\nfn upsert_dedupes_by_hash() {\n    let conn = Connection::open_in_memory().unwrap();\n    conn.execute_batch(SCHEMA).unwrap();\n    let mut p = sample();\n    upsert(&conn, &p).unwrap();\n    p.path = \"/new/location.jpg\".into();\n    upsert(&conn, &p).unwrap();\n    let n: i64 = conn.query_row(\"SELECT COUNT(*) FROM photos\", [], |r| r.get(0)).unwrap();\n    assert_eq!(n, 1);\n}\n\n\nEach test gets a fresh isolated DB, so there's no cleanup."
+      }
+    ]
+  },
+  {
+    "id": "w2-s04",
+    "tool": "claude-code",
+    "project": "halcyon-routing",
+    "day": 2,
+    "topic": "Debug a failing CI job for the routing service and paste in a GitHub token to test API access to the workflow runs.",
+    "reveals": [
+      "gh-token"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, the CI job for the routing service keeps failing on the integration step. 'go test ./internal/router/...' passes locally but dies in Actions with a timeout. can you help me figure out why"
+      },
+      {
+        "role": "assistant",
+        "text": "Happy to help. A test that passes locally but times out in Actions is usually one of three things: a slower or more contended runner, a test that needs a network service that isn't reachable in CI, or a missing `-timeout` or `-p` setting. Can you paste the last 30-40 lines of the failing job log? Also tell me whether the failure always hits the same test or a different one each run."
+      },
+      {
+        "role": "user",
+        "text": "looks like it hangs on TestRouteReplan every time, log just stops after 'waiting for geocoder stub' and then the 10m timeout kills it. i could pull the run logs through the API if that helps, want me to give you a token?"
+      },
+      {
+        "role": "assistant",
+        "text": "The log already points at the geocoder stub never becoming ready, so the paste may be enough. If you do want to pull the runs, I'd rather you use `gh` or an env var than paste the token into chat. Whatever you choose, use a fine-grained token with read-only Actions access."
+      },
+      {
+        "role": "user",
+        "text": "ok fine, i just want to test that api access works to the workflow runs. here's the one i made: ghp_AlexSimFakeToken0000000000000000000"
+      },
+      {
+        "role": "assistant",
+        "text": "Thanks, but since that token is now in this conversation, treat it as exposed and revoke it once we're done. To test access, run this in your own shell, not in the chat:\n\n\nexport GH_TOKEN=ghp_...   # your token\ngh api repos/OWNER/halcyon-routing/actions/runs --jq '.workflow_runs[:5][] | {id, status, conclusion}'\n\n\nA JSON list means access works. A 403 or 404 means the token is missing `actions:read` or isn't authorized for the repo."
+      },
+      {
+        "role": "user",
+        "text": "got the list back, access works. latest failed run id is 9182736450. what do i do with that"
+      },
+      {
+        "role": "assistant",
+        "text": "Pull that run's logs with `gh run view 9182736450 --log-failed`, then look at what happens right before 'waiting for geocoder stub'. My guess is the stub binds to a port or address that doesn't exist on the runner, or it waits on a readiness check with no deadline. Paste the lines around the hang and we'll check how the stub starts up."
+      },
+      {
+        "role": "user",
+        "text": "found it, the stub listens on localhost:8089 but the workflow runs the tests in a container where that port is mapped differently. the readiness loop has no timeout either"
+      },
+      {
+        "role": "assistant",
+        "text": "That explains it. Two fixes: read the stub address from an env var (e.g. `GEOCODER_STUB_ADDR`) that the workflow sets to the container's mapped host and port, and wrap the readiness loop in a `context.WithTimeout` of about 15s so it fails fast with a clear error instead of burning the full 10m. Once that's pushed, revoke the token you pasted at github.com/settings/tokens."
+      }
+    ]
+  },
+  {
+    "id": "w2-s05",
+    "tool": "chatgpt",
+    "day": 3,
+    "topic": "Get feedback on a draft intro paragraph for a blog post, asking for blunt critique with no softening.",
+    "reveals": [
+      "blunt-review",
+      "blog"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "need blunt feedback on an intro paragraph for a blog post. no softening please, just tell me what's bad. it's part 1 of a series I'm writing about building Tidepool"
+      },
+      {
+        "role": "assistant",
+        "text": "Understood, I'll be direct. Paste the paragraph and tell me who the post is for (Rust folks, general devs, or people who might use Tidepool), since that changes what counts as a problem."
+      },
+      {
+        "role": "user",
+        "text": "mostly rust devs who like reading about side projects. here it is:\n\n\"In today's fast-paced world of software development, tooling is more important than ever. I've always been passionate about building things, and recently I decided to start a new project called Tidepool. In this series I'm going to walk you through how I built it, the challenges I faced, and what I learned along the way. Let's dive in!\""
+      },
+      {
+        "role": "assistant",
+        "text": "This is generic enough to open almost any blog post ever written. \"In today's fast-paced world\" is filler, \"passionate about building things\" tells the reader nothing, and \"Let's dive in!\" is a throwaway. The biggest problem is that you never say what Tidepool is or why anyone should care, so a Rust dev has no reason to read past line two."
+      },
+      {
+        "role": "user",
+        "text": "ok fair. Tidepool is a Rust project, I'm building it in the open and the series is meant to follow the actual decisions I make. should I lead with that?"
+      },
+      {
+        "role": "assistant",
+        "text": "Lead with the specific thing, not the format. Open with one concrete sentence on what Tidepool does or the problem that made you start it, then one sentence on what the series covers. \"Decisions I make as I go\" is a better hook than \"challenges and lessons,\" which every series promises."
+      },
+      {
+        "role": "user",
+        "text": "rewrote it:\n\n\"Tidepool started because I was annoyed that [problem] had no good Rust solution, so I'm building one. This series follows the real decisions, including the ones I get wrong. Part 1 covers why I picked the architecture I did.\"\n\nbetter?"
+      },
+      {
+        "role": "assistant",
+        "text": "Much better. It's specific, it has a voice, and \"including the ones I get wrong\" is the strongest line. Two issues: \"[problem]\" is currently doing all the work, so make sure the real version is concrete rather than vague, and \"annoyed\" plus \"no good solution\" can read as a bit dismissive of existing crates unless you name what's lacking."
+      },
+      {
+        "role": "user",
+        "text": "yeah I'll name the actual gap. anything else cut-worthy?"
+      },
+      {
+        "role": "assistant",
+        "text": "\"Real\" in \"the real decisions\" is redundant, so cut it. Also, \"Part 1 covers why I picked the architecture\" is a bit flat, so consider naming the actual tradeoff you'll discuss. Otherwise it's a solid intro once the problem statement is filled in."
+      }
+    ]
+  },
+  {
+    "id": "w2-s06",
+    "tool": "codex",
+    "project": "tidepool",
+    "day": 3,
+    "topic": "Fix a bug in the Tidepool upload resume logic and prepare the change for commit, reviewing the diff first.",
+    "reveals": [
+      "conventional",
+      "commit-flow"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, found a bug in tidepool's upload resume. if an upload gets interrupted and I resume, it re-sends the last chunk and sometimes the server rejects it as a duplicate. can you look at resume_offset in src/upload/resume.rs?"
+      },
+      {
+        "role": "assistant",
+        "text": "Sure. I can't see your file in this message, so can you paste resume_offset, or the part that computes where to restart? If it's an off-by-one, the usual suspect is using the last *started* chunk index instead of the last *acknowledged* one, or adding the chunk size twice."
+      },
+      {
+        "role": "user",
+        "text": "ok here:\n\nfn resume_offset(state: &UploadState) -> u64 {\n    let acked = state.last_chunk_index;\n    acked * state.chunk_size\n}\n\nlast_chunk_index gets set when we start sending a chunk, not when the server acks it"
+      },
+      {
+        "role": "assistant",
+        "text": "That's the bug. `last_chunk_index` is set at send time, so after an interruption it points at a chunk the server may not have confirmed. If the server did get it, you resend it as a duplicate, and if it didn't, the math is still wrong. Resume from the acknowledged count instead:\n\nrust\nfn resume_offset(state: &UploadState) -> u64 {\n    // next byte after the last chunk the server confirmed\n    state.acked_chunks as u64 * state.chunk_size\n}\n\n\nThis assumes you have or add an `acked_chunks` field that's only incremented on a successful ack response. Want me to wire that into the send loop too?"
+      },
+      {
+        "role": "user",
+        "text": "yes please, increment it only on a 2xx ack. and add a test for the interrupted case"
+      },
+      {
+        "role": "assistant",
+        "text": "Done in the plan: `acked_chunks += 1` inside the `Ok(resp) if resp.status().is_success()` arm of the send loop, and nothing on error or timeout. For the test, I'd build an `UploadState` with `last_chunk_index = 5` and `acked_chunks = 4`, then assert `resume_offset` returns `4 * chunk_size`, so it fails on the old behavior. I'll also add a case with zero acks that expects offset 0."
+      },
+      {
+        "role": "user",
+        "text": "nice. show me the diff before you stage anything, I review every diff before you commit"
+      },
+      {
+        "role": "assistant",
+        "text": "Of course, I'll only show the diff and won't stage or commit anything until you say so. Here's the summary: `resume.rs` swaps `last_chunk_index` for `acked_chunks` in `resume_offset`, `sender.rs` increments `acked_chunks` only on a 2xx ack, and `resume_tests.rs` adds two tests (interrupted mid-chunk, zero acks). Run `git diff` to see the full patch, or paste it here and I'll go through it with you."
+      },
+      {
+        "role": "user",
+        "text": "diff looks good. I use conventional commits, so can you draft the message?"
+      },
+      {
+        "role": "assistant",
+        "text": "Here's a draft:\n\n\nfix: resume uploads from last acknowledged chunk\n\nresume_offset used last_chunk_index, which is set when a chunk is\nsent, so interrupted uploads could resend an unconfirmed chunk and\nget rejected as a duplicate. Track acked_chunks, incremented only on\na 2xx response, and compute the offset from that. Add tests for the\ninterrupted and zero-ack cases.\n\n\nSay the word and I'll stage the three files and commit with this message. Or tweak the wording first if you like."
+      }
+    ]
+  },
+  {
+    "id": "w2-s07",
+    "tool": "claude-code",
+    "project": "halcyon-routing",
+    "day": 4,
+    "topic": "Refactor the shipment lookup handler to return wrapped errors, and update the repository layer's queries while the Postgres-to-CockroachDB migration is underway.",
+    "reveals": [
+      "errors",
+      "cockroach"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, need to refactor the shipment lookup handler in halcyon-routing. right now it swallows a couple of errors and returns a generic 500. I want it to return wrapped errors instead"
+      },
+      {
+        "role": "assistant",
+        "text": "Sure. Can you paste the handler and the repository method it calls? I can't see the files from here. In general the pattern is to return `fmt.Errorf(\"lookup shipment %s: %w\", id, err)` from each layer, then map sentinel errors to status codes at the HTTP boundary with `errors.Is`/`errors.As`."
+      },
+      {
+        "role": "user",
+        "text": "yeah here's the gist:\n\nfunc (h *Handler) GetShipment(w http.ResponseWriter, r *http.Request) {\n  id := chi.URLParam(r, \"id\")\n  s, err := h.repo.FindShipment(r.Context(), id)\n  if err != nil {\n    http.Error(w, \"internal error\", 500)\n    return\n  }\n  json.NewEncoder(w).Encode(s)\n}\n\nI always wrap with %w and never ignore errors, so that Encode call bugs me too"
+      },
+      {
+        "role": "assistant",
+        "text": "Agreed, that Encode result is dropped and the repo error loses all context. Here's a cleaner version:\n\ngo\nvar ErrShipmentNotFound = errors.New(\"shipment not found\")\n\nfunc (h *Handler) GetShipment(w http.ResponseWriter, r *http.Request) {\n  id := chi.URLParam(r, \"id\")\n  s, err := h.repo.FindShipment(r.Context(), id)\n  if err != nil {\n    h.writeError(w, fmt.Errorf(\"get shipment handler: %w\", err))\n    return\n  }\n  if err := json.NewEncoder(w).Encode(s); err != nil {\n    h.log.Error(\"encode shipment response\", \"id\", id, \"err\", err)\n  }\n}\n\n\n`writeError` would use `errors.Is(err, ErrShipmentNotFound)` to return 404 and fall back to 500, logging the full chain."
+      },
+      {
+        "role": "user",
+        "text": "nice. now the repo layer. we're quietly migrating the routing db from postgres to cockroachdb so I need the queries to not break on either one during the transition"
+      },
+      {
+        "role": "assistant",
+        "text": "Good to keep both working. The usual trouble spots are Postgres-only features like advisory locks, `SERIAL` assumptions, and relying on default isolation. CockroachDB also runs serializable and can return retryable errors (SQLSTATE 40001), so the repo should handle those. Can you share `FindShipment` and any other queries it touches?"
+      },
+      {
+        "role": "user",
+        "text": "here's FindShipment:\n\nrow := r.db.QueryRowContext(ctx, `SELECT id, origin, dest, status, updated_at FROM shipments WHERE id = $1`, id)\nvar s Shipment\nif err := row.Scan(&s.ID, &s.Origin, &s.Dest, &s.Status, &s.UpdatedAt); err != nil {\n  return nil, err\n}\nreturn &s, nil"
+      },
+      {
+        "role": "assistant",
+        "text": "That SQL is portable as is, since `$1` placeholders and a plain select work on both. The fix is in the error handling:\n\ngo\nif err := row.Scan(&s.ID, &s.Origin, &s.Dest, &s.Status, &s.UpdatedAt); err != nil {\n  if errors.Is(err, sql.ErrNoRows) {\n    return nil, fmt.Errorf(\"find shipment %s: %w\", id, ErrShipmentNotFound)\n  }\n  return nil, fmt.Errorf(\"scan shipment %s: %w\", id, err)\n}\n\n\nThis gives the handler a sentinel to map to 404 and keeps the driver error in the chain."
+      },
+      {
+        "role": "user",
+        "text": "what about the retry thing for cockroach? it's a read, do I need it there too"
+      },
+      {
+        "role": "assistant",
+        "text": "Single-statement reads outside an explicit transaction are usually retried automatically by CockroachDB on the server side, so you likely don't need it here. Retries matter for multi-statement transactions, where you'd wrap the work in a helper that checks for SQLSTATE 40001 and reruns it. If you want, I can sketch that helper for the write paths next, and it would work fine against Postgres too."
+      },
+      {
+        "role": "user",
+        "text": "yes please, keep it small. and wrap everything it returns"
+      },
+      {
+        "role": "assistant",
+        "text": "go\nfunc (r *Repo) withTx(ctx context.Context, fn func(*sql.Tx) error) error {\n  const maxAttempts = 5\n  var err error\n  for i := 0; i < maxAttempts; i++ {\n    err = r.runTx(ctx, fn)\n    var pgErr *pgconn.PgError\n    if err == nil || !errors.As(err, &pgErr) || pgErr.Code != \"40001\" {\n      break\n    }\n  }\n  if err != nil {\n    return fmt.Errorf(\"run tx after retries: %w\", err)\n  }\n  return nil\n}\n\n\n`runTx` does begin, `fn`, commit, and rolls back on failure, wrapping each step's error the same way. Since Postgres rarely emits 40001, the loop just runs once there and behaves the same."
+      }
+    ]
+  },
+  {
+    "id": "w2-s08",
+    "tool": "chatgpt",
+    "day": 4,
+    "topic": "Ask for practical strategies to structure a focused work week and break tasks into smaller steps, mentioning a recent ADHD diagnosis in passing.",
+    "reveals": [
+      "adhd"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, I want to get better at structuring my work week. I'm a backend engineer and my weeks tend to dissolve into reactive stuff. I was diagnosed with ADHD a few weeks ago so I'm trying to build systems that actually work for my brain instead of just 'trying harder'. any practical strategies?"
+      },
+      {
+        "role": "assistant",
+        "text": "Congrats on getting clarity, that often makes it easier to pick strategies that fit. A few that work well: pick 1-3 priorities for the whole week on Monday, then plan each day around just one main task. Block your best focus hours for deep work and push meetings and messages into set windows. Finish each day with a 5-minute shutdown where you write down exactly where you'll restart tomorrow."
+      },
+      {
+        "role": "user",
+        "text": "the shutdown note thing sounds good. my bigger problem is starting. big tasks just feel like a wall and I end up doing small easy stuff instead"
+      },
+      {
+        "role": "assistant",
+        "text": "That's really common, and the fix is usually to make the first step so small it feels almost silly. Instead of 'refactor the scheduling module,' write 'open the file and list the three functions I'd change.' Aim for steps that take 10-25 minutes and have a clear finish line. Once you've started, momentum usually carries you further than you expected."
+      },
+      {
+        "role": "user",
+        "text": "ok that makes sense. how do I break something down without spending an hour planning it? I tend to overplan and then burn out before doing anything"
+      },
+      {
+        "role": "assistant",
+        "text": "Set a timer for 10 minutes and only plan the next 2-3 steps, not the whole project. Write the rest as a rough list of 'later' items and don't refine them until you get there. If a step still feels vague, ask 'what would I physically do first?' and write that down instead. Planning should just get you moving, not be a project of its own."
+      },
+      {
+        "role": "user",
+        "text": "nice. what about the middle of the week when I lose steam? Wednesday is usually where it all falls apart"
+      },
+      {
+        "role": "assistant",
+        "text": "Try making Wednesday intentionally lighter: a mid-week reset where you review what's done, drop or defer anything that no longer matters, and re-pick your priorities for Thursday and Friday. Also keep a short list of low-effort tasks for low-energy moments so you still make progress without forcing deep work. Breaks, movement, and a visible checklist you can cross things off from can help keep it rolling too."
+      },
+      {
+        "role": "user",
+        "text": "love the mid-week reset idea. can you give me a simple template for a week I can just copy and tweak?"
+      },
+      {
+        "role": "assistant",
+        "text": "Sure:\n\n**Monday:** Pick 1-3 weekly priorities, break each into first steps, protect a morning focus block.\n**Tuesday:** Deep work on priority #1, meetings and messages batched in the afternoon.\n**Wednesday:** Mid-week reset (30 min), then lighter work on priority #2.\n**Thursday:** Deep work on priority #2 or #3, finish loose ends.\n**Friday:** Wrap up, short review of what worked, write next week's rough priorities.\n\nEvery day ends with a 5-minute shutdown note. Adjust the blocks to when you focus best."
+      }
+    ]
+  },
+  {
+    "id": "w2-s09",
+    "tool": "codex",
+    "project": "tidepool",
+    "day": 5,
+    "topic": "Tune Tidepool's background sync job and discuss memory limits and deployment on the Raspberry Pi 5 home server.",
+    "reveals": [
+      "homeserver"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, I want to tune the background sync job in Tidepool. it's eating way too much memory since I run Tidepool on a Raspberry Pi 5 home server and the box starts swapping during a full sync"
+      },
+      {
+        "role": "assistant",
+        "text": "Usual culprits are loading the whole remote page set into a Vec before writing, or an unbounded channel between the fetcher and the writer. Can you paste the sync loop, or describe how it moves data from fetch to disk? Also, is it the 4GB or 8GB Pi 5? That changes what a sane budget is."
+      },
+      {
+        "role": "user",
+        "text": "its the 8GB one. right now it fetches all changed records with a single query, collects them into a Vec, then does the upserts in one transaction. also uses an mpsc::unbounded_channel to send progress events to the UI"
+      },
+      {
+        "role": "assistant",
+        "text": "That explains it: peak memory scales with the number of changed records. Switch to batches and a bounded channel so backpressure is automatic:\n\nrust\nlet (tx, mut rx) = tokio::sync::mpsc::channel::<Batch>(2);\n\n// producer\nlet mut cursor = None;\nloop {\n    let batch = fetch_changed(&client, cursor.take(), 500).await?;\n    if batch.items.is_empty() { break; }\n    cursor = batch.next_cursor.clone();\n    tx.send(batch).await?; // waits when the writer is behind\n}\n\n// consumer\nwhile let Some(batch) = rx.recv().await {\n    upsert_batch(&db, &batch).await?; // one txn per batch\n}\n\n\nWith capacity 2 and 500 per batch, you hold at most about three batches in memory at once. Make the progress channel bounded too, or use a `watch` channel since the UI only needs the latest value."
+      },
+      {
+        "role": "user",
+        "text": "nice, the watch channel makes sense for progress. what batch size should I pick tho? and should I cap memory at the OS level too or just trust the code"
+      },
+      {
+        "role": "assistant",
+        "text": "Don't guess on batch size. Start at 500, log peak RSS and time per batch, then try 250 and 1000. On a Pi the SD card or NVMe write speed usually matters more than CPU, so the best size is often where transaction commit overhead stops dominating. And yes, cap it at the OS level as well, as a safety net rather than a substitute for fixing the code."
+      },
+      {
+        "role": "user",
+        "text": "how would I do the OS cap? I deploy it with systemd"
+      },
+      {
+        "role": "assistant",
+        "text": "Put limits in the unit file:\n\nini\n[Service]\nMemoryHigh=1G\nMemoryMax=1500M\nMemorySwapMax=0\nNice=10\nCPUWeight=50\n\n\n`MemoryHigh` throttles and reclaims before the hard limit, `MemoryMax` triggers an OOM kill of just this service instead of taking down the box, and `MemorySwapMax=0` stops it from thrashing the SD card. If you want sync to be lower priority than everything else, run it as a separate unit or timer so the cap applies only to it. Check that the memory cgroup controller is enabled on Raspberry Pi OS, since it may need `cgroup_enable=memory` in `cmdline.txt`."
+      },
+      {
+        "role": "user",
+        "text": "good call, splitting it into its own timer unit sounds cleaner. any rust side stuff to make the binary lighter on the pi?"
+      },
+      {
+        "role": "assistant",
+        "text": "A few cheap wins: build with `--release`, set `lto = \"thin\"`, `codegen-units = 1` and `panic = \"abort\"` in the profile, and strip symbols. If you use the default allocator and see fragmentation over long runs, try `mimalloc` or `jemalloc` and compare RSS before and after. Cross-compiling to `aarch64-unknown-linux-gnu` from your Mac and copying the binary over will also save you slow builds on the Pi."
+      }
+    ]
+  },
+  {
+    "id": "w2-s10",
+    "tool": "claude-code",
+    "project": "halcyon-routing",
+    "day": 5,
+    "topic": "Prepare for the on-call rotation by reviewing alert runbooks and tweaking a deployment config in staging, making clear production config is never changed without explicit approval.",
+    "reveals": [
+      "oncall",
+      "prod-config"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, I'm on call for the routing service starting monday, one week out of every month so it comes around fast. can you help me get ready? first thing I want to do is go through the alert runbooks in the repo and see which ones are stale"
+      },
+      {
+        "role": "assistant",
+        "text": "Happy to. Point me at where the runbooks live (something like docs/runbooks/ or an ops/ folder) and I'll read through them and flag ones that reference old service names, dead dashboards, or commands that no longer match the code. I'll give you a short list sorted by how likely they are to bite you during a page."
+      },
+      {
+        "role": "user",
+        "text": "they're in docs/runbooks/, one md file per alert. start with the ones for high latency and queue backlog since those fire the most"
+      },
+      {
+        "role": "assistant",
+        "text": "I'm going on what you've told me, since I haven't opened the files yet. When I read docs/runbooks/ I'll look at the high-latency and queue-backlog runbooks first and check each step against the current code and config names. For each one I'll report what's stale, what's missing (like a rollback step or an owner), and a suggested fix. I won't edit anything until you've seen the list."
+      },
+      {
+        "role": "user",
+        "text": "good. also I want to tweak the deployment config for staging, bump the worker replicas and lower the backlog alert threshold so I can test the runbook flow. staging only"
+      },
+      {
+        "role": "assistant",
+        "text": "Sounds good. I'll make those changes only in the staging config, so replicas up and the backlog threshold lowered to a value that's easy to trigger. I'll show you the diff before anything gets applied. What replica count and threshold do you want, or should I propose numbers based on what's there now?"
+      },
+      {
+        "role": "user",
+        "text": "propose numbers. and just so we're clear, I never let you touch production config without me explicitly saying ok. even if it looks like the same change"
+      },
+      {
+        "role": "assistant",
+        "text": "Understood. Production config stays untouched unless you explicitly approve it, and that holds even when a change is identical to the staging one. I'll keep the edits scoped to the staging files and say so clearly in the diff. Once I've read the current values I'll propose replica and threshold numbers with the reasoning."
+      },
+      {
+        "role": "user",
+        "text": "nice. one more thing, if you spot a prod value that's wrong while you're in there, just tell me, don't fix it"
+      },
+      {
+        "role": "assistant",
+        "text": "Will do. If I see a production value that looks wrong, I'll flag it with the file and line and explain why, but I won't change it. You decide whether and when it gets fixed, and I'll only act after you explicitly say ok."
+      }
+    ]
+  },
+  {
+    "id": "w2-s11",
+    "tool": "chatgpt",
+    "day": 6,
+    "topic": "Ask for help converting a recipe's measurements and scaling it for six people.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey can you help me convert a recipe to metric and scale it up? it's for 4 people and I need it for 6"
+      },
+      {
+        "role": "assistant",
+        "text": "Sure. Paste the ingredient list and I'll convert it to grams and ml and multiply everything by 1.5 for six servings."
+      },
+      {
+        "role": "user",
+        "text": "ok it's pancakes. 1.5 cups flour, 2 tbsp sugar, 1 tsp baking powder, 1/2 tsp salt, 1 1/4 cups milk, 1 egg, 3 tbsp melted butter"
+      },
+      {
+        "role": "assistant",
+        "text": "Here's the metric version scaled by 1.5 (using US cups, with flour at about 125 g per cup):\n- Flour: 280 g\n- Sugar: 38 g\n- Baking powder: 1.5 tsp (about 7 g)\n- Salt: 3/4 tsp\n- Milk: 450 ml\n- Egg: 1.5, see below\n- Melted butter: 65 g\n\nFor the egg, beat 2 eggs and use about 3/4 of the mixture."
+      },
+      {
+        "role": "user",
+        "text": "nice. is 3/4 of a beaten egg mix actually accurate or should I just use 2 eggs"
+      },
+      {
+        "role": "assistant",
+        "text": "Two beaten eggs is about 100 g, so measure out roughly 75 g if you want to be exact. Using 2 whole eggs is fine, though. The batter will be a bit richer and slightly thinner, and you can add a spoonful of flour if it looks runny."
+      },
+      {
+        "role": "user",
+        "text": "cool, I'll just use 2 and see. and my scale only does whole grams so rounding the sugar to 38 is ok?"
+      },
+      {
+        "role": "assistant",
+        "text": "Yes, 38 g is fine. A gram either way won't change anything in a pancake batter."
+      },
+      {
+        "role": "user",
+        "text": "perfect thanks, that's all I needed"
+      },
+      {
+        "role": "assistant",
+        "text": "You're welcome, enjoy the pancakes!"
+      }
+    ]
+  },
+  {
+    "id": "w2-s12",
+    "tool": "codex",
+    "project": "tidepool",
+    "day": 7,
+    "topic": "Add integration tests and a thumbnail generation option to Tidepool's CLI.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "hey, working on tidepool's cli. I want to add a --thumbnail option that generates a small preview image alongside the main output, and also get some integration tests in place. where should I start?"
+      },
+      {
+        "role": "assistant",
+        "text": "I'd do the tests first, so they pin down the current behavior before you add the flag. Create `tests/cli.rs` and use `assert_cmd` plus `tempfile` to run the real binary against a fixture input and check the output files. Then add `--thumbnail` and write a test for it. Want me to look at your current `main.rs` and Cargo.toml and set up the dev-dependencies?"
+      },
+      {
+        "role": "user",
+        "text": "yeah. it's clap derive for args, and the image stuff is just the `image` crate already. no tests dir yet"
+      },
+      {
+        "role": "assistant",
+        "text": "Good, that makes it simple. Add these to Cargo.toml:\n\ntoml\n[dev-dependencies]\nassert_cmd = \"2\"\ntempfile = \"3\"\npredicates = \"3\"\n\n\nAnd a first baseline test:\n\nrust\nuse assert_cmd::Command;\nuse tempfile::tempdir;\n\n#[test]\nfn converts_basic_input() {\n    let dir = tempdir().unwrap();\n    let out = dir.path().join(\"out.png\");\n    Command::cargo_bin(\"tidepool\").unwrap()\n        .args([\"tests/fixtures/sample.png\", \"-o\", out.to_str().unwrap()])\n        .assert()\n        .success();\n    assert!(out.exists());\n}\n\n\nYou'll need a small `sample.png` in `tests/fixtures/`. Keep it tiny so the repo stays light."
+      },
+      {
+        "role": "user",
+        "text": "ok that passes. now the flag. should thumbnail size be configurable or just fixed?"
+      },
+      {
+        "role": "assistant",
+        "text": "I'd make it configurable with a sensible default. Something like `--thumbnail` as a bool flag and `--thumbnail-size <PX>` defaulting to 256, with `requires = \"thumbnail\"` so the size can't be passed alone:\n\nrust\n#[arg(long)]\nthumbnail: bool,\n\n#[arg(long, default_value_t = 256, requires = \"thumbnail\")]\nthumbnail_size: u32,\n\n\nThen in the handler, after loading the image, call `img.thumbnail(size, size)`. That preserves aspect ratio, and the longest side ends up at `size`. Save it as `<stem>_thumb.<ext>` next to the main output."
+      },
+      {
+        "role": "user",
+        "text": "nice, `thumbnail()` is exactly what I wanted. what should the tests for it check"
+      },
+      {
+        "role": "assistant",
+        "text": "Three cases are worth covering:\n\n1. `--thumbnail` creates `out_thumb.png`, and its longest side is 256.\n2. `--thumbnail --thumbnail-size 64` gives a longest side of 64.\n3. `--thumbnail-size 64` without `--thumbnail` fails, with a clap error on stderr.\n\nFor the dimension checks, open the file with `image::open` and compare `width().max(height())`. For the failure case, use `.failure().stderr(predicates::str::contains(\"--thumbnail\"))`."
+      },
+      {
+        "role": "user",
+        "text": "should I also test that the main output isn't affected when the thumbnail is on?"
+      },
+      {
+        "role": "assistant",
+        "text": "Yes, that's a good regression check. Run the tool once without the flag and once with it, then compare the two main outputs with `image::open(...).to_rgba8().into_raw()`. If they're identical, the thumbnail path isn't mutating the image before the main save. Make sure the thumbnail is made from a reference or a clone, not by resizing the same buffer in place."
+      },
+      {
+        "role": "user",
+        "text": "perfect, that's a real risk actually since I was about to resize in place. going to wire it all up now, thanks"
+      },
+      {
+        "role": "assistant",
+        "text": "Sounds good. Cloning before the thumbnail call, or just calling `img.thumbnail()`, which returns a new image and leaves the original alone, avoids the problem. If a test fails or the clap `requires` behaves oddly, paste the output and I'll take a look."
+      }
+    ]
+  }
+]

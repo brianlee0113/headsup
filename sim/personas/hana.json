@@ -1,6 +1,6 @@
 {
   "id": "hana",
-  "split": "holdout",
+  "split": "seen",
   "language": "ko",
   "who": "한나, 런던의 핀테크 회사 페니와이즈(Pennywise)에서 일하는 UX 리서처. 한국어와 영어를 섞어 쓴다. 회사 일은 ChatGPT, 사이드 프로젝트(Flutter 앱 Sora Notes)는 Claude Code, 개인 질문은 claude.ai에서 한다.",
   "tools": {

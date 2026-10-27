@@ -1,0 +1,608 @@
+[
+  {
+    "id": "w1-s01",
+    "tool": "chatgpt",
+    "day": 1,
+    "topic": "런던 핀테크 회사 페니와이즈의 UX 리서처로서 사용성 테스트 인터뷰 가이드 초안을 다듬는다. 리서치 결과는 인용 한 줄, 시사점 한 줄씩으로 정리해 달라고 한다.",
+    "reveals": [
+      "pennywise",
+      "research-plain"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "안녕, 사용성 테스트 인터뷰 가이드 초안 좀 같이 다듬어줄 수 있어? 나 런던 핀테크 회사 페니와이즈에서 UX 리서처로 일하는데, 이번엔 저축 목표 설정 플로우를 테스트하려고 해."
+      },
+      {
+        "role": "assistant",
+        "text": "좋아요, 같이 다듬어봐요. 지금 초안을 붙여주시면 구조부터 볼게요. 아직 정리 전이면 섹션 제목만 있어도 괜찮아요."
+      },
+      {
+        "role": "user",
+        "text": "초안은 이래. 1) 인트로 5분 2) 평소 저축 습관 질문 3) 태스크: 저축 목표 만들기 4) 마무리 질문. 근데 너무 뻔한 느낌이야"
+      },
+      {
+        "role": "assistant",
+        "text": "구조 자체는 괜찮은데 디테일을 좀 바꾸면 좋아질 것 같아요. 인트로에 \"저희가 테스트하는 건 앱이지 참가자가 아니에요\"와 think-aloud 안내를 넣어 보세요. 습관 질문은 \"저축 좋아하세요?\" 대신 \"최근에 돈을 따로 모아둔 적이 있다면 어떻게 하셨는지 얘기해 주세요\"처럼 과거 행동 위주로 바꾸시고요. 태스크는 \"목표를 만들어보세요\"보다 시나리오로 주는 게 좋아요."
+      },
+      {
+        "role": "user",
+        "text": "시나리오 예시 하나만 써줘. 참, 나는 리서치 결과를 항상 인용 한 줄이랑 시사점 한 줄씩으로 정리하거든. 가이드도 그렇게 뽑기 쉽게 만들 수 있을까?"
+      },
+      {
+        "role": "assistant",
+        "text": "시나리오 예시: \"다음 달에 친구 결혼식 때문에 여행을 가게 됐고, 그때까지 비용을 따로 모아두고 싶다고 상상해 보세요. 이 앱에서 어떻게 시작하실지 보여주세요.\" 인용 한 줄을 뽑기 쉽게 하려면 각 태스크 끝에 \"방금 그렇게 하신 이유가 뭐예요?\" 같은 프로브를 고정으로 넣으세요. 그러면 참가자의 이유가 한 문장으로 나오는 경우가 많아요. 노트 칸도 '인용 / 시사점' 두 줄로 미리 만들어 두면 정리가 편해요."
+      },
+      {
+        "role": "user",
+        "text": "오 그 노트 템플릿 좋다. 마무리 질문도 좀 다듬어줘, 지금은 '전체적으로 어땠나요?' 하나뿐이야"
+      },
+      {
+        "role": "assistant",
+        "text": "그 질문은 너무 넓어서 \"괜찮았어요\"로 끝나기 쉬워요. 이렇게 나눠 보세요. 1) \"가장 헷갈렸던 순간은 언제였나요?\" 2) \"이 기능을 친구에게 설명한다면 뭐라고 하실래요?\" 3) \"하나만 바꿀 수 있다면 뭘 바꾸시겠어요?\" 2번 답변은 인용으로 쓰기 특히 좋아요."
+      },
+      {
+        "role": "user",
+        "text": "완벽해, 이걸로 가이드 정리해볼게. 고마워!"
+      },
+      {
+        "role": "assistant",
+        "text": "좋아요! 정리하다가 프로브 순서나 시간 배분이 고민되면 다시 가져와 주세요. 테스트 잘 진행되길 바라요."
+      }
+    ]
+  },
+  {
+    "id": "w1-s02",
+    "tool": "claude-code",
+    "project": "sora-notes",
+    "day": 1,
+    "topic": "Flutter 앱 Sora Notes(어학 공부 노트 앱)에서 노트 목록 화면의 스크롤 성능 문제를 고친다. 설명은 한국어로, 코드 주석과 커밋 메시지는 영어로 달라고 한다.",
+    "reveals": [
+      "sora",
+      "ko-explain-en-code"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "Sora Notes 노트 목록 화면에서 스크롤이 너무 버벅여 ㅠㅠ 노트가 좀 쌓이면 프레임이 막 떨어져. Flutter로 만든 어학 공부 노트 앱인데 원인 같이 찾아줄 수 있어?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 같이 봐요. 이런 경우 흔한 원인은 세 가지예요. 목록을 children으로 한 번에 다 만드는 경우, shrinkWrap: true를 쓰는 경우, 그리고 아이템의 build 안에서 무거운 계산을 하는 경우예요. 노트 목록 화면 위젯 코드를 보여주시겠어요?"
+      },
+      {
+        "role": "user",
+        "text": "이거야\n\ndart\nSingleChildScrollView(\n  child: Column(\n    children: notes.map((n) => NoteCard(note: n)).toList(),\n  ),\n)\n\n\nNoteCard 안에서는 build 할 때마다 DateFormat 새로 만들고, 마크다운 미리보기도 매번 파싱하고 있어"
+      },
+      {
+        "role": "assistant",
+        "text": "원인이 두 가지로 보여요. 첫째, Column + map 구조는 화면 밖 카드까지 전부 한 번에 만들어서 lazy 렌더링이 안 돼요. 둘째, 카드마다 build 때 DateFormat 생성과 마크다운 파싱을 반복하니까 스크롤할 때 비용이 계속 쌓여요. 먼저 목록 구조부터 ListView.builder로 바꾸는 게 효과가 가장 클 거예요."
+      },
+      {
+        "role": "user",
+        "text": "오 그럼 ListView.builder로 바꾸면 되겠네. 아 그리고 앞으로 설명은 한국어로 해주고, 코드 주석이랑 커밋 메시지는 영어로 써줘. 나는 그렇게 쓰거든"
+      },
+      {
+        "role": "assistant",
+        "text": "알겠어요, 설명은 한국어로, 주석과 커밋 메시지는 영어로 쓸게요. 목록 부분은 이렇게 바꾸면 돼요.\n\ndart\nListView.builder(\n  itemCount: notes.length,\n  // Build only the items that are visible on screen\n  itemBuilder: (context, index) {\n    final note = notes[index];\n    return NoteCard(\n      key: ValueKey(note.id),\n      note: note,\n    );\n  },\n)\n\n\n바깥의 SingleChildScrollView와 Column은 제거하세요. 스크롤은 ListView가 직접 담당해야 해요."
+      },
+      {
+        "role": "user",
+        "text": "바꿨더니 훨씬 나아졌어. 근데 DateFormat이랑 마크다운 미리보기는 어떻게 하는 게 좋아?"
+      },
+      {
+        "role": "assistant",
+        "text": "DateFormat은 build 밖에서 한 번만 만들어 재사용하면 되고, 미리보기 텍스트는 노트 모델에 미리 계산해 두는 게 좋아요.\n\ndart\nclass NoteCard extends StatelessWidget {\n  const NoteCard({super.key, required this.note});\n  final Note note;\n\n  // Create the formatter once instead of on every build\n  static final DateFormat _dateFormat = DateFormat('yyyy.MM.dd');\n\n  @override\n  Widget build(BuildContext context) {\n    return ListTile(\n      title: Text(note.title),\n      // Use the precomputed plain-text preview, no markdown parsing here\n      subtitle: Text(note.previewText, maxLines: 2),\n      trailing: Text(_dateFormat.format(note.updatedAt)),\n    );\n  }\n}\n\n\nNote 모델에서는 노트를 저장하거나 불러올 때 previewText를 한 번만 만들어 두면 돼요."
+      },
+      {
+        "role": "user",
+        "text": "좋다 적용 완료! 커밋 메시지도 만들어줘"
+      },
+      {
+        "role": "assistant",
+        "text": "변경 내용을 담아 이렇게 쓰면 좋을 것 같아요.\n\n\nfix: improve note list scroll performance\n\n- Replace Column/map with ListView.builder for lazy rendering\n- Reuse a static DateFormat instead of creating it per build\n- Precompute markdown preview text in the Note model\n\n\n나중에 Flutter DevTools의 Performance 탭에서 프로파일 모드로 한 번 더 확인해 보면 개선 효과를 확실히 볼 수 있어요."
+      }
+    ]
+  },
+  {
+    "id": "w1-s03",
+    "tool": "claude-ai",
+    "day": 2,
+    "topic": "새 노트북과 모니터 중에서 무엇을 먼저 살지 고민하며 선택지를 비교해 달라고 한다. 비용과 리스크 열이 있는 표로 정리해 달라고 한다.",
+    "reveals": [
+      "options-table"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "새 노트북이랑 모니터 중에 뭐부터 살지 고민이야. 선택지 좀 비교해줄 수 있어?"
+      },
+      {
+        "role": "assistant",
+        "text": "그럼요. 먼저 지금 뭐가 제일 불편한지 알려주세요. 노트북이 느리거나 배터리가 문제인지, 아니면 화면이 좁아서 불편한 건지에 따라 답이 꽤 달라져요."
+      },
+      {
+        "role": "user",
+        "text": "사이드로 Flutter 앱 Sora Notes 만들고 있는데 에뮬레이터 돌리면 좀 버거워 ㅠㅠ 근데 화면 작아서 코드랑 에뮬레이터 같이 띄우기도 불편하고. 그래서 둘 다 땡김 ㅋㅋ"
+      },
+      {
+        "role": "assistant",
+        "text": "성능 문제와 작업 공간 문제가 섞여 있네요. 에뮬레이터 때문에 버벅이는 거면 노트북이 먼저고, 창 배치가 불편한 거면 모니터가 훨씬 가성비가 좋아요. 표로 정리해드릴까요?"
+      },
+      {
+        "role": "user",
+        "text": "응 비용이랑 리스크 열 있는 표로 정리해줘. 노트북 먼저 / 모니터 먼저 / 둘 다 보류 이렇게 세 개로!"
+      },
+      {
+        "role": "assistant",
+        "text": "| 선택지 | 비용 | 리스크 |\n|---|---|---|\n| 노트북 먼저 | 높음 | 스펙을 잘못 고르면 큰 돈이 낭비되고, 신제품 출시 직전이면 손해를 볼 수 있음 |\n| 모니터 먼저 | 중간 | 지금 노트북의 포트가 안 맞으면 활용이 제한되고, 빌드 속도 문제는 그대로 남음 |\n| 둘 다 보류 | 거의 없음 | 불편한 작업 환경이 계속되고 개발 흐름이 자주 끊김 |\n\n지금 노트북이 외부 모니터를 지원하는지만 확인되면 '모니터 먼저'가 가장 안전한 선택이에요."
+      },
+      {
+        "role": "user",
+        "text": "음 사이드 프로젝트용이라 엄청 급한 건 아니긴 해. 모니터 먼저 사보고 그래도 빌드가 답답하면 그때 노트북 바꿔도 되겠지?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 그 순서가 리스크가 가장 낮아요. 모니터를 써보면 불편함이 화면 때문이었는지 성능 때문이었는지 분명해져서, 노트북을 고를 때 기준도 더 정확해져요. 사기 전에 USB-C나 HDMI 포트만 꼭 확인하세요."
+      }
+    ]
+  },
+  {
+    "id": "w1-s04",
+    "tool": "chatgpt",
+    "day": 2,
+    "topic": "페니와이즈의 이탈 원인 조사 설문 응답을 주제별로 분류하는 작업을 한다. 아직 발표 전이지만 수수료 불만이 1위로 나왔다고 지나가듯 말한다. 외부에 공유하기 전에는 항상 확인을 받는다고 한다.",
+    "reveals": [
+      "churn-study",
+      "work-check"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "이탈 원인 설문 주관식 응답 분류하는 거 도와줄 수 있어? 페니와이즈 탈퇴한 유저들 대상으로 한 거고, 응답이 자유 서술이라 주제별로 묶어야 해"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 가능해요. 먼저 코드북부터 잡는 게 좋아요. 응답 20~30개 정도를 먼저 보여주시면 거기서 주제 후보를 뽑고, 그다음 나머지를 그 기준으로 분류하면 일관성이 좋아집니다. 한 응답에 주제가 여러 개 들어갈 수 있는지(복수 태깅)도 정해두면 좋아요."
+      },
+      {
+        "role": "user",
+        "text": "복수 태깅 허용할래. 일단 후보 주제는 수수료, 앱 사용성, 고객지원, 기능 부족, 경쟁사 이동 이 정도로 생각 중이야. 아직 발표 전이긴 한데 수수료 불만이 1위로 나오긴 했어 ㅋㅋ"
+      },
+      {
+        "role": "assistant",
+        "text": "좋은 출발점이에요. 다만 \"수수료\"는 안에 결이 다를 수 있어요. 예를 들면 송금 수수료, 환전 마진, 월 구독료, 숨은 비용에 대한 불만은 대응 방향이 달라서 하위 태그로 나눠두면 나중에 더 쓸모 있어요. 그리고 \"기타\" 카테고리도 하나 두고, 기타가 너무 커지면 코드북을 다시 보는 식으로 가면 됩니다."
+      },
+      {
+        "role": "user",
+        "text": "오 하위 태그 좋다. 그럼 형식은 응답ID, 원문, 주제(복수), 하위 태그, 감정(부정/중립/긍정) 이렇게 표로 뽑아줘. 근데 이거 나중에 팀 밖에도 공유할 수도 있어서 정리본은 일단 나만 볼게. 난 회사 자료는 밖으로 공유하기 전에 항상 확인 받거든"
+      },
+      {
+        "role": "assistant",
+        "text": "좋은 습관이에요. 그럼 이 표는 작업용 초안으로 두고, 외부 공유용 버전은 확인받은 뒤에 따로 만드는 걸 추천해요. 그때는 원문 인용에서 개인 식별 가능한 정보를 빼고 주제별 요약 위주로 정리하면 수월합니다. 이제 응답 샘플을 붙여주시면 첫 분류를 해볼게요."
+      },
+      {
+        "role": "user",
+        "text": "ok 샘플 붙여볼게.\n1. \"환전할 때마다 수수료가 너무 비싸고 계산이 복잡해요\"\n2. \"앱이 자꾸 튕겨서 짜증났어요. 그리고 문의했는데 답이 일주일 걸림\"\n3. \"Wise가 더 싸서 옮겼어요\""
+      },
+      {
+        "role": "assistant",
+        "text": "| ID | 주제 | 하위 태그 | 감정 |\n|---|---|---|---|\n| 1 | 수수료 | 환전 마진, 비용 불투명 | 부정 |\n| 2 | 앱 사용성, 고객지원 | 앱 크래시, 응답 지연 | 부정 |\n| 3 | 경쟁사 이동, 수수료 | 경쟁사 가격 비교 | 중립 |\n\n3번은 \"더 싸서\"라는 표현 때문에 수수료도 같이 태깅했어요. 경쟁사 이동은 결과이고 수수료가 원인에 가까워서, 나중에 \"원인/결과\" 구분을 둘지 정해도 좋겠어요."
+      },
+      {
+        "role": "user",
+        "text": "그거 좋다, 원인이랑 이동 결과 분리하자. 나머지도 이 형식으로 계속 해줘"
+      },
+      {
+        "role": "assistant",
+        "text": "좋아요. 그러면 \"경쟁사 이동\"은 주제 목록에서 빼고 별도의 \"이동처\" 열로 분리할게요. 나머지 응답을 같은 형식으로 붙여주세요. 애매한 건 제가 임의로 확정하지 않고 \"검토 필요\"로 표시해둘게요."
+      }
+    ]
+  },
+  {
+    "id": "w1-s05",
+    "tool": "claude-code",
+    "project": "sora-notes",
+    "day": 3,
+    "topic": "Firebase 인증과 동기화 로직에서 로그인 후 노트가 동기화되지 않는 버그를 디버깅한다.",
+    "reveals": [
+      "firebase"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "sora notes 버그 좀 봐줄래? 로그인하고 나면 노트가 동기화가 안 돼. Firebase로 auth랑 sync 둘 다 하고 있는데, 로그인 직후엔 로컬 노트만 보이고 Firestore에 있는 건 안 내려와."
+      },
+      {
+        "role": "assistant",
+        "text": "네, 같이 볼게요. 먼저 확인하고 싶은 게 있어요. 동기화 시작 시점이 `authStateChanges()` 리스너에 걸려 있나요, 아니면 로그인 함수가 끝난 뒤에 직접 호출하나요? 로그인 직후 `FirebaseAuth.instance.currentUser`가 null인 상태에서 sync가 먼저 도는 경우가 흔해서요. 관련 파일(auth 서비스랑 sync 서비스) 보여주시면 더 정확히 볼 수 있어요."
+      },
+      {
+        "role": "user",
+        "text": "auth_service.dart 에서 signIn 끝나고 바로 syncService.pullNotes() 부르고 있어. 근데 로그만 보면 pullNotes 안에서 uid가 null이라고 나와"
+      },
+      {
+        "role": "assistant",
+        "text": "원인이 거의 확실해 보여요. `pullNotes()`가 uid로 `users/{uid}/notes` 경로를 읽는데, 호출 시점에 uid를 어디서 가져오는지가 문제일 거예요. 싱글톤이 생성될 때 uid를 캐싱해두면 로그인 전 null 값이 계속 남아요. pullNotes 안에서 uid를 캐시하지 말고 매번 `FirebaseAuth.instance.currentUser?.uid`를 읽도록 바꿔보세요."
+      },
+      {
+        "role": "user",
+        "text": "아 맞다 SyncService 생성자에서 _uid = auth.currentUser?.uid 이렇게 저장해놨네... 이거 때문인가"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 그게 범인이에요. 앱 시작 시점엔 로그인 전이라 `_uid`가 null로 굳어버리고, 이후 로그인해도 갱신이 안 되는 거죠. 이렇게 고치면 돼요:\n\ndart\nString? get _uid => _auth.currentUser?.uid;\n\nFuture<void> pullNotes() async {\n  final uid = _uid;\n  if (uid == null) return;\n  final snap = await _db.collection('users').doc(uid).collection('notes').get();\n  // ...merge into local\n}\n\n\n필드 대신 getter로 바꾸는 게 핵심이에요."
+      },
+      {
+        "role": "user",
+        "text": "오 바꿨더니 되는 것 같아. 근데 로그아웃했다가 다른 계정으로 로그인하면 이전 계정 노트가 로컬에 남아있을 것 같은데 이건 어떻게 해?"
+      },
+      {
+        "role": "assistant",
+        "text": "좋은 포인트예요. 로그아웃 시점에 로컬 DB를 비우거나, 로컬 노트에 `ownerUid` 필드를 두고 현재 uid로 필터링하는 방법이 있어요. 단순한 건 전자인데, 아직 서버에 안 올라간 노트가 있으면 날아가니까 signOut 전에 `pushPendingNotes()`를 먼저 돌리고 비우는 순서로 하세요. 오프라인 사용이 많다면 후자가 더 안전해요."
+      },
+      {
+        "role": "user",
+        "text": "일단 signOut 전에 push하고 비우는 걸로 할게. 순서 이렇게 하면 되지?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 이 순서가 맞아요:\n\ndart\nFuture<void> signOut() async {\n  await syncService.pushPendingNotes();\n  await localDb.clearNotes();\n  await FirebaseAuth.instance.signOut();\n}\n\n\n다만 push가 네트워크 오류로 실패하면 clear를 건너뛰도록 try/catch로 감싸서, 실패 시 사용자에게 \"동기화 안 된 노트가 있어요\" 같은 경고를 띄우는 것도 추천해요. 그래야 데이터 유실이 없어요."
+      }
+    ]
+  },
+  {
+    "id": "w1-s06",
+    "tool": "claude-ai",
+    "day": 3,
+    "topic": "영국 영주권 신청에 필요한 영어 시험 종류와 일정을 알아보고, 시험 준비 기간을 어떻게 잡을지 묻는다.",
+    "reveals": [
+      "ielts"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "영국 영주권 신청하려고 영어 시험 일정 알아보는 중인데, 어떤 시험 봐야 하는지 잘 모르겠어. ielts 같은 거 봐야 돼?"
+      },
+      {
+        "role": "assistant",
+        "text": "영주권(ILR)에는 보통 영국 내무부가 승인한 SELT 시험에서 CEFR B1 이상이 필요해. 일반 IELTS 아카데믹이 아니라 'IELTS Life Skills B1'처럼 말하기·듣기만 보는 시험이면 돼. 그 외에 Trinity College London의 GESE나 LanguageCert의 SELT 같은 것도 승인된 시험이야. 영어권 대학 학위처럼 면제되는 경우도 있으니 본인 비자 종류에 따라 확인해 봐."
+      },
+      {
+        "role": "user",
+        "text": "아 일반 IELTS 아니어도 되는구나. 그럼 life skills가 제일 무난한 거야?"
+      },
+      {
+        "role": "assistant",
+        "text": "많이 선택하는 건 맞아. B1이 목표라 난이도가 낮고, 말하기·듣기만 보니까 시험 시간도 짧아. 다만 Trinity나 LanguageCert도 같은 수준이라, 집 근처 시험장 일정과 비용을 비교해서 고르면 돼. 참고로 'Life in the UK' 시험은 영어 시험과 별개로 따로 봐야 해."
+      },
+      {
+        "role": "user",
+        "text": "맞다 그것도 있었지 ㅋㅋ 시험 일정은 보통 얼마나 미리 잡아야 돼? 런던이면 자리 많겠지?"
+      },
+      {
+        "role": "assistant",
+        "text": "런던은 시험장이 많아서 보통 몇 주 안에 자리가 나는 편이야. 그래도 주말이나 선호하는 시간대는 먼저 차니까 최소 3~4주 전에 예약하는 게 안전해. 결과도 며칠에서 1~2주 정도 걸리니까 신청 서류 제출일에서 거꾸로 계산해서 잡아."
+      },
+      {
+        "role": "user",
+        "text": "그럼 준비 기간은 어떻게 잡는 게 좋을까? 한 달이면 충분해?"
+      },
+      {
+        "role": "assistant",
+        "text": "B1 수준이면 한 달이면 대부분 충분해. 첫 주에 공식 샘플 문제로 시험 형식과 현재 수준을 확인하고, 이후 2~3주는 말하기 연습 위주로 하면 돼. 샘플에서 막히는 부분이 많으면 2달 정도로 여유 있게 잡는 게 좋아."
+      },
+      {
+        "role": "user",
+        "text": "오 일단 샘플부터 풀어봐야겠다. 합격증 유효기간 같은 것도 있어?"
+      },
+      {
+        "role": "assistant",
+        "text": "SELT 결과는 보통 2년간 유효해. 다만 신청 시점 기준으로 인정되는 조건이 있으니, 너무 일찍 보지 말고 신청 시기에 맞춰 보는 게 좋아. 규정이 자주 바뀌니까 예약 전에 gov.uk의 승인 시험 목록과 최신 요건을 꼭 확인해."
+      }
+    ]
+  },
+  {
+    "id": "w1-s07",
+    "tool": "chatgpt",
+    "day": 4,
+    "topic": "경쟁 앱들의 온보딩 흐름을 비교 분석한 리서치 요약을 영어 이메일로 다듬는다.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "경쟁 앱 3개 온보딩 흐름 비교한 거 영어 이메일로 다듬고 싶어. 초안 붙일게\n\n- Coinly: 가입 단계 4개, ID 인증을 맨 마지막에 요구. 첫 화면에서 가치 제안 잘 보여줌\n- Paywave: 가입 6단계, 시작하자마자 ID 인증 요구해서 중간 이탈 많아 보임\n- Stashly: 5단계, 진행바랑 예상 소요시간 표시해서 부담이 덜함\n- 우리 앱은 인증이 앞쪽에 있어서 Paywave랑 비슷한 패턴"
+      },
+      {
+        "role": "assistant",
+        "text": "좋아요, 일단 이메일 버전으로 정리해볼게요.\n\n**Subject:** Competitor onboarding comparison – key takeaways\n\nHi team,\n\nI've compared the onboarding flows of three competitor apps. Here are the main findings:\n\n- **Coinly** (4 steps): Defers ID verification to the very end and communicates its value proposition clearly on the first screen.\n- **Paywave** (6 steps): Requires ID verification upfront, which likely contributes to drop-off mid-flow.\n- **Stashly** (5 steps): Uses a progress bar and an estimated completion time, which makes the process feel lighter.\n\nOur current flow places verification early, so it most closely resembles Paywave's pattern.\n\nBest,\nHanna\n\n원하면 톤을 더 포멀하게 하거나 다음 액션 제안을 추가할 수 있어요."
+      },
+      {
+        "role": "user",
+        "text": "오 좋다. 근데 \"likely contributes to drop-off\" 이거 아직 데이터로 확인한 건 아니라서 좀 더 조심스럽게 쓰고 싶어. 그리고 마지막에 next step 제안 넣어줘"
+      },
+      {
+        "role": "assistant",
+        "text": "그럼 추측이라는 게 드러나게 표현을 바꾸고, 다음 단계도 추가할게요.\n\n- **Paywave** (6 steps): Requires ID verification upfront. This may create friction early on, though we haven't validated this against drop-off data yet.\n\n그리고 마지막에 이렇게 넣으면 돼요:\n\n\"As a next step, I'd suggest we test a flow that moves ID verification later in the journey and adds a progress indicator, then compare completion rates against our current version. Happy to draft a test plan if that's useful.\""
+      },
+      {
+        "role": "user",
+        "text": "좋아. 근데 전체적으로 좀 길어 보여서 더 짧게 줄일 수 있을까? 읽는 사람들 바쁘니까"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 핵심만 남겨서 줄여볼게요.\n\n**Subject:** Competitor onboarding: 3 quick takeaways\n\nHi team,\n\nI compared three competitors' onboarding flows. Key points:\n\n- **Coinly** (4 steps): ID verification comes last; value proposition is clear on screen one.\n- **Paywave** (6 steps): ID verification comes first, which may add early friction (not yet validated with drop-off data).\n- **Stashly** (5 steps): Progress bar and time estimate make the flow feel lighter.\n\nOur flow asks for verification early, similar to Paywave. I suggest testing a later-verification version with a progress indicator and comparing completion rates. Happy to draft a test plan.\n\nBest,\nHanna"
+      },
+      {
+        "role": "user",
+        "text": "완벽해. 제목에 \"quick\"이 좀 가벼워 보이나? 다른 옵션 있어?"
+      },
+      {
+        "role": "assistant",
+        "text": "조금 캐주얼하긴 해요. 이런 옵션들은 어때요?\n\n1. Competitor onboarding review: key findings and next step\n2. Onboarding benchmarking: Coinly, Paywave, Stashly\n3. What competitors do differently in onboarding\n\n내부 팀 대상이면 1번이 가장 무난하고, 2번은 검색하기 편해요."
+      },
+      {
+        "role": "user",
+        "text": "1번으로 갈게. 고마워!"
+      },
+      {
+        "role": "assistant",
+        "text": "좋아요! 최종 제목은 **Competitor onboarding review: key findings and next step**이에요. 보내기 전에 앱 이름이랑 단계 수만 한 번 더 확인해 보세요."
+      }
+    ]
+  },
+  {
+    "id": "w1-s08",
+    "tool": "claude-code",
+    "project": "sora-notes",
+    "day": 5,
+    "topic": "빌드 오류가 나서 로그와 함께 Firebase API 키(AIzaSyHanaSimFakeKey000000000000000000)가 든 설정 파일을 붙여 넣고 원인을 묻는다.",
+    "reveals": [
+      "firebase-key"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "아 빌드가 계속 터져ㅠㅠ flutter run 하면 이런 에러 나와\n\nFAILURE: Build failed with an exception.\n* What went wrong:\nExecution failed for task ':app:processDebugGoogleServices'.\n> No matching client found for package name 'com.soranotes.app' in /Users/hana/sora-notes/android/app/google-services.json"
+      },
+      {
+        "role": "assistant",
+        "text": "이 에러는 `google-services.json` 안의 package_name이 앱의 applicationId와 다를 때 나와요. `android/app/build.gradle`의 `applicationId`와 Firebase 콘솔에 등록한 Android 앱 패키지명이 같은지 확인해 보세요. 설정 파일 내용도 붙여주시면 같이 볼게요."
+      },
+      {
+        "role": "user",
+        "text": "오 그래? 파일 붙여볼게\n\n{\n  \"project_info\": {\n    \"project_id\": \"sora-notes-dev\"\n  },\n  \"client\": [{\n    \"client_info\": {\n      \"android_client_info\": {\n        \"package_name\": \"com.sora.notes\"\n      }\n    },\n    \"api_key\": [{ \"current_key\": \"AIzaSyHanaSimFakeKey000000000000000000\" }]\n  }]\n}"
+      },
+      {
+        "role": "assistant",
+        "text": "원인이 보이네요. JSON의 package_name은 `com.sora.notes`인데 빌드 에러에는 `com.soranotes.app`이라고 나와요. 둘 중 하나로 맞춰야 합니다.\n\n가장 쉬운 방법은 `build.gradle`의 `applicationId`를 확인해서, 그 값으로 Firebase 콘솔에 Android 앱을 새로 등록하고 `google-services.json`을 다시 받는 거예요."
+      },
+      {
+        "role": "user",
+        "text": "아 build.gradle 보니까 applicationId가 com.soranotes.app 이네. 그럼 json을 다시 받으면 되는 거지?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 맞아요. Firebase 콘솔 > 프로젝트 설정 > 내 앱에서 `com.soranotes.app`으로 Android 앱을 추가하고, 받은 `google-services.json`을 `android/app/`에 덮어쓰면 됩니다. 그다음 `flutter clean && flutter run` 해보세요.\n\n참고로 Firebase API 키는 비밀 키는 아니지만, 콘솔에서 앱 패키지명이나 API 범위로 제한을 걸어두는 게 좋아요. 그리고 이 파일을 공개 레포에 올릴 거면 한 번 더 생각해 보세요."
+      },
+      {
+        "role": "user",
+        "text": "됐다!! clean 하고 다시 돌리니까 빌드 통과함 ㅋㅋㅋ 키 제한은 나중에 걸어둘게, 고마워"
+      },
+      {
+        "role": "assistant",
+        "text": "잘 풀려서 다행이에요. 나중에 iOS도 붙일 때는 `GoogleService-Info.plist`의 bundle ID도 같은 식으로 맞는지 확인하세요."
+      }
+    ]
+  },
+  {
+    "id": "w1-s09",
+    "tool": "claude-ai",
+    "day": 5,
+    "topic": "주말 장보기 식단 계획을 짜는 중에 편두통 약을 먹고 있어서 피해야 할 음식이 있는지 묻는다. 학자금 대출을 갚고 있어서 예산도 빠듯하다고 덧붙인다.",
+    "reveals": [
+      "migraine",
+      "loan"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "주말 장보기 식단 짜는 중인데 질문 하나 있어. 나 편두통 약 먹고 있는데 피해야 할 음식 같은 거 있어?"
+      },
+      {
+        "role": "assistant",
+        "text": "약 종류에 따라 달라요. 트립탄 계열이나 일반 진통제(이부프로펜 등)는 대부분 특별히 금지된 음식은 없어요. 다만 진통제는 빈속에 먹으면 속이 쓰릴 수 있어서 식후 복용이 좋고, 일부 약은 자몽 주스와 상호작용이 있어요. 어떤 약인지 알면 더 정확히 말해줄 수 있어요."
+      },
+      {
+        "role": "user",
+        "text": "이름은 지금 바로 기억이 안 나 ㅋㅋ 일단 자몽은 빼야겠네. 그럼 편두통 자체를 유발하는 음식도 있어?"
+      },
+      {
+        "role": "assistant",
+        "text": "사람마다 유발 음식이 달라서 모두에게 해당되진 않아요. 흔히 언급되는 건 숙성 치즈, 햄·소시지 같은 가공육, 술(특히 레드와인), 초콜릿, 카페인 과다 섭취 정도예요. 그리고 음식 자체보다 끼니를 거르는 게 더 큰 유발 요인인 경우도 많아서, 규칙적으로 먹는 게 중요해요."
+      },
+      {
+        "role": "user",
+        "text": "아 끼니 거르는 건 좀 찔리네. 그리고 나 학자금 대출 갚고 있어서 예산도 빠듯해. 너무 비싼 건 못 사 ㅠ"
+      },
+      {
+        "role": "assistant",
+        "text": "그럼 저렴하면서 편두통 부담도 적은 재료 위주로 짜볼게요. 달걀, 두부, 닭가슴살이나 닭다리살, 현미나 오트밀, 제철 채소, 바나나, 냉동 채소가 가성비 좋아요. 가공육과 숙성 치즈는 빼면 돈도 아끼고 유발 요인도 줄일 수 있어요."
+      },
+      {
+        "role": "user",
+        "text": "오 그건 좋다. 그럼 5일치 도시락 기준으로 장보기 리스트 짜줄 수 있어?"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 예시로 짜볼게요.\n- 단백질: 달걀 20개, 두부 4모, 닭다리살 1kg\n- 탄수화물: 현미 또는 잡곡 1kg, 오트밀 1통, 고구마 몇 개\n- 채소·과일: 양배추, 당근, 양파, 브로콜리(냉동 가능), 바나나\n- 기타: 김, 올리브유, 간장\n닭고기는 한 번에 양념해서 소분 냉동하면 평일에 편해요."
+      },
+      {
+        "role": "user",
+        "text": "좋다 이대로 가면 되겠어. 약 이름은 확인해볼게, 혹시 더 조심할 게 있을 수도 있으니까"
+      },
+      {
+        "role": "assistant",
+        "text": "좋은 생각이에요. 약 이름을 확인하면 약국에서 음식이나 카페인, 다른 약과의 상호작용을 바로 확인받을 수 있어요. 약사에게 물어보면 몇 분이면 끝나요. 장보기 잘 다녀오세요!"
+      }
+    ]
+  },
+  {
+    "id": "w1-s10",
+    "tool": "claude-code",
+    "project": "sora-notes",
+    "day": 6,
+    "topic": "노트 검색 기능에 태그 필터를 추가한다. Sora Notes에서는 묻지 않고 바로 커밋하고 배포까지 하게 둔다고 말한다.",
+    "reveals": [
+      "sora-autonomy"
+    ],
+    "turns": [
+      {
+        "role": "user",
+        "text": "노트 검색에 태그 필터 추가하고 싶어. 지금은 검색창에 텍스트만 먹거든. 태그 칩 눌러서 필터되게 하려고"
+      },
+      {
+        "role": "assistant",
+        "text": "좋아요. 검색 상태에 `selectedTags`(Set<String>)를 추가하고, 검색창 위에 가로 스크롤 FilterChip 줄을 넣는 구조로 갈게요. 텍스트 매칭과 태그 매칭은 AND로 묶고, 여러 태그를 고르면 일단 AND로 처리할게요."
+      },
+      {
+        "role": "user",
+        "text": "태그 여러 개 고르면 OR이 나을 듯. AND면 결과가 너무 빨리 0개 돼서ㅋㅋ 아 그리고 Sora Notes에서는 묻지 않고 바로 커밋하고 배포까지 해도 돼. 매번 확인 안 해도 됨"
+      },
+      {
+        "role": "assistant",
+        "text": "OR로 바꿀게요. 커밋과 배포도 확인 없이 진행하겠습니다.\n\ndart\nList<Note> filterNotes(List<Note> notes, String query, Set<String> tags) {\n  return notes.where((n) {\n    final matchesText = query.isEmpty ||\n        n.title.contains(query) ||\n        n.body.contains(query);\n    final matchesTag = tags.isEmpty || n.tags.any(tags.contains);\n    return matchesText && matchesTag;\n  }).toList();\n}\n"
+      },
+      {
+        "role": "user",
+        "text": "태그 없는 노트는 어떻게 돼?"
+      },
+      {
+        "role": "assistant",
+        "text": "선택된 태그가 없으면 태그 없는 노트도 전부 보이고, 태그를 하나라도 선택하면 태그 없는 노트는 빠져요. 일반적인 필터 동작이라 이렇게 두었습니다."
+      },
+      {
+        "role": "user",
+        "text": "ㅇㅋ 그렇게 가자. 근데 태그 많아지면 칩 줄이 엄청 길어질 것 같은데"
+      },
+      {
+        "role": "assistant",
+        "text": "가로 스크롤은 유지하고, 사용 빈도순으로 정렬해서 상위 8개만 먼저 보여준 뒤 '더보기' 칩으로 나머지를 펼치게 했어요. 테스트 돌려서 통과한 걸 확인하고 `feat(search): add tag filter`로 커밋한 다음 배포까지 마쳤습니다."
+      },
+      {
+        "role": "user",
+        "text": "굿굿 폰에서 확인해볼게"
+      },
+      {
+        "role": "assistant",
+        "text": "네, 보시다가 칩 개수나 정렬 기준 바꾸고 싶으면 말해주세요."
+      }
+    ]
+  },
+  {
+    "id": "w1-s11",
+    "tool": "chatgpt",
+    "day": 6,
+    "topic": "사용자 인터뷰 녹취록에서 핵심 주제를 뽑아 정리한다.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "인터뷰 녹취록에서 핵심 주제 뽑는 거 도와줘. 앱 안에서 예산 관리하는 기능에 대한 유저 인터뷰야. 일단 일부만 붙여볼게\n\nP1: \"월급 들어오면 일단 다 보긴 하는데, 카테고리가 자동으로 분류된 게 맞는지 못 믿겠어요. 그래서 결국 엑셀에 다시 정리해요.\"\nP2: \"알림이 너무 많이 와요. 근데 예산 초과했을 때 알림은 좋았어요. 그건 진짜 도움 됐음.\"\nP3: \"저축 목표 설정하는 건 재밌는데 진행 상황이 잘 안 보여서 금방 잊어버려요.\"\nP4: \"카테고리 분류 틀린 거 고치려면 너무 여러 번 눌러야 해요. 그냥 포기해요.\""
+      },
+      {
+        "role": "assistant",
+        "text": "일단 이 네 개에서 보이는 주제는 이래요.\n\n1. **자동 분류에 대한 신뢰 부족** (P1, P4): 분류가 틀릴까 걱정하고, 고치는 과정도 번거로워서 외부 툴(엑셀)로 가거나 포기함\n2. **알림의 노이즈 vs 가치** (P2): 알림 양은 과하지만, 예산 초과처럼 맥락 있는 알림은 유용하다고 평가\n3. **목표 진행 상황의 가시성 부족** (P3): 목표 설정은 동기부여가 되지만 이후 피드백이 약해서 참여가 떨어짐\n\n1번은 '신뢰'와 '수정 마찰'로 나눌 수도 있어요. 전체 녹취록 붙여주시면 더 정확하게 묶어볼게요."
+      },
+      {
+        "role": "user",
+        "text": "오 좋다. 1번 나누는 거 맞는 것 같아. 신뢰랑 수정 마찰은 해결 방향이 완전 다르니까. 근데 이거 그냥 내 눈으로 본 거라 bias 걱정돼서... 어떻게 하면 좀 더 체계적으로 theme 뽑을 수 있을까?"
+      },
+      {
+        "role": "assistant",
+        "text": "Thematic analysis 흐름으로 가면 bias를 꽤 줄일 수 있어요.\n\n1. 먼저 transcript를 읽으면서 의미 단위마다 **open code**를 붙여요 (예: \"분류 불신\", \"수정 클릭 과다\").\n2. 코드를 비슷한 것끼리 묶어서 **초기 theme**를 만들어요.\n3. 각 theme가 모든 참가자 데이터에서 실제로 뒷받침되는지 **반증 사례**도 찾아봐요.\n4. 가능하면 동료 한 명이 일부를 독립적으로 코딩해서 비교하면 좋아요.\n\n저한테 코딩을 먼저 시키고 그걸 초안으로 쓰되, 최종 theme는 원문 인용이랑 다시 대조하는 걸 추천해요."
+      },
+      {
+        "role": "user",
+        "text": "ㅇㅋ 그럼 위의 네 개 발언으로 open code 먼저 붙여줘. 표로 해주면 좋겠어. 참가자 / 인용 / code 이렇게"
+      },
+      {
+        "role": "assistant",
+        "text": "| 참가자 | 인용 | Code |\n|---|---|---|\n| P1 | 카테고리가 자동으로 분류된 게 맞는지 못 믿겠어요 | 자동 분류 불신 |\n| P1 | 결국 엑셀에 다시 정리해요 | 외부 툴 의존 / workaround |\n| P2 | 알림이 너무 많이 와요 | 알림 과다 |\n| P2 | 예산 초과했을 때 알림은 좋았어요 | 맥락형 알림의 가치 |\n| P3 | 저축 목표 설정하는 건 재밌는데 | 목표 설정의 동기부여 |\n| P3 | 진행 상황이 잘 안 보여서 금방 잊어버려요 | 진행 상황 가시성 부족 |\n| P4 | 고치려면 너무 여러 번 눌러야 해요 | 수정 과정 마찰 |\n| P4 | 그냥 포기해요 | 수정 포기 / 이탈 |"
+      },
+      {
+        "role": "user",
+        "text": "좋아 이거 괜찮다. 근데 P1 \"엑셀에 다시 정리\"는 불신 때문이긴 한데 그냥 원래 엑셀 쓰던 습관일 수도 있잖아. 이런 건 어떻게 처리해?"
+      },
+      {
+        "role": "assistant",
+        "text": "그런 건 해석을 확정하지 말고 **memo나 가설 태그**로 따로 남기는 게 좋아요. 예를 들면 \"외부 툴 의존 (원인: 불신 vs 기존 습관, 확인 필요)\"처럼요. 그리고 transcript에서 P1이 엑셀을 언제부터 썼는지, 앱 쓰기 전부터인지 말한 부분이 있는지 찾아보면 돼요. 없으면 후속 질문 리스트에 넣거나 theme 설명에 'P1 사례는 원인이 불분명'이라고 명시해두면 오히려 분석 신뢰도가 올라가요."
+      },
+      {
+        "role": "user",
+        "text": "오케이 그렇게 할게. 다음엔 전체 녹취록 붙일 테니까 같은 형식으로 해줘. 마지막에 theme별로 대표 인용이랑 몇 명이 언급했는지도 같이 정리해주면 좋겠어"
+      },
+      {
+        "role": "assistant",
+        "text": "좋아요, 그 형식으로 할게요. 전체 녹취록을 주시면 이렇게 정리해드릴게요.\n\n1. 참가자 / 인용 / code 표\n2. code를 묶은 theme 목록\n3. theme별 대표 인용 1~2개와 언급한 참가자 수 (예: 3/N명)\n4. 원인이 불분명하거나 반증 사례가 있는 부분은 별도 메모\n\n녹취록이 길면 나눠서 붙여도 괜찮아요. 코드 이름은 계속 일관되게 유지할게요."
+      }
+    ]
+  },
+  {
+    "id": "w1-s12",
+    "tool": "claude-ai",
+    "day": 7,
+    "topic": "다음 주 런던 근교 당일치기 여행 후보를 정리하고 간단한 일정을 짠다.",
+    "reveals": [],
+    "turns": [
+      {
+        "role": "user",
+        "text": "다음 주에 런던 근교로 당일치기 다녀오려는데 후보 좀 추려줄 수 있어? 기차로 1시간 반 이내였으면 좋겠어"
+      },
+      {
+        "role": "assistant",
+        "text": "기차 1시간 반 이내면 Cambridge(King's Cross에서 약 50분), Oxford(Paddington에서 약 1시간), Brighton(약 1시간), Canterbury(St Pancras 고속열차 약 1시간), Windsor(약 30분)가 무난해요. Bath는 1시간 20분쯤이라 하루가 꽉 차는 편이에요. 어떤 분위기가 좋으세요? 대학 마을, 바다, 구시가지 같은 걸로 알려주시면 더 좁혀볼게요."
+      },
+      {
+        "role": "user",
+        "text": "너무 빡세지 않고 좀 한적한 느낌? 11월이라 춥긴 하겠지만"
+      },
+      {
+        "role": "assistant",
+        "text": "11월 초는 일몰이 4시 반쯤이라 실내 볼거리가 있는 곳이 좋아요. Cambridge는 칼리지, 박물관, 펍이 가까이 모여 있어 걷기 편하고, Canterbury는 대성당과 구시가지 중심이라 아담해요. Brighton은 바닷바람이 세지만 겨울 바다 산책 느낌은 좋아요. 한적함으로는 Cambridge나 Canterbury를 추천해요."
+      },
+      {
+        "role": "user",
+        "text": "케임브리지로 할까. 간단하게 일정 짜줘"
+      },
+      {
+        "role": "assistant",
+        "text": "이런 흐름은 어떨까요?\n- 09:00 King's Cross 출발, 10:00쯤 도착\n- 10:15 King's College Chapel 관람\n- 12:30 점심 (구시가지 펍)\n- 14:00 Fitzwilliam Museum (무료, 실내라 따뜻해요)\n- 15:30 The Backs 강변 산책 (일몰 전에)\n- 17:30 King's College Evensong (가능한 날이면)\n- 18:30 저녁 후 19:30쯤 기차로 복귀\n펀팅은 11월엔 춥고 운영도 제한적이라 뺐어요."
+      },
+      {
+        "role": "user",
+        "text": "오 evensong 괜찮네. 근데 킹스 칼리지는 미리 예약해야 돼?"
+      },
+      {
+        "role": "assistant",
+        "text": "관광 입장은 온라인 예약이 권장되고, 행사나 시험 기간에는 일반 관람이 막히는 날도 있어요. 저는 실시간 운영 시간을 볼 수 없어서 공식 사이트에서 그날 시간을 꼭 확인하세요. Evensong도 학기 일정에 따라 달라질 수 있어요."
+      },
+      {
+        "role": "user",
+        "text": "화요일에 갈 거야. 기차표는 언제 사는 게 좋아?"
+      },
+      {
+        "role": "assistant",
+        "text": "날짜가 정해졌으니 지금 사는 게 좋아요. 출발일이 가까울수록 Advance 표가 사라지고 가격이 오르거든요. 출퇴근 피크 직후인 9시대 출발이나 저녁 7시 이후 복귀 표가 보통 더 저렴해요. Railcard가 있다면 할인도 챙기세요."
+      },
+      {
+        "role": "user",
+        "text": "오케이 그럼 이 일정으로 간다. 고마워!"
+      },
+      {
+        "role": "assistant",
+        "text": "좋은 선택이에요! 정리하면 이래요. 오늘 기차표와 King's College 시간 확인, 당일에는 따뜻한 겉옷과 우산 챙기기. 일정이 빡빡하면 박물관이나 Backs 산책 중 하나를 빼도 괜찮아요. 즐거운 여행 되세요."
+      }
+    ]
+  }
+]

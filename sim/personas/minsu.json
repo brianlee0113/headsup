@@ -1,6 +1,6 @@
 {
   "id": "minsu",
-  "split": "holdout",
+  "split": "seen",
   "language": "ko",
   "who": "이민수, 뷰티 브랜드 오롯의 퍼포먼스 마케터. 코딩은 하지 않는다. 회사 일은 ChatGPT, 개인 일(베이킹 부업, 일본어 공부)은 claude.ai에서 한다.",
   "tools": {

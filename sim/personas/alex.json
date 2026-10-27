@@ -1,6 +1,6 @@
 {
   "id": "alex",
-  "split": "holdout",
+  "split": "seen",
   "language": "en",
   "who": "Alex, a senior backend engineer at Halcyon, a logistics company, on the routing team. Writes Go at work in Claude Code; builds a personal Rust project (Tidepool) in Codex; asks everyday things in ChatGPT. Keeps work and personal strictly apart.",
   "tools": {
