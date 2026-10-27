@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "headsup",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Gives your AI a heads-up before it answers: context from your other AI tools, added when it helps.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAulW+5TP4uWfvgokuX6NzRdcuBo9coIfY+QlwdZXlPF45fQ/HRrSdpmuqCBuoxCreMJUGHZDrbMbS2/chOlLVKDO107tMsWsbGt44PJTzIHgPOpql3nASAqvwOz0HKT00ReoScqtV069RvThPXiUuYJ/k1dy8ywXkZZvnAGFYEqOlPzuvG0RtQ+1OMcyr2YqkocWcSmSZ9QfDGXn7rX6Ocwo/AmVjWaSxrOtuPy6xifKpwe7pqh/9bV5sK7YDwTjA2gBq6LKS1TzllgpzSsLpQapkKQ0oH8rJ3PZkk5mlXtrLaUY95jZpJd1Dz78IwZIKEZ97Dn1HBGUFsZfYaB0uEwIDAQAB",
   "permissions": [
