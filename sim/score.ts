@@ -3,6 +3,7 @@
 // needed facts arrive), and a blind answer comparison (same prompt with and without the notes).
 // Counting is done in code; the judge model only labels.
 //   pnpm tsx sim/score.ts <run-id> <persona> [<persona> …]
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { renderNotes } from '../src/hooks/claude-code.js';
@@ -32,14 +33,22 @@ const truth = (p: Persona, week: number) =>
   p.items.map((i) => `- ${i.id} [${i.type}, ${i.space}${i.confidential ? ', confidential' : ''}${i.sensitive ? `, sensitive:${i.sensitive}` : ''}${i.key ? ', key' : ''}]: ${itemText(i, week)}${i.changes && week >= i.changes.week ? ` (was: ${i.text})` : ''}`).join('\n');
 const noteLine = (n: Note) => `- ${n.id} [${n.type}, ${n.space}, from ${n.source}${n.project ? `/${n.project}` : ''}] ${n.body}`;
 
-async function audit(p: Persona, week: number, notes: Note[]): Promise<Audit> {
+function auditPrompt(p: Persona, week: number, notes: Note[]): { system: string; user: string } {
   const system = `You audit a memory store against the ground truth about a fictional person (as of week ${week}). Return ONLY JSON:
 {"notes": [{"id": "<note id>", "items": ["<ground-truth ids this note expresses>"], "verdict": "accurate|wrong|stale|junk|unlisted", "typeOk": true, "spaceOk": true, "duplicateOf": "<earlier note id saying the same thing, or null>"}], "covered": ["<key ground-truth ids that some accurate note expresses with its current value>"]}
 - accurate: true per the ground truth now. wrong: contradicts it. stale: was true but a later value replaced it. junk: a one-off task detail, temporary state, trivia, or a codebase internal (which library, endpoint, service or logging setup one repo uses, how one endpoint behaves) not worth remembering (even if true).
 - unlisted: a lasting habit, preference or fact about the PERSON that the ground truth doesn't mention and nothing in it contradicts, worth remembering for later requests in other tools (how they write tickets, format reports, run meetings, choose libraries). Not junk just because it is missing from the ground truth; but a codebase internal is junk.
 - typeOk: "how" notes are habits and preferences, "fact" notes are facts. spaceOk: the note's space matches the item's space (work/personal); for junk use true; for unlisted, judge from what the note is about.
 - Every note gets exactly one entry.`;
-  return askJson<Audit>('sonnet', system, `GROUND TRUTH:\n${truth(p, week)}\n\nNOTES:\n${notes.map(noteLine).join('\n')}`);
+  return { system, user: `GROUND TRUTH:\n${truth(p, week)}\n\nNOTES:\n${notes.map(noteLine).join('\n')}` };
+}
+
+// A saved audit is reused only for the exact notes, ground truth and rubric it judged: its key is a hash
+// of the whole prompt, so a changed rubric or a memory copied from another run is audited again.
+const AUDIT_MODEL = 'sonnet';
+const auditKey = (prompt: { system: string; user: string }) => createHash('sha256').update(`${AUDIT_MODEL}\n${prompt.system}\n${prompt.user}`).digest('hex').slice(0, 16);
+async function audit(prompt: { system: string; user: string }): Promise<Audit> {
+  return askJson<Audit>(AUDIT_MODEL, prompt.system, prompt.user);
 }
 
 interface Usefulness { probes: Array<{ id: string; useful: string[]; coversNeeds: boolean }> }
@@ -97,6 +106,8 @@ const pct = (x: number) => (Number.isNaN(x) ? '—' : `${Math.round(x * 100)}%`)
 const median = (xs: number[]) => (xs.length ? [...xs].sort((x, y) => x - y)[Math.floor(xs.length / 2)]! : 0);
 const p95 = (xs: number[]) => (xs.length ? [...xs].sort((x, y) => x - y)[Math.min(xs.length - 1, Math.floor(xs.length * 0.95))]! : 0);
 
+const auditUse: string[] = []; // which audits were judged now and which were reused, for the report
+
 async function scorePersona(run: string, id: string, fast = false) {
   const p = loadPersona(id);
   const out = (f: string) => join(outDir(run, id), f);
@@ -110,11 +121,15 @@ async function scorePersona(run: string, id: string, fast = false) {
     // Audits depend only on the notes, so they are saved and reused when the same memory is scored again
     // (fast mode, or a redetect run copied from this one).
     const audits: Audit[] = [];
-    for (let i = 0; i < REPS.audit; i++) {
+    const prompt = auditPrompt(p, week, notes);
+    const key = auditKey(prompt);
+    for (let i = 0; i < (fast ? 1 : REPS.audit); i++) {
       const file = out(`audit-w${week}-${i}.json`);
-      const a = existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as Audit) : fast && i > 0 ? null : await audit(p, week, notes);
-      if (!a) break;
-      writeFileSync(file, JSON.stringify(a, null, 2));
+      const cached = existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as Audit & { key?: string }) : null;
+      const reuse = cached?.key === key;
+      const a = reuse ? cached! : await audit(prompt);
+      if (!reuse) writeFileSync(file, JSON.stringify({ ...a, key }, null, 2));
+      auditUse.push(`${id} w${week} #${i}: ${reuse ? 'cached' : 'new'}`);
       audits.push(a);
     }
     // Every judged result is saved as it arrives, so a run stopped by the budget resumes where it left off.
@@ -339,6 +354,7 @@ function report(run: string, scores: Score[], fast: boolean): string {
     if (s.missedCases.length) lines.push('**Needed but missed**', ...s.missedCases.map((v) => `- ${v}`), '');
   }
   lines.push(`Judge calls: ${usage.calls}, $${usage.usd.toFixed(2)} at API prices (run on the user's own Claude login).`);
+  lines.push(`Audits: ${auditUse.join(' · ')}`);
   return lines.join('\n') + '\n';
 }
 

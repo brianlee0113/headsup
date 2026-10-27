@@ -1,6 +1,8 @@
 // One `claude -p` call that must answer with JSON, through the user's own Claude login, with no
 // tools, saved session or settings (so no headsup hooks fire inside the simulation).
 import { spawn } from 'node:child_process';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { CAPTURING_ENV } from '../src/capture.js';
 
 export type Model = 'haiku' | 'sonnet';
@@ -10,14 +12,39 @@ export const usage = { calls: 0, usd: 0 };
 // quietly using up the plan: SIM_MAX_CALLS calls or SIM_MAX_USD at API-equivalent prices, whichever first.
 const MAX_CALLS = Number(process.env.SIM_MAX_CALLS ?? 600);
 const MAX_USD = Number(process.env.SIM_MAX_USD ?? 10);
+// Those limits reset with each process, so a campaign of several runs also has one shared ceiling:
+// SIM_CAMPAIGN names it (any word), and every process adds its calls to sim/out/campaign-<name>.json until
+// SIM_CAMPAIGN_MAX_CALLS / SIM_CAMPAIGN_MAX_USD.
+const CAMPAIGN = process.env.SIM_CAMPAIGN;
+const campaignFile = CAMPAIGN ? join(new URL('.', import.meta.url).pathname, 'out', `campaign-${CAMPAIGN.replace(/[^\w-]/g, '_')}.json`) : '';
+const CAMPAIGN_MAX_CALLS = Number(process.env.SIM_CAMPAIGN_MAX_CALLS ?? 600);
+const CAMPAIGN_MAX_USD = Number(process.env.SIM_CAMPAIGN_MAX_USD ?? 10);
+const readCampaign = (): { calls: number; usd: number } => {
+  try {
+    return JSON.parse(readFileSync(campaignFile, 'utf8')) as { calls: number; usd: number };
+  } catch {
+    return { calls: 0, usd: 0 };
+  }
+};
 export class BudgetError extends Error {}
 export function record(usd: number): void {
   usage.calls++;
   usage.usd += usd;
+  if (campaignFile) {
+    const c = readCampaign();
+    mkdirSync(dirname(campaignFile), { recursive: true });
+    writeFileSync(campaignFile, JSON.stringify({ calls: c.calls + 1, usd: c.usd + usd }));
+  }
 }
 export function checkBudget(): void {
   if (usage.calls >= MAX_CALLS || usage.usd >= MAX_USD) {
     throw new BudgetError(`budget reached: ${usage.calls} calls, $${usage.usd.toFixed(2)} (limits ${MAX_CALLS} calls, $${MAX_USD}); raise SIM_MAX_CALLS / SIM_MAX_USD to go on`);
+  }
+  if (campaignFile) {
+    const c = readCampaign();
+    if (c.calls >= CAMPAIGN_MAX_CALLS || c.usd >= CAMPAIGN_MAX_USD) {
+      throw new BudgetError(`campaign "${CAMPAIGN}" budget reached: ${c.calls} calls, $${c.usd.toFixed(2)} (limits ${CAMPAIGN_MAX_CALLS} calls, $${CAMPAIGN_MAX_USD})`);
+    }
   }
 }
 
