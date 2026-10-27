@@ -1,0 +1,9 @@
+{
+  "invented": [
+    {
+      "session": "w2-s04",
+      "claim": "We use jest for tests (the ground truth says the person uses Vitest)"
+    }
+  ],
+  "missing": []
+}

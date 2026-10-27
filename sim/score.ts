@@ -190,7 +190,11 @@ async function scorePersona(run: string, id: string, fast = false) {
       const added = rs.flatMap((r) => r.inject.filter((n) => !planted.has(n.id)).map((n) => ({ r, n })));
       return ratio(added.filter(({ r, n }) => helped(r, n)).length, added.length);
     };
-    return { covers, helped, precision: precisionOf(all), recall: ratio(needed.filter(covers).length, needed.length), recallAdded: ratio(needed.filter(coversAdded).length, needed.length), byWeek: perWeek.map((w) => precisionOf(w.results)) };
+    // A probe can be caught only if every item it needs has an accurate note that week; misses where
+    // memory lacks it (or the generated chats contradicted it) are capture's, not detection's.
+    const inMemory = new Map(perWeek.map((w) => [w.week, new Set([...mapping].filter(([k]) => k.startsWith(`${w.week}:`)).flatMap(([, v]) => v))]));
+    const eligible = needed.filter((r) => r.probe.needs.every((iid) => inMemory.get(r.week)?.has(iid)));
+    return { covers, helped, precision: precisionOf(all), recall: ratio(needed.filter(covers).length, needed.length), recallAdded: ratio(needed.filter(coversAdded).length, needed.length), recallEligible: ratio(eligible.filter(covers).length, eligible.length), eligible: eligible.length, byWeek: perWeek.map((w) => precisionOf(w.results)) };
   };
   const readings = Array.from({ length: Math.max(...perWeek.map((w) => w.audits.length)) }, (_, i) => reading(i));
 
@@ -276,6 +280,8 @@ async function scorePersona(run: string, id: string, fast = false) {
     notePrecision: range(readings.map((x) => x.precision)),
     neededRecall: range(readings.map((x) => x.recall)),
     neededAdded: range(readings.map((x) => x.recallAdded)),
+    neededEligible: range(readings.map((x) => x.recallEligible)),
+    eligibleCount: readings[0]!.eligible,
     neededCount: needed.length, // one probe is 1/neededCount of recall
     unlisted: memoryRange('unlisted'),
     missedCases: needed.filter((r) => !readings[0]!.covers(r)).map((r) => `${r.probe.id} "${r.probe.prompt}" needs ${r.probe.needs.join(', ')}`),
@@ -316,6 +322,8 @@ function report(run: string, scores: Score[], fast: boolean): string {
   row(fast ? '2 Added notes that helped (fast: only notes carrying a listed need)' : '2 Added notes that helped', `≥ ${pct(T.notePrecision)}`, (s) => s.notePrecision, T.notePrecision, true);
   row('3 Needed moments caught (added or offered)', `≥ ${pct(T.neededRecall)}`, (s) => s.neededRecall, T.neededRecall, true, (r) => show(r));
   row('3 … of those, added without asking', 'shown', (s) => s.neededAdded, 0, true);
+  row('3 … caught where memory held what was needed', 'shown', (s) => s.neededEligible, 0, true);
+  lines.push(`| … needed probes whose notes were in memory | | ${scores.map((s) => `${s.eligibleCount} of ${s.neededCount}`).join(' | ')} |`);
   lines.push(`| … needed probes (one = this many points) | | ${scores.map((s) => `${s.neededCount} (${(100 / s.neededCount).toFixed(1)}pp)`).join(' | ')} |`);
   row('4 Answer better with notes', `≥ ${pct(T.better)}`, (s) => s.better, T.better, true, (r) => `${show(r)}`);
   row('4 Answer worse with notes', `≤ ${pct(T.worse)}`, (s) => s.worse, T.worse, false);

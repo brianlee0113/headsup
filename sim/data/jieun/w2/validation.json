@@ -1,0 +1,33 @@
+{
+  "invented": [
+    {
+      "session": "w2-s02",
+      "claim": "Ran 10km yesterday (Saturday) and runs about 3 times a week"
+    },
+    {
+      "session": "w2-s08",
+      "claim": "The half marathon is 4 weeks away"
+    },
+    {
+      "session": "w2-s09",
+      "claim": "Team consists of 3 developers (민수, 서연, 태호), one designer, QA 준호; current sprint ends November 7"
+    },
+    {
+      "session": "w2-s11",
+      "claim": "Has a race coming up soon and brings lunch boxes on weekdays"
+    },
+    {
+      "session": "w2-s04",
+      "claim": "Wants last working day in the last week of November; start date confirmed as first week of December"
+    },
+    {
+      "session": "w2-s05",
+      "claim": "Works with an overseas payment partner contact named Mark, meeting originally Thursday 3 PM"
+    },
+    {
+      "session": "w2-s01",
+      "claim": "Funnel completion rate fell from 42.1% to 38.7% after a Tuesday app update"
+    }
+  ],
+  "missing": []
+}
