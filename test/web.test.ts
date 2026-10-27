@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { describe, expect, it } from 'vitest';
+import { launcherPath } from '../src/launcher.js';
 import { encode, EARLIER_EXTENSION_IDS, EXTENSION_ID, HOST_NAME, installNativeHost, readMessage, uninstallNativeHost } from '../src/native.js';
 import { buildHeadsUps } from '../src/review/model.js';
 import { BLOCK_MARKER, buildBlock, splitBlock, type WebNote } from '../src/shared/block.js';
@@ -55,7 +56,7 @@ describe('native messaging', () => {
     expect(m).toMatchObject({ name: HOST_NAME, type: 'stdio', path: r.script, allowed_origins: [EXTENSION_ID, ...EARLIER_EXTENSION_IDS].map((id) => `chrome-extension://${id}/`) }); // earlier installs keep working
     expect(statSync(r.script).mode & 0o111).toBeTruthy();
     expect(readFileSync(r.script, 'utf8')).toMatch(/native-host "\$@"/);
-    expect(readFileSync(r.script, 'utf8')).toContain(`export HEADSUP_HOME='${home}'`); // Chrome starts it without our env
+    expect(readFileSync(launcherPath(home), 'utf8')).toContain(`export HEADSUP_HOME='${home}'`); // Chrome starts it without our env
     expect(uninstallNativeHost(dirs)).toBe(2);
   });
 });

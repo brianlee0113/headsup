@@ -13,7 +13,7 @@ import { cardPage } from './card-page.js';
 import { headsupHome, loadConfig, saveConfig } from './config.js';
 import { learningOn, readBook, resting } from './learning.js';
 import { handleUserPromptSubmit, type UserPromptSubmitInput } from './hooks/claude-code.js';
-import { hooksPath, uninstallHook } from './install.js';
+import { hooksPath, moveToLauncher, uninstallHook } from './install.js';
 import { recheckSpaces, startRecheck } from './spaces.js';
 import { browserHostDirs, encode, EXTENSION_ID, installNativeHost, readMessage, uninstallNativeHost } from './native.js';
 import { handleWeb, type WebRequest } from './web.js';
@@ -255,6 +255,13 @@ async function main(argv: string[]): Promise<number> {
         spawn(process.execPath, [process.argv[1]!, ...args], { detached: true, stdio: 'ignore' }).unref();
       }
       startRecheck(store, config);
+      if (agent === 'claude-code') {
+        try {
+          moveToLauncher(store.home);
+        } catch {
+          /* a settings file we can't parse is left alone; setup says why */
+        }
+      }
       const out = handleUserPromptSubmit(input, store, config, agent);
       if (out) process.stdout.write(JSON.stringify(out));
       return 0;

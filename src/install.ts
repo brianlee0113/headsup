@@ -2,11 +2,11 @@
 // The file belongs to the user, so this only ever touches headsup's own entry, keeps a one-time
 // backup, and refuses to rewrite a file it cannot parse.
 
-import { spawnSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { shellQuote } from './config.js';
+import { headsupHome } from './config.js';
+import { writeLauncher } from './launcher.js';
 
 interface HookEntry {
   matcher?: string;
@@ -35,18 +35,11 @@ export function codexHooksPath(): string {
 
 export const hooksPath = (target: HookTarget) => (target === 'codex' ? codexHooksPath() : claudeSettingsPath());
 
-// Prefer the installed binary; fall back to npx (slower, but survives cache cleanup) and, when run
-// from a checkout, to this very file. A custom HEADSUP_HOME goes along, since hooks run without it.
-export function hookCommand(target: HookTarget = 'claude-code'): string {
-  const env = process.env.HEADSUP_HOME ? `HEADSUP_HOME=${shellQuote(process.env.HEADSUP_HOME)} ` : '';
-  return `${env}${binary()} hook ${target}`;
-}
-
-function binary(): string {
-  if (spawnSync('sh', ['-c', 'command -v headsup'], { encoding: 'utf8' }).stdout.trim()) return 'headsup';
-  const self = process.argv[1] ? realpathSync(process.argv[1]) : '';
-  if (!self || self.includes('/_npx/')) return 'npx -y headsup-ai';
-  return `"${process.execPath}" "${self}"`;
+// Hooks start headsup through the launcher in its home (launcher.ts), which finds Node and headsup
+// again on every run, so a Node switch or reinstall doesn't break the entry. Writing the command also
+// (re)writes the launcher.
+export function hookCommand(target: HookTarget = 'claude-code', home = headsupHome()): string {
+  return `"${writeLauncher(home)}" hook ${target}`;
 }
 
 function read(path: string): Settings {
@@ -107,3 +100,16 @@ export function uninstallHook(target: HookTarget, path = hooksPath(target)): boo
   write(path, settings);
   return true;
 }
+
+// An entry written before the launcher names a Node binary by path; the first hook run after an update
+// moves it over, touching only headsup's own entry. Claude Code only: Codex trusts a hook by its exact
+// command, so changing it there would switch the hook off until the person trusts it again (setup does
+// that one, and says so).
+export function moveToLauncher(home = headsupHome(), path = claudeSettingsPath()): boolean {
+  const settings = read(path);
+  const entry = oursIn(settings, 'UserPromptSubmit', 'claude-code');
+  if (!entry || entry.command.includes('/bin/headsup" hook ')) return false;
+  installHook('claude-code', hookCommand('claude-code', home), path);
+  return true;
+}
+

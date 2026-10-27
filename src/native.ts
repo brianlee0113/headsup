@@ -2,12 +2,11 @@
 // host, writes one length-prefixed JSON message to stdin and reads one reply from stdout. No server,
 // no open port; the host exits after answering.
 
-import { spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, platform } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { Readable } from 'node:stream';
-import { shellQuote } from './config.js';
+import { writeLauncher } from './launcher.js';
 
 export const HOST_NAME = 'ai.headsup.host';
 // Fixed by the public key in extension/manifest.json, so the host can trust exactly this extension.
@@ -50,22 +49,13 @@ export function browserHostDirs(home = homedir(), os = platform()): string[] {
   return base.filter((dir) => existsSync(dir)).map((dir) => join(dir, 'NativeMessagingHosts'));
 }
 
-// Chrome runs the host path with no arguments of ours, so a tiny launcher script carries them.
-function launcher(): string {
-  if (spawnSync('sh', ['-c', 'command -v headsup'], { encoding: 'utf8' }).stdout.trim()) return 'exec headsup native-host "$@"';
-  const self = process.argv[1] ? realpathSync(process.argv[1]) : '';
-  // npx's cache can be cleared at any time, so a run from npx goes through npx again.
-  if (!self || self.includes('/_npx/')) return 'exec npx -y headsup-ai native-host "$@"';
-  return `exec "${process.execPath}" "${self}" native-host "$@"`;
-}
-
 export function installNativeHost(headsupHome: string, dirs = browserHostDirs()): { script: string; manifests: string[] } {
   const script = join(headsupHome, 'native-host');
   mkdirSync(dirname(script), { recursive: true });
-  // Chrome starts the host without our environment, so the launcher names the home it belongs to,
-  // and keeps this shell's PATH so account sync can find `claude` to summarize with.
-  const env = [`export HEADSUP_HOME=${shellQuote(headsupHome)}`, ...(process.env.PATH ? [`export PATH=${shellQuote(process.env.PATH)}`] : [])];
-  writeFileSync(script, `#!/bin/sh\n${env.join('\n')}\n${launcher()}\n`);
+  // Chrome runs the host path with no arguments and without our environment, so this goes through
+  // the launcher (launcher.ts), which names the home, keeps this shell's PATH so account sync can find
+  // `claude`, and finds Node again on every run.
+  writeFileSync(script, `#!/bin/sh\nexec "${writeLauncher(headsupHome)}" native-host "$@"\n`);
   chmodSync(script, 0o755);
   const manifest = {
     name: HOST_NAME,

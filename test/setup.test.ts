@@ -1,9 +1,11 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config.js';
-import { hookCommand, installHook, isInstalled, uninstallHook } from '../src/install.js';
+import { hookCommand, installHook, isInstalled, moveToLauncher, uninstallHook } from '../src/install.js';
+import { launcherPath, launcherScript } from '../src/launcher.js';
 import { runSetup, USAGE_EXAMPLE } from '../src/setup.js';
 import { parseUsage } from '../src/usage.js';
 
@@ -170,14 +172,29 @@ describe('Codex hooks', () => {
 });
 
 describe('hook command', () => {
-  it('carries a custom HEADSUP_HOME, since Claude Code runs hooks without it', () => {
-    const before = process.env.HEADSUP_HOME;
-    process.env.HEADSUP_HOME = "/tmp/it's here";
-    try {
-      expect(hookCommand()).toMatch(/^HEADSUP_HOME='\/tmp\/it'\\''s here' .*hook claude-code$/);
-    } finally {
-      if (before === undefined) delete process.env.HEADSUP_HOME;
-      else process.env.HEADSUP_HOME = before;
-    }
+  it('goes through the launcher in the headsup home, which names that home', () => {
+    const home = join(tmp(), "it's here");
+    expect(hookCommand('claude-code', home)).toBe(`"${launcherPath(home)}" hook claude-code`);
+    expect(readFileSync(launcherPath(home), 'utf8')).toContain(`export HEADSUP_HOME='${home.replace(/'/g, "'\\''")}'`);
+  });
+
+  it('moves an entry that names a Node binary over to the launcher, once', () => {
+    const home = tmp();
+    const path = join(tmp(), 'settings.json');
+    installHook('claude-code', '"/Users/me/.nvm/versions/node/v23.6.1/bin/node" "/Users/me/.nvm/versions/node/v23.6.1/lib/node_modules/headsup-ai/dist/cli.js" hook claude-code', path);
+    expect(moveToLauncher(home, path)).toBe(true);
+    expect(json(path).hooks.UserPromptSubmit[0].hooks[0].command).toBe(`"${launcherPath(home)}" hook claude-code`);
+    expect(json(path).hooks.SessionEnd).toHaveLength(1);
+    expect(moveToLauncher(home, path)).toBe(false);
+  });
+
+  it('still starts headsup after the Node it was written with is gone', () => {
+    const dir = tmp();
+    const cli = join(dir, 'cli.js');
+    writeFileSync(cli, 'console.log(["ran", ...process.argv.slice(2)].join(" "))');
+    const file = join(dir, 'headsup');
+    writeFileSync(file, launcherScript(dir, '/nowhere/.nvm/versions/node/v20.0.0/bin/node', cli, process.env.PATH));
+    chmodSync(file, 0o755);
+    expect(execFileSync(file, ['hook', 'claude-code'], { encoding: 'utf8' }).trim()).toBe('ran hook claude-code');
   });
 });
