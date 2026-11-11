@@ -42,6 +42,15 @@ describe('a kind of work already under way', () => {
   });
 });
 
+describe('learning', () => {
+  it('never rests the standing answer-style note', () => {
+    const style = note({ scope: 'general', body: 'Leads with the conclusion, then bullets' });
+    const habit = note({ scope: 'task', applies: ['commit message'], body: 'Keeps commit messages to one line' });
+    const d = detect({ prompt: 'write the commit message', agent: 'claude-code', cwd: '/tmp', knownText: '', notes: [style, habit], config: DEFAULT_CONFIG, fresh: true, resting: new Set([style.id, habit.id]) });
+    expect(d.inject.map((n) => n.id)).toEqual([style.id]);
+  });
+});
+
 describe('rescope', () => {
   const store = () => new Store(mkdtempSync(join(tmpdir(), 'headsup-scope-')));
 

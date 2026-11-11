@@ -165,7 +165,10 @@ export function detect(input: DetectInput): Decision {
 
   const known = projectNames(input.notes);
   const pool = input.notes
-    .filter((n) => !input.resting?.has(n.id) && !input.given?.has(n.id) && !givesOrders(n.body))
+    // Learning rests a note the answers didn't draw on. That fits a note picked for one prompt, not the
+    // standing answer-style notes, which shape every answer without being quoted in any (and which the
+    // learning before scopes did set aside for exactly that).
+    .filter((n) => !(input.resting?.has(n.id) && n.scope !== 'general') && !input.given?.has(n.id) && !givesOrders(n.body))
     .map((note) => ({ note, at: scopeOf(note, known) }));
   if (!pool.length) return decision;
   // Other names this folder's project goes by, as the notes have it (a renamed repo, a product name).
