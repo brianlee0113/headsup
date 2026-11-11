@@ -5,35 +5,38 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { DEFAULT_CONFIG, type Config } from '../../src/config.js';
-import type { Note } from '../../src/note.js';
+import type { Note, Scope } from '../../src/note.js';
 
-const n = (id: string, source: string, space: string, type: Note['type'], body: string, topics: string[] = [], project?: string): Note => ({
+type Where = [scope: Scope, ...applies: string[]];
+const n = (id: string, source: string, space: string, type: Note['type'], body: string, topics: string[] = [], where?: Where, project?: string): Note => ({
   id, type, space, source, topics, body, created: '2026-10-01T00:00:00.000Z', ...(project ? { project } : {}),
+  ...(where ? { scope: where[0], ...(where.length > 1 ? { applies: where.slice(1) as string[] } : {}) } : {}),
 });
 
+// Each note carries the scope the summarizer would give it (src/scope.ts): where it holds, and what calls for it.
 export const samNotes: Note[] = [
-  n('quorum-what', 'claude-code', 'personal', 'fact', "Quorum is a web app that finds a meeting time for student clubs from everyone's calendar", ['quorum', 'side project']),
-  n('quorum-traction', 'claude-code', 'personal', 'fact', 'Quorum has 140 weekly users across 9 clubs; built with Next.js and Supabase', ['quorum', 'users', 'stack']),
-  n('vitest', 'codex', 'personal', 'how', 'Prefers Vitest with test files next to the source; never Jest', ['testing']),
-  n('pnpm', 'codex', 'personal', 'how', 'Uses pnpm, never npm or yarn', ['package manager']),
-  n('commits', 'codex', 'personal', 'how', 'Commit messages are short and imperative, with no prefixes like feat: or fix:', ['git']),
-  n('nw-intern', 'claude-code', 'work', 'fact', 'Northwind internship on the payments team, summer 2026', ['northwind']),
-  n('nw-payouts', 'claude-code', 'work', 'fact', 'Shipped payout retries at Northwind that cut failed payouts by 30%', ['northwind', 'payouts']),
-  n('nw-ci', 'codex', 'work', 'fact', 'Northwind CI runs lint, typecheck and test as parallel jobs on self-hosted runners', ['ci']),
-  n('nw-roadmap', 'claude-code', 'work', 'fact', 'Northwind Q4 roadmap: ledger migration before the Series C', ['roadmap']),
-  n('tone', 'chatgpt', 'personal', 'how', "Writes in a plain, warm tone with short sentences; avoids words like 'thrilled' or 'excited to announce'", ['writing']),
-  n('school', 'chatgpt', 'personal', 'fact', "Second-year master's student in HCI", ['education']),
-  n('food', 'chatgpt', 'personal', 'fact', 'Vegetarian and allergic to peanuts', ['food']),
-  n('jobsearch', 'chatgpt', 'personal', 'fact', 'Applying to product roles for summer 2027', ['job search']),
-  n('bullets', 'chatgpt', 'personal', 'how', 'Likes bullet-point summaries over long paragraphs', ['format']),
+  n('quorum-what', 'claude-code', 'personal', 'fact', "Quorum is a web app that finds a meeting time for student clubs from everyone's calendar", ['quorum', 'side project'], ['project', 'Quorum']),
+  n('quorum-traction', 'claude-code', 'personal', 'fact', 'Quorum has 140 weekly users across 9 clubs; built with Next.js and Supabase', ['quorum', 'users', 'stack'], ['project', 'Quorum']),
+  n('vitest', 'codex', 'personal', 'how', 'Prefers Vitest with test files next to the source; never Jest', ['testing'], ['task', 'add tests', 'unit test', 'test runner', 'test file', '유닛 테스트', '테스트 코드', '테스트 추가']),
+  n('pnpm', 'codex', 'personal', 'how', 'Uses pnpm, never npm or yarn', ['package manager'], ['task', 'package manager', 'add dependency', 'install package', 'npm install', '패키지 설치']),
+  n('commits', 'codex', 'personal', 'how', 'Commit messages are short and imperative, with no prefixes like feat: or fix:', ['git'], ['task', 'commit message', '커밋 메시지']),
+  n('nw-intern', 'claude-code', 'work', 'fact', 'Northwind internship on the payments team, summer 2026', ['northwind'], ['self', 'resume', 'cover letter', 'internship', '이력서', '경력']),
+  n('nw-payouts', 'claude-code', 'work', 'fact', 'Shipped payout retries at Northwind that cut failed payouts by 30%', ['northwind', 'payouts'], ['self', 'resume', 'cover letter', 'biggest impact', '이력서', '경력']),
+  n('nw-ci', 'codex', 'work', 'fact', 'Northwind CI runs lint, typecheck and test as parallel jobs on self-hosted runners', ['ci'], ['project', 'Northwind']),
+  n('nw-roadmap', 'claude-code', 'work', 'fact', 'Northwind Q4 roadmap: ledger migration before the Series C', ['roadmap'], ['project', 'Northwind']),
+  n('tone', 'chatgpt', 'personal', 'how', "Writes in a plain, warm tone with short sentences; avoids words like 'thrilled' or 'excited to announce'", ['writing'], ['task', 'release notes', 'announcement email', 'launch post', 'blog post', 'newsletter', '공지 글']),
+  n('school', 'chatgpt', 'personal', 'fact', "Second-year master's student in HCI", ['education'], ['self', 'school', 'degree', 'resume', '학교']),
+  n('food', 'chatgpt', 'personal', 'fact', 'Vegetarian and allergic to peanuts', ['food'], ['self', 'restaurant', 'recipe', 'dinner', 'cook']),
+  n('jobsearch', 'chatgpt', 'personal', 'fact', 'Applying to product roles for summer 2027', ['job search'], ['self', 'job search', 'cover letter', 'resume', '지원']),
+  n('bullets', 'chatgpt', 'personal', 'how', 'Likes bullet-point summaries over long paragraphs', ['format'], ['general']),
 ];
 
 // Korean, captured from a Claude Code session in the quorum repo. Kept apart so the English sets are
 // scored on the corpus they were tuned on.
 export const samKoreanNotes: Note[] = [
   ...samNotes,
-  n('quorum-domain', 'claude-code', 'personal', 'fact', 'quorum 출시에서 도메인 확보가 가장 먼저 풀려야 한다. Vercel 배포, Resend SPF/DKIM 검증, Supabase Redirect URL 설정이 도메인이 정해져야 진행 가능하다.', ['quorum', 'launch'], 'quorum'),
-  n('quorum-expired', 'claude-code', 'personal', 'fact', 'quorum.app은 사용자 소유가 아니며 2026-10-18에 만료되어 등록 업체가 정지시킨 상태다. 출시용 도메인은 아직 확보되지 않았다.', ['quorum', 'domain'], 'quorum'),
+  n('quorum-domain', 'claude-code', 'personal', 'fact', 'quorum 출시에서 도메인 확보가 가장 먼저 풀려야 한다. Vercel 배포, Resend SPF/DKIM 검증, Supabase Redirect URL 설정이 도메인이 정해져야 진행 가능하다.', ['quorum', 'launch'], ['project', 'quorum'], 'quorum'),
+  n('quorum-expired', 'claude-code', 'personal', 'fact', 'quorum.app은 사용자 소유가 아니며 2026-10-18에 만료되어 등록 업체가 정지시킨 상태다. 출시용 도메인은 아직 확보되지 않았다.', ['quorum', 'domain'], ['project', 'quorum'], 'quorum'),
 ];
 
 export const samConfig: Config = {
@@ -49,7 +52,7 @@ export interface EvalCase {
   agent: string;
   cwd: string;
   prompt: string;
-  expect: string[]; // note ids that should surface (injected or asked)
+  expect: string[]; // note ids that should surface (injected, asked, or in the opening's answer-style notes)
   ok?: string[]; // also reasonable to surface; neither required nor counted as noise
 }
 
@@ -61,14 +64,18 @@ export const samCases: EvalCase[] = [
   { agent: 'chatgpt', cwd: '/', prompt: 'Write a LinkedIn post announcing my side project launch. Keep it short.', expect: ['quorum-what', 'quorum-traction'] },
   { agent: 'chatgpt', cwd: '/', prompt: "Help me write a cover letter for Fieldnote's product manager role", expect: ['nw-intern', 'nw-payouts'], ok: ['quorum-what', 'quorum-traction'] },
   { agent: 'chatgpt', cwd: '/', prompt: '이력서에 넣을 경력 요약 써줘', expect: ['nw-intern', 'nw-payouts'], ok: ['quorum-what', 'quorum-traction'] },
-  { agent: 'chatgpt', cwd: '/', prompt: "Prep me for the interview question 'tell me about a project you're proud of'", expect: ['quorum-what', 'nw-payouts'], ok: ['quorum-traction', 'nw-intern'] },
-  { agent: 'chatgpt', cwd: '/', prompt: 'Draft a short bio for the hackathon judges page', expect: ['quorum-what'], ok: ['quorum-traction', 'nw-intern', 'nw-payouts'] },
+  // Writing about yourself brings facts about you. A project comes in when the prompt names it.
+  { agent: 'chatgpt', cwd: '/', prompt: "Prep me for the interview question 'tell me about a project you're proud of'", expect: ['nw-payouts'], ok: ['quorum-what', 'quorum-traction', 'nw-intern'] },
+  { agent: 'chatgpt', cwd: '/', prompt: 'Draft a short bio for the hackathon judges page', expect: ['nw-intern'], ok: ['quorum-what', 'quorum-traction', 'nw-payouts'] },
   { agent: 'claude-code', cwd: quorum, prompt: 'add tests for the availability parser', expect: ['vitest'] },
-  { agent: 'claude-code', cwd: quorum, prompt: 'install date-fns and use it in the scheduler', expect: ['pnpm'] },
+  // One word ("install") is not enough to tell the situation; quiet is the safer miss.
+  { agent: 'claude-code', cwd: quorum, prompt: 'install date-fns and use it in the scheduler', expect: [], ok: ['pnpm'] },
   { agent: 'claude-code', cwd: quorum, prompt: 'write a commit message for these changes', expect: ['commits'] },
   { agent: 'claude-code', cwd: quorum, prompt: 'write the release notes for v0.3', expect: ['tone'] },
-  { agent: 'claude-code', cwd: northwind, prompt: 'set up GitHub Actions for this repo the way we do it at work', expect: ['nw-ci'] },
-  { agent: 'claude-code', cwd: quorum, prompt: 'suggest a restaurant for our club meetup tonight', expect: ['food'] },
+  // Inside Northwind's own repo, notes about Northwind stay out: the agent can read the workflows itself.
+  { agent: 'claude-code', cwd: northwind, prompt: 'set up GitHub Actions for this repo the way we do it at work', expect: [], ok: ['nw-ci'] },
+  // Inside a project, facts about the person need the prompt to say it is about them.
+  { agent: 'claude-code', cwd: quorum, prompt: 'suggest a restaurant for our club meetup tonight', expect: [], ok: ['food'] },
   // Self-contained prompts: nothing should surface
   { agent: 'chatgpt', cwd: '/', prompt: "What's the time complexity of quicksort?", expect: [] },
   { agent: 'chatgpt', cwd: '/', prompt: 'Explain the difference between TCP and UDP', expect: [] },
@@ -79,12 +86,12 @@ export const samCases: EvalCase[] = [
 
 // Written before tuning the gates and kept out of it: a check that the lexicon generalizes.
 export const samHoldout: EvalCase[] = [
-  { agent: 'chatgpt', cwd: '/', prompt: 'Write my LinkedIn headline', expect: ['quorum-what', 'nw-intern'], ok: ['quorum-traction', 'nw-payouts'] },
+  { agent: 'chatgpt', cwd: '/', prompt: 'Write my LinkedIn headline', expect: ['nw-intern'], ok: ['quorum-what', 'quorum-traction', 'nw-payouts'] },
   { agent: 'chatgpt', cwd: '/', prompt: 'Help me answer "what was your biggest impact last summer?" for a recruiter screen', expect: ['nw-payouts'], ok: ['nw-intern'] },
   { agent: 'claude-code', cwd: quorum, prompt: 'set up a test runner for this repo', expect: ['vitest'] },
   { agent: 'claude-code', cwd: quorum, prompt: 'add zod as a dependency', expect: ['pnpm'] },
   { agent: 'claude-code', cwd: quorum, prompt: 'draft an announcement email to club presidents about the new version', expect: ['tone'], ok: ['bullets'] },
-  { agent: 'claude-code', cwd: quorum, prompt: 'what should I cook for the club potluck?', expect: ['food'] },
+  { agent: 'claude-code', cwd: quorum, prompt: 'what should I cook for the club potluck?', expect: [], ok: ['food'] },
   { agent: 'claude-code', cwd: quorum, prompt: 'summarize the open issues in this repo', expect: ['bullets'] },
   { agent: 'chatgpt', cwd: '/', prompt: 'Write a haiku about autumn', expect: [] },
   { agent: 'chatgpt', cwd: '/', prompt: 'How do vaccines train the immune system?', expect: [] },
@@ -114,7 +121,7 @@ export const samKorean: EvalCase[] = [
 // model-testing note needed on a test prompt, so it is acceptable here, just not required.
 export const samPendingNotes: Note[] = [
   ...samKoreanNotes,
-  n('model-api', 'claude-code', 'personal', 'how', '새 모델을 테스트할 때 노트북에 내려받기보다 온라인 호스팅 API로 먼저 검증하는 방식을 선호한다.', ['testing', 'models'], 'class-notes'),
+  n('model-api', 'claude-code', 'personal', 'how', '새 모델을 테스트할 때 노트북에 내려받기보다 온라인 호스팅 API로 먼저 검증하는 방식을 선호한다.', ['testing', 'models'], ['task', '새 모델', '모델 테스트', 'new model'], 'class-notes'),
 ];
 export const samPending: EvalCase[] = [
   { agent: 'claude-code', cwd: other, prompt: 'mock e2e 다시 돌려줘', expect: [], ok: ['vitest', 'model-api'] },

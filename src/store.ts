@@ -1,7 +1,7 @@
 import { appendFileSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { parseNote, serializeNote, type Note, type NoteType } from './note.js';
+import { parseNote, serializeNote, type Note, type NoteType, type Scope } from './note.js';
 import { redactSecrets } from './secrets.js';
 
 export interface NewNote {
@@ -12,6 +12,8 @@ export interface NewNote {
   topics?: string[];
   project?: string;
   internal?: boolean;
+  scope?: Scope;
+  applies?: string[];
 }
 
 export interface AddResult {
@@ -46,6 +48,8 @@ export class Store {
       topics: input.topics ?? [],
       created: now.toISOString(),
       ...(input.internal ? { internal: true as const } : {}),
+      ...(input.scope ? { scope: input.scope } : {}),
+      ...(input.applies?.length ? { applies: input.applies } : {}),
       body: text,
     };
     mkdirSync(this.notesDir(note.space), { recursive: true });

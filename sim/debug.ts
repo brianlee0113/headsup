@@ -4,7 +4,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadConfig } from '../src/config.js';
-import { detect, findReferences, findUsageMismatch } from '../src/gap.js';
+import { detect } from '../src/gap.js';
+import { findReferences, findUsageMismatch } from './legacy/gap-0.1.8.js'; // what the 0.1.8 search would have seen
 import type { Note } from '../src/note.js';
 import { NoteIndex } from '../src/search.js';
 import { outDir } from './run.js';

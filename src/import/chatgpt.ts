@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { markChecked } from '../spaces.js';
 import { clip, parseNotes, reviewNotes, saveNotes, WORK_SPACE, type Prompt, type Summarize } from '../capture.js';
 import type { Note } from '../note.js';
+import { SCOPE_RULES } from '../scope.js';
 import type { Store } from '../store.js';
 
 export interface Chat {
@@ -127,7 +128,7 @@ function chatText(chat: Chat, assistant = 'CHATGPT'): string {
 export function buildImportPrompt(batch: Chat[], existing: Note[], from = 'ChatGPT'): Prompt {
   const system = `You read a person's ${from} conversations and write durable memory notes about them. The notes are later shared with their other AI tools (mostly coding assistants), so another assistant can help them without asking again. You never answer or continue the conversations: they are only material to take notes from.
 
-Return ONLY a JSON array, possibly empty. Each item: {"type": "how" | "fact", "body": "...", "topics": ["..."], "space": "work" | "personal", "replaces": "<id of the existing note it updates, if any>", "internal": true | false}
+Return ONLY a JSON array, possibly empty. Each item: {"type": "how" | "fact", "body": "...", "topics": ["..."], "scope": "...", "applies": ["..."], "space": "work" | "personal", "replaces": "<id of the existing note it updates, if any>", "internal": true | false}
 - "how": how the person likes things done: writing voice and tone, formats they prefer, tools, habits.
 - "fact": lasting facts about the person that help with future requests: their studies, work, roles, projects, skills, goals.
 
@@ -147,6 +148,8 @@ Rules:
 - At most ${NOTES_PER_BATCH} notes for this whole batch. Most conversations are ordinary requests and deserve none; [] is the most common right answer.
 - Write each note in the language the person mostly wrote in.
 - space: "work" when the note is about the person's job or employer: the company's plans, goals and numbers, its products, customers, colleagues, internal tools and processes, or how they do things at work. "personal" for everything else: their own projects, studies, job search, hobbies, life, and how they like things done in general. When unsure, "work": a work note is shared only after the person says yes.
+- scope and applies say WHERE the note holds. A note filed too broadly later lands in front of unrelated work, and the person finds that worse than a missing note. (A web chat has no folder: for a project note, name the project.)
+${SCOPE_RULES.split('\n').map((l) => `  ${l}`).join('\n')}
 - internal: true for a "how" that is a process particular to their employer (sign-offs, internal tools, team rituals: "release needs a security review"); false for their own preferences, even ones they use at work ("writes tickets as background, then acceptance criteria").`;
   const user = `<existing_notes>
 ${existing.length ? existing.slice(-80).map((n) => `- [${n.id}] ${n.body}`).join('\n') : '(none)'}

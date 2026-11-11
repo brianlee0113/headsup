@@ -1,6 +1,6 @@
 // What the agent can already see: its own instruction files and the current session transcript.
 
-import { existsSync, readFileSync, statSync, openSync, readSync, closeSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync, openSync, readSync, closeSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 
@@ -34,7 +34,20 @@ export function readAgentContext(agent: string, cwd: string): string {
     for (const name of names) parts.push(readIfExists(join(dir, name)));
     if (dirname(dir) === dir || dir === homedir()) break;
   }
+  parts.push(...agentMemory(agent, cwd));
   return parts.join('\n');
+}
+
+// Claude Code's own memory for a folder (~/.claude/projects/<folder>/memory/*.md): what it wrote down
+// there itself is already in front of it.
+function agentMemory(agent: string, cwd: string): string[] {
+  if (agent !== 'claude-code') return [];
+  const dir = join(homedir(), '.claude', 'projects', resolve(cwd).replace(/[^A-Za-z0-9]/g, '-'), 'memory');
+  try {
+    return readdirSync(dir).filter((f) => f.endsWith('.md')).slice(0, 50).map((f) => readIfExists(join(dir, f)));
+  } catch {
+    return [];
+  }
 }
 
 // Reads the tail of a JSONL transcript and keeps only message text, ignoring tool payloads' structure.
@@ -76,6 +89,33 @@ export function lastReply(path: string | undefined): string {
     }
   }
   return parts.join('\n');
+}
+
+// What the person typed earlier in this conversation, oldest first (the transcript's end; tool results
+// and the agents' own inserts left out). The current prompt is usually not in the file yet.
+export function earlierPrompts(path: string | undefined): string[] {
+  if (!path || !existsSync(path)) return [];
+  const out: string[] = [];
+  for (const line of tailLines(path)) {
+    let e: { type?: string; isMeta?: boolean; isSidechain?: boolean; message?: { content?: unknown }; payload?: { type?: string; role?: string; content?: unknown } };
+    try {
+      e = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (e.type === 'response_item' && e.payload?.type === 'message' && e.payload.role === 'user') {
+      const texts = Array.isArray(e.payload.content) ? (e.payload.content as Array<{ text?: string }>).map((b) => codexUserText(b?.text ?? '')) : [];
+      out.push(...texts.filter(Boolean));
+      continue;
+    }
+    if (e.type !== 'user' || e.isMeta || e.isSidechain) continue;
+    const content = e.message?.content;
+    if (typeof content === 'string') out.push(content);
+    else if (Array.isArray(content) && !content.some((b: { type?: string }) => b?.type === 'tool_result')) {
+      out.push(...(content as Array<{ type?: string; text?: string }>).filter((b) => b?.type === 'text' && b.text).map((b) => b.text!));
+    }
+  }
+  return out;
 }
 
 // Codex sends its own text as user messages: the AGENTS.md instructions, the environment, app state.
@@ -129,7 +169,19 @@ export function projectOf(cwd: string): string {
   if (CODEX_SCRATCH.test(resolve(cwd))) return 'home';
   let dir = resolve(cwd);
   for (;;) {
-    if (existsSync(join(dir, '.git'))) return basename(dir);
+    const dotGit = join(dir, '.git');
+    if (existsSync(dotGit)) {
+      // A linked worktree's .git is a file pointing into the main checkout: same project, other folder.
+      try {
+        if (statSync(dotGit).isFile()) {
+          const main = /^gitdir:\s*(.+?)[\\/]\.git[\\/]worktrees[\\/]/m.exec(readFileSync(dotGit, 'utf8'))?.[1];
+          if (main) return basename(main);
+        }
+      } catch {
+        /* unreadable: the folder's own name will do */
+      }
+      return basename(dir);
+    }
     const parent = dirname(dir);
     if (parent === dir || dir === homedir()) return basename(resolve(cwd)) || 'home';
     dir = parent;

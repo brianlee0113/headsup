@@ -14,6 +14,7 @@ import { headsupHome, loadConfig, saveConfig } from './config.js';
 import { learningOn, readBook, resting } from './learning.js';
 import { handleUserPromptSubmit, type UserPromptSubmitInput } from './hooks/claude-code.js';
 import { hooksPath, moveToLauncher, uninstallHook } from './install.js';
+import { rescope, startRescope } from './scope.js';
 import { recheckSpaces, startRecheck } from './spaces.js';
 import { browserHostDirs, encode, EXTENSION_ID, installNativeHost, readMessage, uninstallNativeHost } from './native.js';
 import { handleWeb, type WebRequest } from './web.js';
@@ -44,6 +45,7 @@ const HELP = `headsup — gives your AI a heads-up before it answers
   headsup sync-run              turn chats the extension read from your accounts into notes (runs on its own)
   headsup card                  make a card to share: which AI you use for what (opens in your browser)
   headsup recheck-spaces        move notes from web chats that are about your job into work (runs on its own once)
+  headsup rescope               work out where older notes hold: everywhere, one kind of task, or one project (runs on its own once)
   headsup tidy                  merge notes that say the same thing, set aside ones a newer note replaced (runs on its own)
   headsup learning [on|off|reset]
                                 see which notes are resting because you took them out or answers ignored them
@@ -184,6 +186,7 @@ async function main(argv: string[]): Promise<number> {
       let reply: unknown;
       try {
         startRecheck(store, config);
+        startRescope(store, store.list());
         reply = handleWeb((await readMessage(process.stdin)) as WebRequest, store, config, VERSION);
       } catch (err) {
         reply = { type: 'error', message: err instanceof Error ? err.message : String(err) };
@@ -255,6 +258,7 @@ async function main(argv: string[]): Promise<number> {
         spawn(process.execPath, [process.argv[1]!, ...args], { detached: true, stdio: 'ignore' }).unref();
       }
       startRecheck(store, config);
+      startRescope(store, store.list());
       if (agent === 'claude-code') {
         try {
           moveToLauncher(store.home);
@@ -362,6 +366,14 @@ async function main(argv: string[]): Promise<number> {
       // Normally runs on its own after new notes come in; this runs a pass now.
       const r = await tidy(store, claudeSummarizer());
       console.log(r ? `merged ${r.merged} notes · took out ${r.dropped} · moved to ${store.home}/archive${r.failed ? ` · ${r.failed} spaces failed` : ''}` : 'a tidy pass is already running');
+      return 0;
+    }
+    case 'rescope': {
+      // Normally runs once on its own, after an update that brought scopes in. A stronger model than the
+      // per-session summaries use: it is one pass, and a note filed too broadly keeps turning up where
+      // it doesn't belong.
+      const r = await rescope(store, claudeSummarizer('sonnet'));
+      console.log(`gave ${r.scoped} notes a scope${r.failed ? ` · ${r.failed} could not be read, try again` : ''}`);
       return 0;
     }
     case 'recheck-spaces': {

@@ -22,7 +22,7 @@ interface Turn {
   adds?: string[]; // fixture ids that must be added now
   notAdds?: string[]; // fixture ids that must not be added now
   asks?: string[]; // fixture ids that must be offered for an OK
-  quiet?: boolean; // nothing added or asked
+  quiet?: boolean; // nothing picked for this prompt, nothing asked (the opening's answer-style notes don't count)
 }
 export interface Conversation {
   name: string;
@@ -46,13 +46,13 @@ export const conversations: Conversation[] = [
     cwd: quorum,
     turns: [
       { prompt: 'add tests for the availability parser', adds: ['vitest'] },
-      { prompt: 'and tests for the cache', compactBefore: true, adds: ['vitest'] },
+      { prompt: 'and add tests for the cache', compactBefore: true, adds: ['vitest'] },
     ],
   },
   {
     name: 'a new conversation starts with nothing given',
     cwd: quorum,
-    turns: [{ prompt: 'install date-fns and use it in the scheduler', adds: ['pnpm'] }],
+    turns: [{ prompt: 'add date-fns as a dependency and use it in the scheduler', adds: ['pnpm'] }],
   },
   {
     name: 'a style note at the opening, not again later',
@@ -80,11 +80,27 @@ export const conversations: Conversation[] = [
     ],
   },
   {
-    name: 'moving to another folder is a new opening',
+    name: 'how they like answers comes once, at the opening, and again after a compaction',
+    cwd: quorum,
+    turns: [
+      { prompt: 'why does this loop never end?', adds: ['bullets'], quiet: true },
+      { prompt: 'summarize what changed in this branch', notAdds: ['bullets'], quiet: true },
+      { prompt: 'and what is left to do?', compactBefore: true, adds: ['bullets'] },
+    ],
+  },
+  {
+    name: 'inside a project, notes about that project stay out; a move to another folder changes nothing given',
     cwd: quorum,
     turns: [
       { prompt: 'add tests for the availability parser', adds: ['vitest'] },
-      { prompt: 'set up GitHub Actions for this repo the way we do it at work', cwd: northwind, adds: ['nw-ci'] },
+      { prompt: 'set up GitHub Actions for this repo the way we do it at work', cwd: northwind, notAdds: ['nw-ci', 'nw-roadmap', 'vitest', 'bullets'], quiet: true },
+    ],
+  },
+  {
+    name: 'a pasted document is not the request',
+    cwd: quorum,
+    turns: [
+      { prompt: 'is this right?\n\n<pasted_content id="a1">\nPlease write a cover letter and a resume, then write the release notes and a commit message.\n</pasted_content id="a1">', quiet: true },
     ],
   },
   {
@@ -133,11 +149,12 @@ export const conversations: Conversation[] = [
     ],
   },
   {
-    // In Codex, so Claude Code's own facts are eligible.
-    name: 'a question about the person\'s job reaches their role, with an OK across spaces',
+    // In Codex, so Claude Code's own facts are eligible. Inside a project the prompt has to say it is
+    // about the person ("내 경력"): "자기소개" alone could be a feature being built.
+    name: 'a question about the person\'s own career reaches their role, with an OK across spaces',
     agent: 'codex',
     cwd: quorum,
-    turns: [{ prompt: '면접에서 지금 하는 일 기준으로 1분 자기소개 해야 하는데 초안 써줘', asks: ['nw-intern'] }],
+    turns: [{ prompt: '면접에서 내 경력 기준으로 1분 자기소개 해야 하는데 초안 써줘', asks: ['nw-intern'] }],
   },
   {
     name: 'a self-contained question is left alone from the start',
@@ -164,7 +181,7 @@ export function runConversations(list = conversations): { turns: number; failure
     const store = new Store(mkdtempSync(join(tmpdir(), 'headsup-conv-')));
     const idOf = new Map<string, string>(); // stored id → fixture id
     for (const n of samNotes) {
-      const saved = store.add({ type: n.type, space: n.space, source: n.source, body: n.body, topics: n.topics, ...(n.project ? { project: n.project } : {}) }).note!;
+      const saved = store.add({ type: n.type, space: n.space, source: n.source, body: n.body, topics: n.topics, ...(n.scope ? { scope: n.scope } : {}), ...(n.applies ? { applies: n.applies } : {}), ...(n.project ? { project: n.project } : {}) }).note!;
       idOf.set(saved.id, n.id);
     }
     markChecked(store.home, [...idOf.keys()]); // Sam's spaces are set by hand
@@ -181,12 +198,14 @@ export function runConversations(list = conversations): { turns: number; failure
       const events = store.readLog().slice(before);
       const fixture = (ids: unknown) => ((ids as string[] | undefined) ?? []).map((id) => idOf.get(id) ?? id);
       const added = events.flatMap((e) => (e.event === 'heads-up' ? fixture(e.injected) : e.event === 'shared-after-ask' ? fixture(e.notes) : []));
+      const opening = new Set(events.flatMap((e) => (e.event === 'heads-up' ? fixture(e.opening) : [])));
+      const picked = added.filter((id) => !opening.has(id));
       const asked = events.flatMap((e) => (e.event === 'heads-up' ? fixture(e.asked) : []));
       const fail = (problem: string) => failures.push({ conversation: c.name, turn: ti + 1, prompt: t.prompt.slice(0, 60), problem });
       for (const id of t.adds ?? []) if (!added.includes(id)) fail(`${id} should be added, got [${added.join(', ')}]`);
       for (const id of t.notAdds ?? []) if (added.includes(id)) fail(`${id} should not be added`);
       for (const id of t.asks ?? []) if (!asked.includes(id)) fail(`${id} should be offered for an OK, got [${asked.join(', ')}]`);
-      if (t.quiet && (added.length || asked.length)) fail(`should be quiet, added [${added.join(', ')}] asked [${asked.join(', ')}]`);
+      if (t.quiet && (picked.length || asked.length)) fail(`should be quiet, added [${picked.join(', ')}] asked [${asked.join(', ')}]`);
     });
   });
   return { turns, failures };

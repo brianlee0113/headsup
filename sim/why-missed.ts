@@ -6,7 +6,8 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { genresOf } from '../src/concepts.js';
 import { loadConfig } from '../src/config.js';
-import { detect, findReferences, findUsageMismatch, givesOrders } from '../src/gap.js';
+import { detect, givesOrders } from '../src/gap.js';
+import { findReferences, findUsageMismatch } from './legacy/gap-0.1.8.js'; // the 0.1.8 reasons, kept for comparison
 import type { Note } from '../src/note.js';
 import { NoteIndex } from '../src/search.js';
 import { loadPersona } from './generate.js';

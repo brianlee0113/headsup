@@ -105,14 +105,14 @@ describe('capture', () => {
 describe('notes from the same tool', () => {
   const note = (project: string | undefined): Note => ({
     id: project ?? 'none', type: 'how', space: 'personal', source: 'claude-code', topics: ['testing'],
-    created: '2026-10-19T00:00:00.000Z', body: 'Prefers Vitest with test files next to the source', ...(project ? { project } : {}),
+    created: '2026-10-19T00:00:00.000Z', body: 'Prefers Vitest with test files next to the source', scope: 'task', applies: ['add tests'], ...(project ? { project } : {}),
   });
 
   it('come back from other projects but not from the one they were written in', () => {
     const repo = join(tmp(), 'northwind');
     mkdirSync(join(repo, '.git'), { recursive: true });
     const d = detect({ prompt: 'add tests like usual', agent: 'claude-code', cwd: repo, knownText: '', notes: [note('quorum'), note('northwind'), note(undefined)], config });
-    expect(d.inject.map((n) => n.id)).toEqual(['quorum']);
+    expect(d.inject.map((n) => n.id).sort()).toEqual(['none', 'quorum']); // not northwind's own
   });
 });
 

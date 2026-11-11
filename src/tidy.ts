@@ -147,6 +147,11 @@ export async function tidy(store: Store, summarize: Summarize, now = new Date())
           body: m.body,
           topics: m.topics.length ? m.topics : [...new Set(parts.flatMap((p) => p.topics))].slice(0, 4),
           ...(projects.size === 1 && parts[0]!.project ? { project: parts[0]!.project } : {}),
+          // Parts that hold in the same place merge into a note that holds there too. When they differ the
+          // merged note is left unscoped (the narrow default) for the next rescope to look at.
+          ...(parts.every((p) => p.scope && p.scope === parts[0]!.scope)
+            ? { scope: parts[0]!.scope!, applies: [...new Set(parts.flatMap((p) => p.applies ?? []))].slice(0, 8) }
+            : {}),
         });
         if (!note) continue; // the merged text was only a secret: keep the originals
         for (const p of parts) archive(store, p, day);

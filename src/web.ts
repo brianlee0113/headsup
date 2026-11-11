@@ -70,6 +70,8 @@ export function handleWeb(req: WebRequest, store: Store, config: Config, version
       if (!agent) return { type: 'error', message: `headsup doesn't know ${req.site}` };
       const d = detect({
         prompt: req.prompt, agent, space: config.defaultSpace, knownText: req.conversation ?? '', notes: withoutPending(store.list(), store.home, config), config,
+        // The first message of a chat is its opening; after that the page's conversation is what came before.
+        fresh: !(req.conversation ?? '').trim(), earlier: req.conversation ?? '',
         ...(learningOn(config) ? { resting: new Set(resting(store.home).keys()) } : {}),
       });
       const reply: DetectReply = {

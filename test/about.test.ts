@@ -9,7 +9,8 @@ import { ABOUT_END, ABOUT_START, aboutBlock, ownText, spliceAbout } from '../src
 import { Store } from '../src/store.js';
 import { handleWeb } from '../src/web.js';
 
-const note = (id: string, over: Partial<Note>): Note => ({ id, type: 'how', space: 'personal', source: 'claude-code', topics: [], created: '2026-10-01', body: `note ${id}`, ...over });
+// Scoped as the summarizer would: a how-you-work note that holds everywhere, a fact about the person.
+const note = (id: string, over: Partial<Note>): Note => ({ id, type: 'how', space: 'personal', source: 'claude-code', topics: [], created: '2026-10-01', body: `note ${id}`, scope: over.type === 'fact' ? 'self' : 'general', ...over });
 
 describe('the About me block', () => {
   const block = aboutBlock(['Writes plainly.', 'Likes a TL;DR first.']);
@@ -67,10 +68,13 @@ describe('what goes in', () => {
     expect(ids).toHaveLength(12);
   });
 
-  it('leaves out a how-you-work rule that names one project', () => {
+  it('holds only what holds everywhere: nothing for one project or one kind of task, nothing unscoped', () => {
     const notes = [
-      note('rule', { body: 'headsup runs in autonomous mode: commit and push without asking', project: 'headsup' }),
-      note('general', { body: 'Answers in Korean', project: 'headsup' }),
+      note('rule', { body: 'headsup runs in autonomous mode: commit and push without asking', project: 'headsup', scope: 'project', applies: ['headsup'] }),
+      note('emails', { body: 'Inquiry emails stay short: one line of context, then the questions', scope: 'task', applies: ['inquiry email'] }),
+      note('general', { body: 'Answers in Korean', project: 'headsup' }), // said in a project, holds everywhere
+      note('project-fact', { type: 'fact', body: 'headsup is a local memory layer', scope: 'project', applies: ['headsup'] }),
+      { ...note('old', { body: 'Prefers tabs' }), scope: undefined } as Note, // saved before scopes: stays out until rescoped
     ];
     expect(aboutLines(notes, DEFAULT_CONFIG, 'chatgpt', 1200).ids).toEqual(['general']);
   });
@@ -91,7 +95,7 @@ describe('what goes in', () => {
 
   it('answers the extension and logs what was written', () => {
     const store = new Store(mkdtempSync(join(tmpdir(), 'headsup-')));
-    const { note: saved } = store.add({ type: 'how', space: 'personal', source: 'claude-code', body: 'Writes plainly.' });
+    const { note: saved } = store.add({ type: 'how', space: 'personal', source: 'claude-code', body: 'Writes plainly.', scope: 'general' });
     expect(handleWeb({ type: 'about-me', site: 'chatgpt.com', room: 1200 }, store, DEFAULT_CONFIG, '0')).toEqual({ type: 'about-me', lines: ['Writes plainly.'], ids: [saved!.id] });
     handleWeb({ type: 'about-written', site: 'chatgpt.com', ids: [saved!.id] }, store, DEFAULT_CONFIG, '0');
     expect(store.readLog().at(-1)).toMatchObject({ event: 'about-me', agent: 'chatgpt', notes: [saved!.id] });

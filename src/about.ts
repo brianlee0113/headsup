@@ -1,5 +1,6 @@
-// Which notes go in the "About me" block: how the person works, and facts from the space the web
-// uses (personal by default), within the sharing preset. Never work facts, never notes marked
+// Which notes go in the "About me" block, the standing channel on the web: how the person likes answers
+// whatever the task ("general" notes), and facts about them from the space the web uses (personal by
+// default), within the sharing preset. Never work facts, never notes marked
 // never-share, and not what came from that same assistant, which already has it.
 //
 // The block is short, so who gets a line matters. Notes answers actually drew on come first, then the
@@ -11,16 +12,16 @@ import type { Config } from './config.js';
 import type { Book } from './learning.js';
 import type { Note } from './note.js';
 import { verdictFor } from './policy.js';
+import { projectNames, scopeOf } from './scope.js';
 import { aboutBlock } from './shared/about.js';
 
 const MAX_LINES = 12;
 const FACT_SEATS = 4; // of MAX_LINES, held for facts while there are any
 const MAX_NOTE_CHARS = 220; // a long note would crowd out several short ones
 
-const GENERIC_FOLDERS = new Set(['developer', 'projects', 'code', 'src', 'work', 'home', 'documents']);
-
 export function aboutLines(notes: Note[], config: Config, agent: string, room: number, book: Book = {}, now = new Date()): { lines: string[]; ids: string[] } {
-  const projects = [...new Set(notes.map((n) => n.project?.toLowerCase()).filter((p): p is string => !!p && p.length > 2 && !GENERIC_FOLDERS.has(p)))];
+  const projects = projectNames(notes);
+  const scope = (n: Note) => scopeOf(n, projects).scope;
   const eligible = notes
     .filter((n) => n.source !== agent && n.body.length <= MAX_NOTE_CHARS)
     // The block sits in the account and goes with every chat, so a note crosses into it only where the
@@ -31,9 +32,10 @@ export function aboutLines(notes: Note[], config: Config, agent: string, room: n
     // An employer's own process ("release needs a security review") would ride along in every chat of a
     // personal account; it still goes into a single request where it fits.
     .filter((n) => !n.internal)
-    // A how-you-work rule that names one project ("headsup runs in autonomous mode") is for that
-    // project's tool, not for every chat in the account.
-    .filter((n) => n.type !== 'how' || !projects.some((p) => n.body.toLowerCase().includes(p)));
+    // The block rides along with every chat in the account, so it holds only what holds everywhere: how
+    // the person likes answers ("general" notes) and who they are ("self" facts). A habit for one kind of
+    // task, or anything about one project, comes in with the prompt it fits instead (gap.ts).
+    .filter((n) => (n.type === 'how' ? scope(n) === 'general' : scope(n) === 'self'));
   const worth = (n: Note) => {
     const e = book[n.id];
     return e ? e.used * 3 + e.shown - e.removed * 5 : 0;

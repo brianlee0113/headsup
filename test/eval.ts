@@ -9,10 +9,14 @@ export function runEval(cases: EvalCase[], notes = samNotes) {
   let extra = 0;
   let surfaced = 0;
   const rows = cases.map((c) => {
-    const d = detect({ prompt: c.prompt, agent: c.agent, cwd: c.cwd, knownText: '', notes, config: samConfig });
-    const got = [...d.inject, ...d.ask, ...d.blocked].map((n) => n.id);
-    const hit = c.expect.filter((id) => got.includes(id));
-    const miss = c.expect.filter((id) => !got.includes(id));
+    // A web chat has no folder: the extension names the space instead.
+    const web = c.agent === 'chatgpt' || c.agent === 'claude-ai';
+    const d = detect({ prompt: c.prompt, agent: c.agent, ...(web ? { space: samConfig.defaultSpace } : { cwd: c.cwd }), knownText: '', notes, config: samConfig });
+    const standing = new Set(d.opening.map((n) => n.id));
+    const served = [...d.inject, ...d.ask, ...d.blocked].map((n) => n.id);
+    const got = served.filter((id) => !standing.has(id)); // picked for this prompt
+    const hit = c.expect.filter((id) => served.includes(id));
+    const miss = c.expect.filter((id) => !served.includes(id));
     const noise = got.filter((id) => !c.expect.includes(id) && !c.ok?.includes(id));
     found += hit.length;
     wanted += c.expect.length;

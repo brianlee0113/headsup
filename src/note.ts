@@ -2,6 +2,15 @@
 
 export type NoteType = 'how' | 'fact';
 
+// Where a note holds, which is not where it was captured (`project` below). Written by the summarizer
+// when the note is saved, or by `headsup rescope` for notes saved before scopes existed.
+//   general: how they like answers and writing, whatever the project or task     (how)
+//   task:    holds for one kind of task, document or audience, in any project     (how)
+//   project: about one project, or a way of working that holds only inside it     (how, fact)
+//   self:    about the person: school, job, goals                                 (fact)
+export type Scope = 'general' | 'task' | 'project' | 'self';
+export const SCOPES: Record<NoteType, Scope[]> = { how: ['general', 'task', 'project'], fact: ['project', 'self'] };
+
 export interface Note {
   id: string;
   type: NoteType;
@@ -12,10 +21,15 @@ export interface Note {
   created: string; // ISO date
   share?: 'never' | 'always';
   internal?: true; // a way of working particular to their employer (approvals, internal tools), not a personal preference
+  scope?: Scope; // where it holds; a note without one stays out of everything but its own project
+  // What calls for it. task and self: short cues a request of that kind would contain ("commit", "문의 메일").
+  // project: the names the project goes by ("headsup").
+  applies?: string[];
   body: string;
 }
 
-const LIST_KEYS = new Set(['topics']);
+const LIST_KEYS = new Set(['topics', 'applies']);
+const listItem = (s: string) => s.replace(/[,\[\]\n]/g, ' ').replace(/\s+/g, ' ').trim();
 
 export function serializeNote(note: Note): string {
   const lines = ['---', `id: ${note.id}`, `type: ${note.type}`, `space: ${note.space}`, `source: ${note.source}`];
@@ -24,6 +38,8 @@ export function serializeNote(note: Note): string {
   lines.push(`created: ${note.created}`);
   if (note.share) lines.push(`share: ${note.share}`);
   if (note.internal) lines.push('internal: true');
+  if (note.scope) lines.push(`scope: ${note.scope}`);
+  if (note.applies?.length) lines.push(`applies: [${note.applies.map(listItem).filter(Boolean).join(', ')}]`);
   lines.push('---', '', note.body.trim(), '');
   return lines.join('\n');
 }
@@ -45,6 +61,8 @@ export function parseNote(text: string): Note {
   const type = str('type');
   if (type !== 'how' && type !== 'fact') throw new Error(`unknown note type "${type}"`);
   const share = str('share');
+  const scope = str('scope') as Scope;
+  const applies = (fields.applies as string[] | undefined) ?? [];
   return {
     id: str('id'),
     type,
@@ -55,6 +73,8 @@ export function parseNote(text: string): Note {
     created: str('created'),
     ...(share === 'never' || share === 'always' ? { share } : {}),
     ...(str('internal') === 'true' ? { internal: true as const } : {}),
+    ...(SCOPES[type].includes(scope) ? { scope } : {}),
+    ...(applies.length ? { applies } : {}),
     body: match[2]!.trim(),
   };
 }

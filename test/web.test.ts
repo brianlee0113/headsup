@@ -65,7 +65,7 @@ describe('web requests', () => {
   const setup = () => {
     const store = new Store(tmp());
     mkdirSync(store.home, { recursive: true });
-    for (const n of samNotes) store.add({ type: n.type, space: n.space, source: n.source, body: n.body, topics: n.topics, ...(n.project ? { project: n.project } : {}) });
+    for (const n of samNotes) store.add({ type: n.type, space: n.space, source: n.source, body: n.body, topics: n.topics, ...(n.scope ? { scope: n.scope } : {}), ...(n.applies ? { applies: n.applies } : {}), ...(n.project ? { project: n.project } : {}) });
     return store;
   };
 
