@@ -124,7 +124,7 @@ export function phraseIn(cue: string, sentences: string[][]): boolean {
   });
 }
 
-// Whether text names a project: its name as consecutive words ("aeo-agent", "class notes"), the last
+// Whether text names a project: its name as consecutive words ("quorum-app", "study planner"), the last
 // one free to carry a Korean particle ("headsup은"). A name in capitals (LINE) must be typed that way,
 // or every "line" would name it.
 export function namesProject(name: string, text: string): boolean {
@@ -145,7 +145,7 @@ export function namesProject(name: string, text: string): boolean {
   return false;
 }
 
-// The same project under two folder names: a second checkout or build copy ("class-notes-build2").
+// The same project under two folder names: a second checkout or build copy ("quorum-build2").
 export function sameProject(a: string | undefined, b: string | undefined): boolean {
   if (!a || !b) return false;
   const [x, y] = [a.toLowerCase(), b.toLowerCase()].sort((p, q) => p.length - q.length) as [string, string];
