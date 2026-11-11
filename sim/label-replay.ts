@@ -9,12 +9,14 @@ import type { Replayed } from './replay-real.js';
 
 const HERE = new URL('.', import.meta.url).pathname;
 const REPLAY = join(HERE, '..', '.local', 'redesign', 'replay.json');
-const LABELS_DIR = '/Users/brianlee0113/Developer/headsup/.local/redesign';
+// The labels live in the main checkout's .local (a worktree has its own, empty one): point there with
+// HEADSUP_LABELS_DIR when running from a worktree.
+const LABELS_DIR = process.env.HEADSUP_LABELS_DIR ?? join(HERE, '..', '.local', 'redesign');
 // Each round labels into its own file (`--out replay-labels-r2.json`); the round-1 file is shown for reference only.
 const OUT = join(LABELS_DIR, process.argv.find((a, i) => process.argv[i - 1] === '--out') ?? 'replay-labels.json');
 const R1 = join(LABELS_DIR, 'replay-labels.json');
 const r1 = OUT !== R1 && existsSync(R1) ? (JSON.parse(readFileSync(R1, 'utf8')) as Record<string, { label: string }>) : {};
-const EARLIER = '/Users/brianlee0113/Developer/headsup/.local/real-labels.json';
+const EARLIER = join(LABELS_DIR, '..', 'real-labels.json');
 
 const STEP = [
   ['needed', '필요했고 노트도 맞음'],

@@ -8,10 +8,10 @@
 // prompt inside the note's scope?" with plain string checks: no model call per prompt.
 
 import { spawn } from 'node:child_process';
-import { mkdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Prompt, Summarize } from './capture.js';
-import { SCOPES, type Note, type Scope } from './note.js';
+import { parseNote, SCOPES, type Note, type Scope } from './note.js';
 import { tokenize } from './search.js';
 import type { Store } from './store.js';
 
@@ -65,18 +65,23 @@ const BLOCKS = [
   /```[\s\S]*?(?:```|$)/g, // code and logs
   /\[(?:Image|Pasted text)[^\]]*\]/g,
   /^#+ Files (?:mentioned|pasted) by the user:[\s\S]*?(?:\n\s*\n|$)/gm, // Codex's list of attachments
-  /\S*[/~\\]\S*/g, // paths and links: a folder called "marketing" in a path is not the person talking about marketing
 ];
+// Paths and links: a folder called "marketing" in a path is not the person talking about marketing. Done
+// per word, not with one /\S*[/~\\]\S*/ pass: on a long unbroken paste (minified JSON, a token) that
+// regex backtracks from every position and took seconds, past the hook's time limit.
+const withoutPaths = (text: string) => text.split(/(\s+)/).map((w) => (/[/~\\]/.test(w) ? ' ' : w)).join('');
 const MAX_TYPED = 1500; // past this a prompt is mostly material, and stray words start matching
 
 // The person's own words in a prompt. Pasted documents, tool output and code are what the request is
 // about; reading them as the request made "About me", "CV" and "resume" in a pasted review or rule book
 // look like the person asking about themselves.
-export function ownWords(prompt: string): string {
+// `max` caps a single prompt; the earlier prompts of a conversation pass a larger one, since what they
+// are checked for (has this kind of work come up yet?) can sit anywhere in them.
+export function ownWords(prompt: string, max = MAX_TYPED): string {
   if (GENERATED.test(prompt)) return '';
   let text = prompt;
   for (const re of BLOCKS) text = text.replace(re, ' ');
-  return text.trim().slice(0, MAX_TYPED);
+  return withoutPaths(text).trim().slice(0, max);
 }
 
 const HANGUL = /[가-힣]/;
@@ -152,6 +157,27 @@ export function sameProject(a: string | undefined, b: string | undefined): boole
 
 const BATCH = 40;
 const RESTART_MS = 10 * 60_000;
+// A note the model still can't scope after this many passes is left to the narrow fallback (it stays
+// quiet), rather than costing a model call every ten minutes for good.
+const MAX_TRIES = 3;
+// A pass older than this is taken to have died; a newer one is still running, and a second waits.
+const LOCK_MS = 30 * 60_000;
+const triesFile = (store: Store) => join(store.home, 'state', 'rescope-tries.json');
+const lockFile = (store: Store) => join(store.home, 'state', 'rescope.lock');
+function readTries(store: Store): Record<string, number> {
+  try {
+    return JSON.parse(readFileSync(triesFile(store), 'utf8')) as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+const running = (store: Store, now: number) => {
+  try {
+    return now - statSync(lockFile(store)).mtimeMs < LOCK_MS;
+  } catch {
+    return false;
+  }
+};
 
 // What each scope means and what goes in `applies`, in the words given to the model: here when sorting
 // older notes, and in the summarizers' prompts (capture.ts, import/chatgpt.ts) when a note is first written.
@@ -224,13 +250,30 @@ export function parseScopeReply(text: string, batch: Note[]): Array<{ scope: Sco
 }
 
 export const unscoped = (notes: Note[]) => notes.filter((n) => !n.scope);
+// Unscoped notes a pass should still try.
+export const toScope = (store: Store, notes: Note[]) => {
+  const tries = readTries(store);
+  return unscoped(notes).filter((n) => (tries[n.id] ?? 0) < MAX_TRIES);
+};
 
 // Looks at every note that has no scope yet and writes one into its file. A batch whose reply can't be
 // read is left as it was and tried again next time; until then those notes keep the narrow fallback.
-export async function rescope(store: Store, summarize: Summarize): Promise<{ scoped: number; failed: number }> {
+export async function rescope(store: Store, summarize: Summarize, now = Date.now()): Promise<{ scoped: number; failed: number; busy?: true }> {
+  if (running(store, now)) return { scoped: 0, failed: 0, busy: true };
+  mkdirSync(join(store.home, 'state'), { recursive: true });
+  writeFileSync(lockFile(store), String(process.pid));
+  try {
+    return await rescopeAll(store, summarize);
+  } finally {
+    rmSync(lockFile(store), { force: true });
+  }
+}
+
+async function rescopeAll(store: Store, summarize: Summarize): Promise<{ scoped: number; failed: number }> {
   const all = store.list();
-  const todo = unscoped(all);
+  const todo = toScope(store, all);
   const projects = projectNames(all);
+  const tries = readTries(store);
   let scoped = 0;
   let failed = 0;
   for (let i = 0; i < todo.length; i += BATCH) {
@@ -243,19 +286,39 @@ export async function rescope(store: Store, summarize: Summarize): Promise<{ sco
     }
     batch.forEach((note, at) => {
       const found = reply[at];
-      if (!found) return void failed++;
-      store.update({ ...note, scope: found.scope, ...(found.applies.length ? { applies: found.applies } : {}) });
+      if (!found) {
+        tries[note.id] = (tries[note.id] ?? 0) + 1;
+        return void failed++;
+      }
+      // The model call took a while: in the meantime tidy may have set the note aside, a recheck moved
+      // it to another space, or a review changed it. Writing the old copy back would undo that.
+      const now = current(store, note);
+      if (!now || now.scope || now.type !== note.type || now.body !== note.body) return;
+      store.update({ ...now, scope: found.scope, ...(found.applies.length ? { applies: found.applies } : {}) });
+      delete tries[note.id];
       scoped++;
     });
   }
+  writeFileSync(triesFile(store), JSON.stringify(tries));
   if (todo.length) store.log({ event: 'rescoped', scoped, failed });
   return { scoped, failed };
+}
+
+// The note as its file has it now, or undefined if it is no longer there.
+function current(store: Store, note: Note): Note | undefined {
+  const file = store.filePath(note);
+  if (!existsSync(file)) return undefined;
+  try {
+    return parseNote(readFileSync(file, 'utf8'));
+  } catch {
+    return undefined;
+  }
 }
 
 // Starts `headsup rescope` in the background when notes are waiting and none was started lately: from
 // the hook or the extension's first request after an update, so older notes are sorted within minutes.
 export function startRescope(store: Store, notes: Note[], now = Date.now()): void {
-  if (!unscoped(notes).length) return;
+  if (!unscoped(notes).length || !toScope(store, notes).length || running(store, now)) return;
   const marker = join(store.home, 'state', 'rescope-started');
   try {
     if (now - statSync(marker).mtimeMs < RESTART_MS) return;

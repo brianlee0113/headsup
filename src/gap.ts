@@ -142,6 +142,10 @@ interface Pick {
   called?: boolean; // the prompt asked for it by name or by subject, so it may be offered for an OK
 }
 
+// How much of a conversation's earlier words is read for kinds of work already under way (a web page's
+// conversation is capped at 20,000 characters too).
+const EARLIER_MAX = 20_000;
+
 export function detect(input: DetectInput): Decision {
   const { prompt, agent, config } = input;
   const targetSpace = input.space ?? (input.cwd ? resolveSpace(input.cwd, config) : config.defaultSpace);
@@ -189,7 +193,7 @@ export function detect(input: DetectInput): Decision {
   // conversation hasn't had (below), the folder changes, or the conversation is compacted (both make
   // the turn an opening again).
   const opening = input.fresh !== false;
-  const before = sentencesOf(ownWords(input.earlier ?? ''));
+  const before = sentencesOf(ownWords(input.earlier ?? '', EARLIER_MAX));
 
   // 3a. task: the person's own words say it is that kind of work. Only a cue of two or more words
   //     counts; one word ("slide", "commit") turns up in prompts that ask for nothing of the kind.

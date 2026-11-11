@@ -373,7 +373,7 @@ async function main(argv: string[]): Promise<number> {
       // per-session summaries use: it is one pass, and a note filed too broadly keeps turning up where
       // it doesn't belong.
       const r = await rescope(store, claudeSummarizer('sonnet'));
-      console.log(`gave ${r.scoped} notes a scope${r.failed ? ` · ${r.failed} could not be read, try again` : ''}`);
+      console.log(r.busy ? 'a rescope is already running' : `gave ${r.scoped} notes a scope${r.failed ? ` · ${r.failed} could not be read, try again` : ''}`);
       return 0;
     }
     case 'recheck-spaces': {

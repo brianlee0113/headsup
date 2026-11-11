@@ -4,7 +4,7 @@
 
 import { agentName } from '../agents.js';
 import type { Config } from '../config.js';
-import { compactedSince, earlierPrompts, lastReply, readAgentContext, readTranscript, transcriptSize } from '../context.js';
+import { compactedSince, earlierPrompts, lastReply, projectOf, readAgentContext, readTranscript, transcriptSize } from '../context.js';
 import { learningOn, readBook, recordRemoved, recordShown, rememberShown, resting, settleShown } from '../learning.js';
 import { detect, type Decision } from '../gap.js';
 import type { Note } from '../note.js';
@@ -47,7 +47,8 @@ export function handleUserPromptSubmit(input: UserPromptSubmitInput, store: Stor
   const session = store.readSession(input.session_id);
   const compacted = !!session && compactedSince(input.transcript_path, session.offset);
   const given = compacted ? [] : session?.given ?? [];
-  const fresh = !session || compacted || session.cwd !== input.cwd;
+  // Moving to another project starts afresh; a cd within the same one (a subfolder, a worktree of it) doesn't.
+  const fresh = !session || compacted || (session.cwd !== input.cwd && (!session.cwd || projectOf(session.cwd) !== projectOf(input.cwd)));
   const remember = (ids: string[]) =>
     store.writeSession(input.session_id, { cwd: input.cwd, given: [...new Set([...given, ...ids])], offset: transcriptSize(input.transcript_path) });
   const pending = store.readPending(input.session_id);
