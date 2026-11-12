@@ -41,7 +41,7 @@ You build in Claude Code and write in ChatGPT. Ask ChatGPT for a cover letter an
 
 ## Highlights
 
-- **Steps in only when it helps.** It reads your prompt first and adds a note only when *this* AI is missing something *another* one knows. Unrelated prompts get nothing.
+- **Steps in only when it helps.** It steps in at the start of a conversation, and only with notes that belong there: your answer style, habits for this kind of task, facts about the project you name. Mid-conversation it stays quiet unless a new kind of task begins.
 - **Knows what the AI already knows.** Anything already in `CLAUDE.md`, `AGENTS.md` or the current conversation is left out.
 - **Work stays at work.** Notes live in a work or personal space. Facts that would cross over wait for your OK, and secrets are never stored.
 - **Works where you chat.** Claude Code and Codex through hooks, chatgpt.com and claude.ai through a Chrome extension. Chats from the ChatGPT and Claude phone apps come in through your account.
@@ -167,7 +167,7 @@ Most of the work happens without a command. Capturing sessions, catching up on s
 No. An MCP server waits for the model to decide to call it, and models often don't. headsup sits *before* the model. It reads your prompt, decides whether outside context is missing, and adds only that. Coding agents get it through hooks and web chats through the extension. MCP is planned only for tools that have no hook to use.
 
 **Won't it stuff every prompt with notes?**
-That's the failure it's built to avoid. A note is left out if this AI already has it in its context files or in the conversation. Weak matches are dropped too. The card made by `headsup card` shows how many of your prompts it actually stepped in on.
+That's the failure it's built to avoid. Each note knows where it applies (everywhere, one kind of task, one project, or you yourself), and it is only added there. One project's notes don't show up in another unless you name it. A note is also left out if this AI already has it in its context files or in the conversation. Replayed on 1,433 real prompts, it stepped in on 0.7% of them. The card made by `headsup card` shows how many of your prompts it actually stepped in on.
 
 **What stops work information leaking into my personal AI?**
 Spaces and presets. Facts that would cross from work to personal are held back until you approve them, or blocked entirely under Cautious. Notes can also be marked never-share.
